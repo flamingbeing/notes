@@ -16,9 +16,10 @@ const area = () => /** @type {HTMLTextAreaElement} */ ($('edit-body'));
 /**
  * @param {import('../cloud.js').Started} app
  * @param {(message: string) => unknown} toast  a short note (the kit's toaster)
+ * @param {() => boolean} canWrite  false: the sheet only shows the note (a viewer)
  * @returns {{ open: (note: Note) => void, redraw: () => void }} open the sheet on a note; redraw its links and backlinks
  */
-export function noteSheet(app, toast) {
+export function noteSheet(app, toast, canWrite) {
   const sheet = dialog('edit');
   /** @type {Note | null} the note as it was opened (the base of its save) */
   let editing = null;
@@ -30,7 +31,7 @@ export function noteSheet(app, toast) {
   // the person's edits saved: a new title renames (and relinks); a note deleted elsewhere comes back as a new note
   const commit = async () => {
     const note = editing;
-    if (!note || !typed()) return;
+    if (!note || !typed() || !canWrite()) return;
     const title = input('edit-text').value.trim() || note.title, body = area().value, path = input('edit-path').value.trim();
     const why = editingGone ? (await app.create({ title, body, path })).refused
       : title !== note.title ? await app.rename(note, title, { body, path })
@@ -49,6 +50,7 @@ export function noteSheet(app, toast) {
     await commit();
     const have = app.find(target);
     if (have) { show(have); return; }
+    if (!canWrite()) { toast('There is no such note yet.'); return; }
     const { note, refused } = await app.create({ title: target });
     if (refused) { toast(refused); return; }
     show(note);
@@ -87,6 +89,9 @@ export function noteSheet(app, toast) {
     input('edit-text').value = note.title;
     input('edit-path').value = note.path || '';
     area().value = note.body || '';
+    const rw = canWrite();
+    for (const id of ['edit-text', 'edit-path', 'edit-body']) input(id).readOnly = !rw;
+    $('edit-save').hidden = !rw; $('edit-delete').hidden = !rw;
     $('edit-live').textContent = ''; $('edit-msg').textContent = '';
     let seen = false;
     editingGone = false;

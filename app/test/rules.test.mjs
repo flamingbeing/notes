@@ -10,7 +10,7 @@ import { suite, token, toValue } from '../../.devkit/rules/suite.mjs';
 
 const PROJECT = 'demo-notes';
 const emu = suite({
-  project: PROJECT,
+  project: 'demo-notes',
   rules: readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8'),
   roles: ['admin', 'member', 'viewer'],
   collections: [],

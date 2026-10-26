@@ -64,7 +64,7 @@ export function listScreen(app) {
     return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
   const toast = toaster($('toasts')).show;
-  const sheet = noteSheet(app, toast);
+  const sheet = noteSheet(app, toast, () => canWrite);
   const empty = emptyState($('empty'), { title: 'No notes yet', hint: 'Notes you write show up here.', action: { label: 'Write the first note', onClick: () => input('new-text').focus() } });
   refusedList($('refused-list'), { sync: app.sync, kind: COLL, text: titleOf });
   $('add').addEventListener('submit', async e => {

@@ -4,20 +4,37 @@ Lasting decisions and how to test. Shaping decisions have their own records in [
 
 ## How to test
 
-See README, "Tests". The browser tests use one shared list (`spaces/_/items`), so each test uses its own made-up
-accounts and item texts and checks only those; they run side by side.
+`bash tools/dev-setup.sh` once, then README, "Tests". Each browser test signs in its own made-up accounts, so each
+person has their own vault (`spaces/<uid>/notes`); tests run side by side and check only their own notes.
+
+Test list (what each part is proved by):
+
+- Parser, links, tags, aliases, daily ids, rename plan, backlink index, `merge3`: `app/test/*.unit.test.mjs`.
+- Rules, every role × collection, own vault vs another person's, shared-space roles, space docs, settings, bin:
+  `app/test/rules.test.mjs` (a non-member is denied there).
+- Screens: add, edit text and folder, delete to the bin, filter by tag and folder, today's note, viewer read-only
+  (`e2e/list.spec.mjs`); search operators and hints (`e2e/search.spec.mjs`).
+- Sync: offline save sent later, two phones, different lines merge, same line gives a conflict copy, rename rewrites
+  links and a link to no note makes it (`e2e/sync.spec.mjs`).
 
 ## Later
 
+- Attachments in notes (S4); the files module stays in `app/public/files/` but has no screen or e2e until then.
 - Restore from the bin (the bin entries keep the deleted version in `data`).
 - Multi-group, email-link and passcode sign-in (app-devkit `custom-token.js`).
 - Enforce the Content-Security-Policy (decision 0003).
 
-## Held conflicts (app-sync 0.6.3)
+## Notes data (S1)
 
-`cloud.js` sets `backend.held` and `edits: '_edits'`: a same-field clash is held on the phone that made the save and
-shown there as a side-by-side sheet (both versions, when in SGT, who and device); other phones see nothing to answer.
-Choices are `app.resolve(c, 'mine' | 'theirs' | { field: … })`. Rules allow the `_edits` map on items.
+- A person's vault is the space `spaces/<uid>`; a shared space has an id `s-<8-40 letters/digits>` and a `members`
+  map (role per uid) plus `memberIds` for the list query. Rules: `app/firestore.app.rules` (build with
+  `node .devkit/tools/build-rules.mjs app/firestore.app.rules`).
+- A note: `path` (folder), `title` (1-300), `body` (up to 1 MiB), `links`, `tags`, `aliases`, `daily`, `updatedAt`,
+  `serverAt`, `_edits`; nothing else passes the rules. A daily note's id is `day-<yyyy-mm-dd>`.
+- `cloud.js` sets `backend.merge.notes` to a line merge (`merge3`, base = the version the device last saw). Edits of
+  different lines merge; a clash on the same line keeps the other device's text and saves this device's as a new note
+  titled "<title> (conflict, <device>, <d Mon HH:MM>)", with a toast.
+- A rename writes the new title, keeps the old one in `aliases` and rewrites `[[old]]` links in the vault.
 
 ## Files formats (`@core/files` v0, decision 0009)
 
