@@ -21,7 +21,7 @@ const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchP
 
 themeSwitch($('theme-switch'));
 // for the tests: add(title, body?) -> '' or why the save was refused
-window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files };
+window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files, members: () => app?.members };
 const app = await start({ canReload: withSW ? () => !typing() && !sheetOpen() : null });
 updatePrompt($('update-prompt'), { update: app?.update || null });
 
