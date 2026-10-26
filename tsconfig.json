@@ -1,0 +1,26 @@
+{
+  // Type check only (npm run typecheck; CI): the app's own JS and the UI kit (app/public/ui, app/public/theme) under
+  // strict, against app-sync's .d.ts for the pinned version (devDependency app-sync, the same tag as the import map). Nothing is emitted; the browser runs the files as is.
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "types": [],
+    "skipLibCheck": true,
+    "paths": {
+      "@core/ui": ["./app/public/ui/index.js"],
+      "@core/theme": ["./app/public/theme/index.js"],
+      "@core/files": ["./app/public/files/index.js"],
+      "@core/settings": ["./app/public/settings/index.js"],
+      "@core/search": ["./app/public/search/index.js"],
+      "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
+      "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
+    }
+  },
+  "include": ["app/src/**/*.js", "app/src/**/*.d.ts", "app/public/ui/*", "app/public/theme/*.js", "app/public/settings/*.js", "app/public/settings/*.d.ts", "app/public/files/*", "app/public/search/*.js", "app/public/search/*.d.ts", "e2e/fixtures/outside-package/src/*.js"]
+}
