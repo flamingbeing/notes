@@ -50,6 +50,7 @@ test('a note moves with its attachments', async ({ phone }) => {
   await openNote(a, t);
   await a.setInputFiles('#edit-attach-input', PNG);
   await expect(a.locator('#edit-files li')).toHaveCount(1, { timeout: 15_000 });
+  await expect(a.locator('#edit-files')).not.toContainText('(uploading)', { timeout: 30_000 });   // a move waits for stored files
   await a.locator('#edit button[value=close]').click();
   await synced(a);
   await expect.poll(() => a.evaluate(() => window.starter.status)).toBe('synced');
