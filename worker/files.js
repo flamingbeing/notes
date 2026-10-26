@@ -7,7 +7,8 @@
 //
 // The object key is `<scope>/<id>[.thumb]`. scope is the signed-in account's uid (a personal file) or a shared scope
 // the token's role allows, by the same rule as the app's Firestore rules (claims { g: { <scope>: role } }): any role
-// reads, admin and member write. An app with other rules passes its own access().
+// reads, admin and member write. An app with other rules passes its own access() (may be async): this one passes
+// spaces.js's spaceAccess (space membership, read from the space doc).
 //
 // handleFiles(request, { bucket, verify, revoked, maxBytes, access, origin, now }) is pure: bucket is R2's interface (put, get, delete),
 // so the unit tests and the e2e server (e2e/serve.mjs) give it an in-memory one (e2e/memory-bucket.mjs).
@@ -44,7 +45,7 @@ export async function handleFiles(request, { bucket, verify, maxBytes = MAX_BYTE
   if (!idToken) return json({ error: 'Sign in first.' }, 401);
   let token;
   try { token = await verify(idToken); } catch (e) { return json({ error: 'Sign in again.', why: e?.message }, 401); }
-  if (!access({ token, scope, write: method !== 'GET', now: now() })) return json({ error: 'No access to these files.' }, 403);
+  if (!(await access({ token, scope, write: method !== 'GET', now: now() }))) return json({ error: 'No access to these files.' }, 403);
   if (revoked) {
     let gone;
     try { gone = await revoked(token.sub); } catch (e) { return json({ error: 'Try again later.', why: e?.message }, 503); }
