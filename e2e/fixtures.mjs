@@ -1,5 +1,5 @@
-// Shared steps for the specs. Every test uses its own made-up accounts and its own item texts, so tests run side by
-// side on the one shared list. A page that reports a Content-Security-Policy violation fails its test.
+// Shared steps for the specs. Every test uses its own made-up accounts (so its own vault) and its own note titles, so
+// tests run side by side. A page that reports a Content-Security-Policy violation fails its test.
 import { test as base, expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -77,17 +77,35 @@ export async function signInAgain(page, email) {
   await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
 }
 
-export async function add(page, text) {
-  await page.fill('#new-text', text);
+// A new note by its title: the note sheet opens on it; Cancel closes it again.
+export async function add(page, title) {
+  await page.fill('#new-text', title);
   await page.click('#add button[type=submit]');
-  await expect(page.locator('#items')).toContainText(text);
+  await expect(page.locator('#edit')).toBeVisible();
+  await page.locator('#edit button[value=cancel]').click();
+  await expect(page.locator('#items')).toContainText(title);
 }
+// Open a note from the list (its button's name starts with the title; a folder follows it)
+export const openNote = (page, title) => page.locator('#items li button', { hasText: title }).first().click();
 export const synced = page => expect.poll(() => page.evaluate(() => window.starter.status), { timeout: 15_000 }).toBe('synced');
-export const serverHas = text => expect.poll(async () => (await db.list('spaces/_/items')).some(d => d.text === text), { timeout: 15_000 }).toBe(true);
-// The id of the shared item with this text (db.list leaves document ids out).
-export async function itemIdOf(text) {
+// Every note on the server, in every vault and space: [{ path, data }] (db.list leaves document paths out)
+export async function serverNotes() {
   const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
-  const r = await fetch(`http://${host}/v1/projects/demo-notes/databases/(default)/documents/spaces/_/items?pageSize=300`, { headers: { Authorization: 'Bearer owner' } });
-  const d = ((await r.json()).documents || []).find(x => x.fields?.text?.stringValue === text);
-  return d?.name.split('/').pop();
+  const r = await fetch(`http://${host}/v1/projects/demo-notes/databases/(default)/documents:runQuery`, {
+    method: 'POST', headers: { Authorization: 'Bearer owner', 'content-type': 'application/json' },
+    body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'notes', allDescendants: true }] } }),
+  });
+  const val = v => v == null ? null : 'stringValue' in v ? v.stringValue : 'integerValue' in v ? Number(v.integerValue)
+    : 'doubleValue' in v ? v.doubleValue : 'arrayValue' in v ? (v.arrayValue.values || []).map(val) : 'nullValue' in v ? null : v;
+  return (await r.json()).filter(x => x.document).map(({ document: d }) => ({
+    path: d.name.split('/documents/')[1],
+    data: Object.fromEntries(Object.entries(d.fields || {}).map(([k, v]) => [k, val(v)])),
+  }));
+}
+// a note with this title (or one whose text has it) is on the server
+export const serverHas = (text, { body = false } = {}) => expect.poll(async () => (await serverNotes())
+  .some(n => body ? String(n.data.body).includes(text) : n.data.title === text), { timeout: 15_000 }).toBe(true);
+// The server path of the note with this title (spaces/<space>/notes/<id>)
+export async function notePathOf(title) {
+  return (await serverNotes()).find(n => n.data.title === title)?.path;
 }

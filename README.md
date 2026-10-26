@@ -1,7 +1,7 @@
 # Notes
 
-Made from [app-starter](https://github.com/flamingbeing/app-starter), a template for small offline-first web apps that
-are safe from day one. Replace this first paragraph with what the app is once it is filled.
+Plain-text notes with `[[links]]`, tags, backlinks and daily notes, offline-first and synced. Personal notes only:
+never put patient details in it. Made from [app-starter](https://github.com/flamingbeing/app-starter).
 
 ## What you get
 
@@ -71,6 +71,11 @@ Then: the Worker secrets `SA_EMAIL` and `SA_KEY` (a service account that may man
 the repo secrets for the deploy (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`), the repo variables for the rules
 deploy (`FIREBASE_PROJECT`, `WIF_PROVIDER`, `RULES_DEPLOYER`), Google sign-in switched on in the Firebase console, the
 app's host as an authorised domain, and a first `members/{uid}` doc with role `admin`.
+
+**Live smoke test**: `.github/workflows/live-smoke.yml` (app-devkit's `live-smoke`) signs a test user in on the deployed
+site, by hand and after each Deploy, and runs `e2e-live/signin.live.spec.mjs` (signed in, no data, no console errors).
+It needs the repo secrets `<NAME>_TEST_EMAIL` and `<NAME>_TEST_PASSWORD` (the name in capitals, hyphens as `_`; fill
+renames them) and skips with a notice until they exist. The test user is in no app data.
 
 `.starter.json` records the template version and commit the app started from; app-devkit's drift report compares an
 app with the template and never changes it.

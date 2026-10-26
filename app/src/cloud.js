@@ -3,17 +3,24 @@
 //
 // Firestore layout (rules in firestore.app.rules):
 //   members/{uid}              { role: admin | member | viewer, v }   the role doc (source of truth; admins write it)
-//   spaces/_/items/{id}        { text, updatedAt, serverAt, _edits }  the list (_edits: who changed each field, and when) ('_' is the single group)
-//   spaces/_/bin/{coll:id}     { id, kind, data, deletedAt, … }       a deleted item's last version (delete to bin)
-//   spaces/_/files/{id}        { name, type, size, w?, h?, thumb?, taken?, state, item }  a photo or file on an item
-//                              (@core/files: its bytes are in the Worker's R2 bucket under _/<id>, worker/files.js)
+//   spaces/{s}                 { name, owner, members: { uid: owner | edit | view }, memberIds }  a shared space (S3)
+//   spaces/{s}/notes/{id}      { path, title, body, links, tags, aliases, daily?, updatedAt, serverAt, _edits }
+//                              a note (notes/model.js); s is the person's uid (their vault) or a shared space's id
+//   spaces/{s}/bin/{coll:id}   { id, kind, data, deletedAt, … }       a deleted note's last version (delete to bin)
+//   spaces/{s}/files/{id}      { name, type, size, w?, h?, thumb?, taken?, state, item? }  a photo or file (S4)
+//                              (@core/files: its bytes are in the Worker's R2 bucket under <s>/<id>, worker/files.js)
+//   spaces/{s}/settings/{uid}  the person's account options (@core/settings)
+//
+// One space is open at a time (app-sync's scope): S1 opens the person's vault at each sign-in; shared spaces come in
+// S3 (switching flushes first; other spaces are read-only watches).
 //
 // Roles reach the rules as custom claims ({ g: { _: role }, v }), a cache of the role doc: the Worker's /api/claims
 // writes them. The auth module reads the role doc live (claims.watch) and asks for new claims whenever its v is ahead
 // of the token's; the page then shows what the token says.
 //
 // Every save goes to a durable outbox first (the sync module's write queue), then to the server in a transaction; a
-// save that meets a change made elsewhere is kept as a conflict until the person chooses, and one the server refuses
+// note saved on another device meanwhile is merged line by line (notes/model.js mergeNote); lines changed on both
+// sides keep the other device's text in the note and this device's as a conflict copy (a new note, never lost); one the server refuses
 // waits in a list until it is retried or discarded. Sign-out keeps this device's copy and its unsent saves (they send
 // when the same account signs in again); another account signing in wipes them first (refused while any are unsent),
 // and "Forget this device" wipes them on purpose.
@@ -27,14 +34,17 @@ import * as register from 'app-update/register.js';
 import { firebaseConfig, APP } from './config.js';
 import { emulator, configured, roleOf, needsClaims } from './roles.js';
 import { OPTIONS, SETTINGS_COLL } from './options.js';
+import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote } from './notes/model.js';
+import { renamePlan, linkIndex } from './notes/links.js';
 
 export { usingEmulator } from './roles.js';
-const SPACE = '_';
-export const COLL = 'items';
+export const COLL = 'notes';
+/** what the page says when the server refused a save at once (its copy waits in the refused list) */
+export const REFUSED = 'The server refused that. A copy is kept in the refused list.';
 export const FILES = 'files';
 
-/** @typedef {{ id: string, text: string, updatedAt?: unknown, _deleted?: boolean } & Record<string, unknown>} Item */
-/** @typedef {import('@core/files').FileRecord & { item: string, _deleted?: boolean }} Attachment */
+/** @typedef {import('./notes/model.js').Note} Note */
+/** @typedef {import('@core/files').FileRecord & { item?: string, _deleted?: boolean }} Attachment */
 /** @typedef {{ uid: string, email: string, name: string }} User */
 /** @typedef {'not-set-up' | 'signed-out' | 'no-access' | 'ready'} Phase */
 /** @typedef {{ phase: Phase, user?: User, role?: string }} State */
@@ -70,8 +80,8 @@ export async function emulatorSignIn(email) {
   await A.signInWithCredential(auth, A.GoogleAuthProvider.credential(JSON.stringify({ sub: email.replace(/\W/g, ''), email, email_verified: true })));
 }
 
-// This phone's name for the popup ('Phone', 'Tablet', 'Computer'), from the browser; the app may let people set one.
-function deviceName() {
+// This phone's name for the popup and conflict copies ('Phone', 'Tablet', 'Computer'), from the browser.
+export function deviceName() {
   try {
     const ua = navigator.userAgent || '';
     return /iPad|Tablet/.test(ua) ? 'Tablet' : /iPhone|Android.*Mobile|Mobile/.test(ua) ? 'Phone' : 'Computer';
@@ -83,11 +93,16 @@ const binCopy = ({ serverAt, ...rest }) => JSON.parse(JSON.stringify(rest));
 /**
  * @typedef {object} Hooks
  * @property {(s: State) => void} onState
- * @property {(items: Item[], changed: Set<string>) => void} onList  the list as this device has it, with its unsent saves
- *   laid over; changed: the ids whose copy changed since the last call (none the first time)
- * @property {(byItem: Map<string, Attachment[]>) => void} [onFiles]  every item's photos and files (item id -> them),
- *   whenever one changes
+ * @property {(notes: Note[], changed: Set<string>) => void} onList  the notes as this device has them, with its unsent
+ *   saves laid over; changed: the ids whose copy changed since the last call (none the first time)
+ * @property {(copy: Note) => void} [onConflict]  a note clashed with another device's edit: this device's text was
+ *   saved as this new note
  */
+// the time in a conflict copy's title, in SGT (the owner's zone) whatever the device's
+/** @param {Date} d */
+export const sgtTime = d => new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Singapore', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d).replace(',', '');
+/** what the page says for a note too big to save */
+export const TOO_BIG = 'This note is too big to save (1 MB at most). Split it into smaller notes.';
 /** @typedef {NonNullable<Awaited<ReturnType<typeof start>>>} Started */
 
 // start({ canReload }) -> the modules' apis (for the UI kit) and the app's actions, or null when the app isn't set up.
@@ -112,22 +127,25 @@ export async function start({ canReload = null }) {
     }),
     sync({
       colls: [COLL, FILES, SETTINGS_COLL], path: (/** @type {string} */ space, /** @type {string} */ coll) => ['spaces', space, coll],
-      scope: () => SPACE, device: deviceName(), wake: true,
-      // a delete writes the item's last version to the bin in the same transaction ({ id, kind, data, deletedAt }:
-      // the other devices drop the item from it, and data keeps the deleted version)
-      // held: a same-field clash is kept on the phone that made the save until its person chooses (never overwritten);
+      scope: (/** @type {User} */ u) => u.uid, device: deviceName(), wake: true,
+      // a delete writes the note's last version to the bin in the same transaction ({ id, kind, data, deletedAt }:
+      // the other devices drop the note from it, and data keeps the deleted version)
+      // merge: notes merge line by line (mergeNote; a clash is kept as a conflict, which follow() turns into a copy)
+      // held: (settings and files) a same-field clash is kept on the phone that made the save until its person chooses (never overwritten);
       // edits: each write records who changed each field and when, for the popup
-      backend: { stampMode: 'server', writeId: false, held: true, edits: '_edits',
+      // commitRetry: a send refused with permission-denied just after sign-in (the role check still catching up) is tried
+      // once more after 500 ms, as app-sync advises for rules that read a document another write is creating
+      backend: { merge: { [COLL]: mergeNote }, stampMode: 'server', writeId: false, held: true, edits: '_edits', commitRetry: { codes: ['permission-denied'], delay: 500 },
         onCommit: (/** @type {any} */ { scope, coll, before, after, at, fields }) => coll === COLL && !after && before
           ? [{ path: ['spaces', scope, 'bin', `${coll}:${before.id}`], data: { ...leaveEntry(coll, before, at), data: binCopy(before), ...fields } }] : [] },
       hub: { bin: 'bin' }, stores: { metaOnly: ['bin'] },
       // a save the server refused is set aside (kept, with its code) until the person retries or discards it
       onRefused: () => 'archive',
     }),
-    // photos and files on items: the records sync in FILES, the bytes go to /api/files (shared by the space, like the
-    // items; the date a photo was taken is kept, its place is not)
-    files({ collection: FILES, scope: () => SPACE, exif: true }),
-    settings({ options: OPTIONS, collection: SETTINGS_COLL, scope: SPACE }),
+    // photos and files (S4 attaches them to notes): the records sync in FILES, the bytes go to /api/files (in the
+    // space, like the notes; the date a photo was taken is kept, its place is not)
+    files({ collection: FILES, scope: (/** @type {{ uid: string }} */ u) => u.uid, exif: true }),
+    settings({ options: OPTIONS, collection: SETTINGS_COLL, scope: (/** @type {{ uid: string }} */ u) => u.uid }),
     ...(canReload ? [update({ register, app: 'app', sw: 'sw.js', canReload })] : []),
   ];
   const app = createApp({ config: { name: APP.name, sdk }, modules });
@@ -138,8 +156,6 @@ export async function start({ canReload = null }) {
 
   /** @type {(() => void) | null} */
   let offList = null;
-  /** @type {(() => void) | null} */
-  let offFiles = null;
   let seq = 0;
   // the token Firestore has been told about: its own token listener (added when the SDK started, so before this one)
   // runs in the same notification and restarts its connection with the new token. A list listen sent before that goes
@@ -148,62 +164,125 @@ export async function start({ canReload = null }) {
   fa.onIdTokenChanged(async (/** @type {any} */ u) => { tokenSeen = u ? await u.getIdToken().catch(() => '') : ''; void show(); });
   /** @type {(() => void) | null} */
   let offSettings = null;
-  const stopList = () => { offList?.(); offList = null; offFiles?.(); offFiles = null; offSettings?.(); offSettings = null; };
+  const stopList = () => { offList?.(); offList = null; offSettings?.(); offSettings = null; };
   // the token as it is now decides what the page shows (after sign-in, and after every claims ask); the newest call wins
+  /** @type {Note[]} */
+  let notes = [];
+  /** @type {ReturnType<typeof linkIndex>} the vault's links and backlinks, rebuilt with each list */
+  let index = linkIndex([]);
+  let vault = '';
+  // a note's save that clashed with another device's edit (state conflict): this device's newest text for it is saved
+  // as a conflict copy, then its saves are set aside, so the note shows the other device's text (never resent: a
+  // resend would merge into it as new lines). The copy's id comes from the save's key: a retry makes no second copy.
+  let copying = false;
+  const copyConflicts = async () => {
+    if (copying || !vault) return;
+    copying = true;
+    try {
+      for (const c of app.sync.conflicts(COLL)) {
+        const chain = app.sync.queue.entries().filter((/** @type {any} */ x) => x.kind === COLL && x.record?.id === c.id && (x.state === 'conflict' || x.state === 'pending'));
+        const last = chain[0];   // entries() is newest first
+        if (!last) continue;
+        const copy = conflictCopy(/** @type {Note} */ (last.record), { key: c.key, device: deviceName(), at: sgtTime(new Date(c.at || Date.now())) });
+        await app.sync.save(COLL, vault, copy, null).catch(() => {});
+        await app.sync.queue.archive(last.key);
+        hooks?.onConflict?.(copy);
+      }
+    } finally { copying = false; }
+  };
+  app.sync.queue.onChange(() => { void copyConflicts(); });
   show = async () => {
     if (!hooks) return;
-    const { onState, onList, onFiles } = hooks;
+    const { onState, onList } = hooks;
     const n = ++seq, u = fa.currentUser, me = app.auth.user();
-    if (!u || !me || me.uid !== u.uid) { stopList(); onState({ phase: 'signed-out' }); return; }
+    if (!u || !me || me.uid !== u.uid) { stopList(); vault = ''; onState({ phase: 'signed-out' }); return; }
     if (claimsStatus === 503) { onState({ phase: 'not-set-up' }); return; }
     const t = await u.getIdTokenResult(), role = roleOf(t.claims);
     if (n !== seq) return;
     if (role && t.token !== tokenSeen) return;   // a new token Firestore hasn't seen yet: onIdTokenChanged calls back
     const user = { uid: me.uid, email: me.email, name: me.name };
     if (!role) { stopList(); onState({ phase: 'no-access', user, role: '' }); return; }
+    if (vault !== me.uid) { stopList(); vault = me.uid; }
     onState({ phase: 'ready', user, role });
     offSettings ??= app.settings.follow();   // the account's options, heard from other devices (listening needs the role)
     let first = true;
-    offList ??= app.sync.watch(SPACE, COLL, (/** @type {Item[]} */ list, /** @type {{ changed?: string[] }} */ meta) => {
-      onList(list.filter(x => !x._deleted), new Set(first ? [] : meta?.changed || []));
+    offList ??= app.sync.watch(vault, COLL, (/** @type {Note[]} */ list, /** @type {{ changed?: string[] }} */ meta) => {
+      notes = list.filter(x => !x._deleted);
+      index = linkIndex(notes);
+      onList(notes, new Set(first ? [] : meta?.changed || []));
       first = false;
     });
-    if (onFiles) offFiles ??= app.sync.watch(SPACE, FILES, (/** @type {Attachment[]} */ list) => {
-      /** @type {Map<string, Attachment[]>} */
-      const by = new Map();
-      for (const f of list) if (!f._deleted && f.item) by.set(f.item, [...(by.get(f.item) || []), f]);
-      onFiles(by);
-    });
+    void copyConflicts();
   };
   app.auth.onUser(() => { claimsStatus = 0; void show(); });
 
+  /** @param {Promise<unknown>} saving */
+  const refusal = saving => saving.then(() => '', e => (e instanceof Error && e.message) || 'The server refused it');
+  /** @param {Note} record @param {Note | null} base -> '' or why not */
+  const put = (record, base) => {
+    const r = withDerived(record);
+    return sizeOf(r.body) === 'too-big' ? Promise.resolve(TOO_BIG) : refusal(app.sync.save(COLL, vault, r, base));
+  };
   const id = () => (crypto.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2)).replace(/-/g, '');
   return {
     // the modules' apis, for the UI kit's parts (update: with a service worker only, else null)
     auth: app.auth, sync: app.sync, settings: app.settings, update: app.update || null, files: app.files,
-    // from now on: onState with what the page shows, onList with the list once it is shown
+    // the whole app's status (sync and files): { state, count, unsent }
+    /** @param {(st: { state: string, count: number, unsent: number }) => void} fn */
+    status$: fn => app.status$(fn),
+    // from now on: onState with what the page shows, onList with the notes once they are shown
     /** @param {Hooks} h */
     follow(h) { hooks = h; void show(); },
-    /** @param {string} text */
-    add: text => app.sync.save(COLL, SPACE, { id: id(), text }, null),
-    // base: the copy the edit started from
-    /** @param {Item} item @param {string} text */
-    edit: (item, text) => app.sync.save(COLL, SPACE, { ...item, text }, item),
-    // a delete takes the item's photos and files with it
-    /** @param {Item} item @param {Attachment[]} [attached] */
-    remove: async (item, attached = []) => {
-      void app.sync.hub.drop(SPACE, COLL, [item.id]);
-      await app.sync.save(COLL, SPACE, { id: item.id, _deleted: true }, item);
-      for (const f of attached) await app.files.remove(f);
+    /** the notes as last shown */
+    notes: () => notes,
+    // Saves resolve to '' when stored or queued, or to the reason when refused at once (app-sync rejects then; the copy
+    // waits in the refused list, so the page says so rather than fail) or too big.
+    // a new note: { note, refused } (refused: '' or why not)
+    /** @param {{ title: string, body?: string, path?: string }} n @returns {Promise<{ note: Note, refused: string }>} */
+    async create(n) {
+      const note = withDerived({ id: id(), title: n.title, body: n.body || '', path: n.path || '' });
+      return { note, refused: await put(note, null) };
     },
-    // a photo or file on an item: shows at once from this device, uploads when online
-    /** @param {Item} item @param {Blob} file */
-    attach: (item, file) => app.files.add(file, { extra: { item: item.id } }),
-    /** @param {Attachment} f */
-    detach: f => app.files.remove(f),
-    // one item, live from the server: cb(item) when its copy changes, cb(null) once the server says it is gone -> stop()
-    /** @param {string} itemId @param {(item: Item | null) => void} cb @returns {() => void} */
-    watchItem: (itemId, cb) => app.sync.watchDoc(['spaces', SPACE, COLL, itemId], cb),
+    // base: the copy the edit started from (the merge's base)
+    /** @param {Note} note @param {Partial<Note>} patch @returns {Promise<string>} */
+    edit: (note, patch) => put({ ...note, ...patch }, note),
+    // a new title, and every [[link]] to the old one in this space rewritten (the old title kept as an alias); patch:
+    // the note's other edits, saved with it
+    /** @param {Note} note @param {string} title @param {Partial<Note>} [patch] @returns {Promise<string>} */
+    async rename(note, title, patch = {}) {
+      const edited = withDerived({ ...note, ...patch });
+      if (sizeOf(edited.body) === 'too-big') return TOO_BIG;
+      const plan = renamePlan(notes.map(n => (n.id === note.id ? edited : n)), edited, title);
+      if (!plan.length) return '';
+      const [self, ...others] = plan;
+      // this note on its own copy (the base the person started from), the others on theirs
+      const mine = await put(self.record, note);
+      if (mine) return mine;
+      const done = await app.sync.saveMany(COLL, vault, others.map(p => p.record));
+      const no = done.find((/** @type {{ status: string }} */ r) => r.status === 'rejected');
+      return no ? 'Some links could not be updated; the server refused it.' : '';
+    },
+    // the note a [[link]] means (title, then alias, then folder/title), or null; the notes linking to a note
+    /** @param {string} target @returns {Note | null} */
+    find: target => index.resolve(target),
+    /** @param {string} noteId @returns {Note[]} */
+    backlinks: noteId => index.backlinks(noteId),
+    // today's daily note (or the given date's): made if it isn't there, one id per date so two devices make one note
+    /** @param {string} iso @param {string} [folder] @returns {Promise<{ note: Note, refused: string }>} */
+    async daily(iso, folder = '') {
+      const have = notes.find(x => x.id === dailyNote(iso).id);
+      if (have) return { note: have, refused: '' };
+      const note = dailyNote(iso, folder);
+      return { note, refused: await put(note, null) };
+    },
+    /** @param {Note} note */
+    remove: async note => {
+      void app.sync.hub.drop(vault, COLL, [note.id]);
+      await app.sync.save(COLL, vault, { id: note.id, _deleted: true }, note);
+    },
+    // one note, live from the server: cb(note) when its copy changes, cb(null) once the server says it is gone -> stop()
+    /** @param {string} noteId @param {(note: Note | null) => void} cb @returns {() => void} */
+    watchNote: (noteId, cb) => app.sync.watchDoc(['spaces', vault, COLL, noteId], cb),
     // Sign-out keeps this device's copy and unsent saves. -> how many are still unsent (they send at the next sign-in)
     async signOut() { await app.auth.signOut(); return unsent; },
   };

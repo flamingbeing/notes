@@ -9,7 +9,8 @@ interface Window {
   /** What the tests read: set by app.js. */
   starter: {
     ready: boolean;
-    add: (text: string) => Promise<unknown> | undefined;
+    /** a new note -> '' or why the save was refused */
+    add: (title: string, body?: string) => Promise<string>;
     /** ?emulator only: sign in as a made-up Google account (cloud.js emulatorSignIn; works in a Vite build too). */
     signInAs: (email: string) => Promise<unknown>;
     status?: string;

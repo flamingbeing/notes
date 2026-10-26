@@ -1,6 +1,5 @@
 // The page's shell: the theme, the kit's sync chip and update prompt, the account footer, and the screen switch. The
-// sample screens (screens/) show a list with add, edit, delete, conflicts and refused saves; a new app replaces them and
-// keeps this wiring, cloud.js and the kit (@core/ui, @core/theme).
+// screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
 import { syncChip, updatePrompt, plural } from '@core/ui';
 import { themeSwitch } from '@core/theme';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
@@ -20,14 +19,22 @@ const sheetOpen = () => !!document.querySelector('dialog[open]');
 const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchParams(location.search).has('sw'));
 
 themeSwitch($('theme-switch'));
-window.starter = { ready: false, add: text => app?.add(text), signInAs: emulatorSignIn, files: () => app?.files };   // for the tests
+// for the tests: add(title, body?) -> '' or why the save was refused
+window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files };
 const app = await start({ canReload: withSW ? () => !typing() && !sheetOpen() : null });
 updatePrompt($('update-prompt'), { update: app?.update || null });
 
 if (!app) notSetUpScreen().show({ phase: 'not-set-up' });
 else {
-  syncChip($('sync-chip'), { sync: app.sync });
-  app.sync.status$((/** @type {{ state: string }} */ st) => { window.starter.status = st.state; });
+  // the chip and the tests' status read the whole app (sync and files), not the sync module alone: "Saved" only when
+  // nothing is unsent anywhere, the same count sign-out reports. (The files module says 'saving'; the chip's word is 'pending'.)
+  /** @param {(st: { state: string, count: number }) => void} fn */
+  const chipStatus$ = fn => app.status$(st => {
+    const state = st.state === 'saving' ? 'pending' : st.state;
+    fn(state === 'synced' && st.unsent > 0 ? { state: 'pending', count: st.unsent } : { state, count: st.count });
+  });
+  syncChip($('sync-chip'), { sync: /** @type {any} */ ({ status$: chipStatus$ }) });   // (the chip reads only status$)
+  chipStatus$(st => { window.starter.status = st.state; });
   let signedIn = false;
   settingsSheet(app, () => signedIn);
   const list = listScreen(app);
@@ -56,6 +63,7 @@ else {
       list.draw(items, changed);
       window.starter.ready = true;
     },
-    onFiles(by) { list.drawFiles(by); },
+    // a clash with another device's edit: the other device's text stays, this device's is kept as its own note
+    onConflict(copy) { list.toast(`Edited on two devices at once; your version is kept as “${copy.title}”.`); },
   });
 }

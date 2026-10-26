@@ -2,7 +2,7 @@
 // the modules run), solid where the device asks for less transparency or more contrast, axe on glass, the screen
 // switch as a view transition. Screenshots of the sample in light, dark, OLED and Solid go to test-results/ for the PR.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, APP } from './fixtures.mjs';
 
 /** @param {import('@playwright/test').Page} page @param {string} sel @param {string} prop */
 const style = (page, sel, prop) => page.locator(sel).first().evaluate((e, p) => getComputedStyle(e).getPropertyValue(p), prop);
@@ -65,9 +65,9 @@ const MODES = [
 test('the sample in light, dark, OLED and Solid: axe on the bar, a toast and a sheet; screenshots kept', async ({ phone }, info) => {
   const page = await phone();
   await signIn(page, 'member');
-  for (let i = 1; i <= 14; i++) await page.evaluate(t => window.starter.add(t), `Sample item ${i}`);
-  // (other tests add to the same list in parallel: wait for this test's last item, not a total)
-  await expect(page.getByRole('button', { name: 'Sample item 14', exact: true })).toBeVisible();
+  for (let i = 1; i <= 14; i++) await page.evaluate(t => window.starter.add(t), `Sample note ${i}`);
+  // (other tests add to the same list in parallel: wait for this test's last note, not a total)
+  await expect(page.getByRole('button', { name: 'Sample note 14', exact: true })).toBeVisible();
   for (const [name, pick] of MODES) {
     await page.getByLabel('Theme').selectOption(pick.theme);
     await page.getByLabel('Dark style').selectOption(pick.dark);
@@ -82,10 +82,10 @@ test('the sample in light, dark, OLED and Solid: axe on the bar, a toast and a s
     expect(await AxeBuilder(page), `${name}: page with a toast`).toEqual([]);
     await page.screenshot({ path: info.outputPath(`glass-${name}.png`) });
 
-    await page.getByRole('button', { name: 'Sample item 3' }).click();
+    await openNote(page, /^Sample note 3$/);
     await expect(page.locator('#edit')).toBeVisible();
     await settled(page);
-    expect(await AxeBuilder(page), `${name}: the item sheet`).toEqual([]);
+    expect(await AxeBuilder(page), `${name}: the note sheet`).toEqual([]);
     await page.screenshot({ path: info.outputPath(`glass-${name}-sheet.png`) });
     await page.locator('#edit').getByRole('button', { name: 'Cancel' }).click();
     await expect(page.locator('#edit')).toBeHidden();

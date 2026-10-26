@@ -65,11 +65,12 @@ jobs:
           install: 'false'
       - uses: flamingbeing/app-devkit/setup-emulators@v1.9.2
         with:
+          firebase-tools-version: '15.33.0'   # Firestore emulator v1.22 (playwright.config.mjs)
           emulators: firestore
           devkit-dir: .devkit
       - name: Rules in the emulator
         working-directory: app
-        run: npx -y firebase-tools@13.29.1 emulators:exec --only firestore --project demo-starter-app "node --test test/rules.test.mjs"
+        run: npx -y firebase-tools@15.33.0 emulators:exec --only firestore --project demo-notes "node --test test/rules.test.mjs"
 
   e2e:
     runs-on: ubuntu-24.04
@@ -80,6 +81,7 @@ jobs:
       - uses: flamingbeing/app-devkit/setup-browser@v1.9.2
       - uses: flamingbeing/app-devkit/setup-emulators@v1.9.2
         with:
+          firebase-tools-version: '15.33.0'   # Firestore emulator v1.22 (playwright.config.mjs)
           emulators: firestore,auth
       - run: npx playwright test
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -100,6 +102,7 @@ jobs:
       - uses: flamingbeing/app-devkit/setup-browser@v1.9.2
       - uses: flamingbeing/app-devkit/setup-emulators@v1.9.2
         with:
+          firebase-tools-version: '15.33.0'   # Firestore emulator v1.22 (playwright.config.mjs)
           emulators: firestore,auth
       - run: npm run vite
       - name: Browser tests on the Vite build
@@ -124,14 +127,20 @@ jobs:
       - uses: flamingbeing/app-devkit/setup-browser@v1.9.2
       - uses: flamingbeing/app-devkit/setup-emulators@v1.9.2
         with:
+          firebase-tools-version: '15.33.0'   # Firestore emulator v1.22 (playwright.config.mjs)
           emulators: firestore,auth
       - name: Fill a scratch copy
         run: |
           mkdir -p "$RUNNER_TEMP/new-app"
           tar --exclude=.git -cf - . | tar -xf - -C "$RUNNER_TEMP/new-app"
           cd "$RUNNER_TEMP/new-app"
-          node tools/fill.mjs --name fill-check --host fill-check.example.net --kit nuhs --project fill-check-app --commit "$GITHUB_SHA"
-          node tools/fill.mjs --name fill-check --host fill-check.example.net --kit nuhs --project fill-check-app --commit "$GITHUB_SHA" --check
+          # a made-up web config (what `firebase apps:sdkconfig WEB` prints): the "configured" path, not the blank one
+          FAKE_KEY="fake-$(openssl rand -hex 8)"
+          jq -n --arg k "$FAKE_KEY" '{sdkConfig: {projectId: "fill-check-app", apiKey: $k, appId: "1:0:web:made-up"}}' > "$RUNNER_TEMP/web-config.json"
+          ARGS=(--name fill-check --host fill-check.example.net --kit nuhs --project fill-check-app --web-config "$RUNNER_TEMP/web-config.json" --commit "$GITHUB_SHA")
+          node tools/fill.mjs "${ARGS[@]}"
+          node tools/fill.mjs "${ARGS[@]}" --check
+          grep -qF "$FAKE_KEY" app/src/config.js
           ! grep -rIl --exclude-dir=node_modules --exclude-dir=.devkit --exclude='*.log' --exclude=fill.mjs --exclude=fill.test.mjs --exclude=claims.js --exclude=custom-token.js -e 'starter-app' -e 'app\.example\.com' .
       - name: Checks on the filled app
         working-directory: ${{ runner.temp }}/new-app
@@ -143,7 +152,18 @@ jobs:
           npm run typecheck
       - name: Rules on the filled app
         working-directory: ${{ runner.temp }}/new-app/app
-        run: npx -y firebase-tools@13.29.1 emulators:exec --only firestore --project demo-fill-check "node --test test/rules.test.mjs"
+        run: npx -y firebase-tools@15.33.0 emulators:exec --only firestore --project demo-fill-check "node --test test/rules.test.mjs"
       - name: Browser tests on the filled app
         working-directory: ${{ runner.temp }}/new-app
         run: npx playwright test
+      - name: Vite build of the filled app
+        working-directory: ${{ runner.temp }}/new-app
+        run: npm run vite
+      - name: Browser tests on the filled app's Vite build
+        working-directory: ${{ runner.temp }}/new-app
+        run: npx playwright test
+        env:
+          APP_DIR: dist
+      - name: Worker build of the filled app (wrangler dry run, no account)
+        working-directory: ${{ runner.temp }}/new-app
+        run: npx -y wrangler@4.45.0 deploy --dry-run --outdir "$RUNNER_TEMP/worker-out"

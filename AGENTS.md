@@ -1,9 +1,9 @@
 # Notes
 
 Instructions for every AI assistant working here (Claude Code reads this through `CLAUDE.md`).
-Replace the placeholders in angle brackets once the app is filled, then delete this line.
 
-<One or two lines: what this app is and who uses it.>
+A small notes app in the style of Obsidian: plain-text notes with `[[links]]`, tags, backlinks and daily notes, kept
+offline-first on each device and synced. For the owner's own notes; no patient details, ever.
 
 ## Public here, private elsewhere
 
@@ -43,7 +43,7 @@ npm run vite && APP_DIR=dist npm run e2e
 
 - Instructions mostly come from a phone. Work through a request to the end; ask only when a decision is genuinely
   the owner's. When asked to plan, plan and wait.
-- Keep each PR small and finished on its own. Start PR titles with the app: "<App>: …".
+- Keep each PR small and finished on its own. Start PR titles with the app: "Notes: …".
 - Merge your own PRs once the checks pass, then report with the PR link and call `unsubscribe_pr_activity`.
 - Keep `NOTES.md` (lasting decisions, how to test) and `STATUS.md` (now, waiting on the owner, next, dated
   decisions) current; a decision that shapes the code gets a record in `docs/decisions/`. Cheap end of session:
