@@ -19,6 +19,7 @@
       "@core/settings": ["./app/public/settings/index.js"],
       "@core/search": ["./app/public/search/index.js"],
       "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
+      "@vendor/codemirror": ["./tools/codemirror-entry.js"],
       "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
     }
   },

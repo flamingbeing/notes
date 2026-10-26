@@ -77,14 +77,20 @@ export async function signInAgain(page, email) {
   await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
 }
 
-// A new note by its title: the note sheet opens on it; Cancel closes it again.
+// A new note by its title: the note sheet opens on it; Close closes it again.
 export async function add(page, title) {
   await page.fill('#new-text', title);
   await page.click('#add button[type=submit]');
   await expect(page.locator('#edit')).toBeVisible();
-  await page.locator('#edit button[value=cancel]').click();
+  await page.locator('#edit button[value=close]').click();
   await expect(page.locator('#items')).toContainText(title);
 }
+// A note's whole text set at once, as if typed (the editor, once loaded, hides the textarea it writes into; an input
+// event on the textarea brings the editor along)
+export const fillBody = (page, text) => page.locator('#edit-body').evaluate((el, t) => {
+  const a = /** @type {HTMLTextAreaElement} */ (el);
+  a.value = t; a.dispatchEvent(new Event('input'));
+}, text);
 // Open a note from the list (its button's name starts with the title; a folder follows it)
 export const openNote = (page, title) => page.locator('#items li button', { hasText: title }).first().click();
 export const synced = page => expect.poll(() => page.evaluate(() => window.starter.status), { timeout: 15_000 }).toBe('synced');

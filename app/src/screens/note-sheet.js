@@ -1,46 +1,81 @@
-// The note sheet (#edit): a note's title, folder and text (a plain textarea; the editor is S2's), the notes it links to
-// (a missing one is made on a click) and the notes linking to it (backlinks). It follows its note on the server: a change
-// made elsewhere shows under the text, and a delete made elsewhere closes the sheet and says so, unless the person has
-// typed a change: then the sheet stays open, says so, and Save adds their text back as a new note. A new title renames
-// the note and rewrites [[links]] to it in the vault. (A note not on the server yet is only "gone" once it was seen there.)
+// The note sheet (#edit): a note's title, folder and text, the notes it links to (a missing one is made on a click) and
+// the notes linking to it (backlinks). The text is edited in the editor (editor/, CodeMirror with live preview), loaded
+// the first time a note opens; until then, or if it can't load, the plain textarea does the job. The textarea stays the
+// note's text either way: the editor writes each change into it. A read view (marked + DOMPurify) shows the note as a
+// page; a viewer starts there.
+// Saves happen by themselves, as in the logbook: the text and folder after 3 s without typing, when the editor loses
+// the focus, and when the page is hidden or left; a new title when the title box is left (it renames the note and
+// rewrites [[links]] to it in the vault); everything when the sheet closes (Save and Close both keep the text).
+// The sheet follows its note on the server: a change made elsewhere comes in when nothing is typed here (and merges
+// with what is typed when it saves); a delete made elsewhere closes the sheet and says so, unless the person has typed
+// a change: then the sheet stays open, says so, and saving adds their text back as a new note.
 // A [[Space/Note]] link to a note in another space the person is in opens that space, then the note; "Move" sends the
 // note to another space they can write (or their own notes).
 import { confirmModal } from '@core/ui';
 import { TOO_BIG } from '../cloud.js';
 import { linksIn } from '../notes/parse.js';
 import { sizeOf } from '../notes/model.js';
+import { tidyMarkdown } from '../notes/paste-clean.js';
 import { $, input, dialog } from '../dom.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
+/** @typedef {import('../editor/index.js').Editor} Editor */
+/** @typedef {{ title?: boolean, say?: boolean }} SaveHow  title: a new title too (renames); say: toast the outcome */
 
 const area = () => /** @type {HTMLTextAreaElement} */ ($('edit-body'));
+const QUIET_MS = 3000;
+const AUTO = { title: false, say: false };
 
 /**
  * @param {import('../cloud.js').Started} app
  * @param {(message: string) => unknown} toast  a short note (the kit's toaster)
  * @param {() => boolean} canWrite  false: the sheet only shows the note (a viewer)
- * @returns {{ open: (note: Note) => void, redraw: () => void }} open the sheet on a note; redraw its links and backlinks
  */
 export function noteSheet(app, toast, canWrite) {
   const sheet = dialog('edit');
-  /** @type {Note | null} the note as it was opened (the base of its save) */
+  const { settings } = app;
+  /** @type {Note | null} the note as last saved or opened (the base of its next save) */
   let editing = null;
   let editingGone = false;   // the note was deleted elsewhere while the person had typed a change
   /** @type {(() => void) | null} */
   let stopLive = null;
+  /** @type {Editor | null} */
+  let ed = null;
+  /** @type {{ show: (text: string) => void } | null} */
+  let reader = null;
+  let reading = false;
+  let timer = 0;
+  /** @type {string[]} ids of the notes opened, the latest first (the switcher's list before anything is typed) */
+  const recent = [];
 
   const typed = () => !!editing && (input('edit-text').value.trim() !== editing.title || area().value !== (editing.body || '') || input('edit-path').value.trim() !== (editing.path || ''));
-  // the person's edits saved: a new title renames (and relinks); a note deleted elsewhere comes back as a new note
-  const commit = async () => {
+  // the person's edits saved, one save at a time: a new title renames (and relinks); a note deleted elsewhere comes
+  // back as a new note. -> '' or why the server refused it
+  let saving = Promise.resolve('');
+  /** @param {SaveHow} [how] */
+  const commit = (how = {}) => (saving = saving.then(() => save(how), () => save(how)));
+  /** @param {SaveHow} how */
+  const save = async ({ title: withTitle = true, say = true }) => {
+    clearTimeout(timer);
     const note = editing;
-    if (!note || !typed() || !canWrite()) return '';
-    const title = input('edit-text').value.trim() || note.title, body = area().value, path = input('edit-path').value.trim();
-    const why = editingGone ? (await app.create({ title, body, path })).refused
-      : title !== note.title ? await app.rename(note, title, { body, path })
-        : await app.edit(note, { body, path });
-    toast(why || 'Saved');
+    if (!note || !typed() || !canWrite() || (editingGone && !withTitle)) return '';
+    const title = withTitle ? input('edit-text').value.trim() || note.title : note.title;
+    const body = area().value, path = input('edit-path').value.trim();
+    if (!withTitle && body === (note.body || '') && path === (note.path || '')) return '';
+    let why = '';
+    if (editingGone) {
+      const made = await app.create({ title, body, path });
+      why = made.refused;
+      if (!why && editing === note) { editingGone = false; editing = made.note; follow(made.note); }
+    } else {
+      why = title !== note.title ? await app.rename(note, title, { body, path }) : await app.edit(note, { body, path });
+      if (!why && editing === note) editing = { ...note, title, body, path };
+    }
+    if (say || (why && why !== TOO_BIG)) toast(why || 'Saved');
     return why;
   };
+  const later = () => { clearTimeout(timer); if (canWrite()) timer = window.setTimeout(() => void commit(AUTO), QUIET_MS); };
+
   const button = (/** @type {string} */ label, /** @type {() => void} */ onClick, cls = '') => {
     const li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.textContent = label; if (cls) b.className = cls;
@@ -78,23 +113,85 @@ export function noteSheet(app, toast, canWrite) {
     const size = sizeOf(area().value);
     $('edit-size').textContent = size === 'too-big' ? TOO_BIG : size === 'warn' ? 'This note is getting big (over 800 KB).' : '';
   };
-  area().addEventListener('input', () => redraw());
+  const typing = () => { redraw(); later(); };
+  // the textarea typed in (before the editor loads, or by a test): the editor follows it
+  area().addEventListener('input', () => { ed?.set(area().value); typing(); });
+  input('edit-path').addEventListener('input', later);
+  input('edit-path').addEventListener('change', () => void commit(AUTO));
+  input('edit-text').addEventListener('change', () => void commit({ title: true, say: false }));
+  // the page hidden (another app, a closed tab): what is typed is saved now
+  const away = () => { if (sheet.open) void commit({ title: true, say: false }); };
+  window.addEventListener('pagehide', away);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') away(); });
+
+  // the editor's options (this device): source mode, line numbers, readable line width
+  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers') });
+  const applyOptions = () => {
+    sheet.classList.toggle('wide', !settings.get('readableWidth'));
+    ed?.setOptions(options());
+  };
+  settings.watch(null, applyOptions);
+  applyOptions();
+
+  // read view or editing: a viewer starts in the read view
+  /** @param {boolean} on */
+  const setReading = on => {
+    reading = on && !!reader;
+    const mode = $('edit-mode');
+    mode.hidden = !reader;
+    mode.setAttribute('aria-pressed', String(reading));
+    if (reading) reader?.show(area().value);
+    $('edit-read').hidden = !reading;
+    $('edit-cm').hidden = reading || !ed;
+    area().hidden = reading || !!ed;
+    $('edit-fmt').hidden = reading || !ed || !canWrite();
+  };
+  $('edit-mode').addEventListener('click', () => { setReading(!reading); if (!reading) ed?.focus(); });
+
+  // the editor, the first time a note opens (the list screen loads none of it)
+  /** @type {Promise<void> | null} */
+  let loading = null;
+  const load = () => (loading ??= (async () => {
+    try {
+      const [{ createEditor }, { readView }, { fmtBar }] = await Promise.all([import('../editor/index.js'), import('../editor/read-view.js'), import('../editor/fmt-bar.js')]);
+      reader = readView($('edit-read'), t => void go(t));
+      ed = createEditor({
+        parent: $('edit-cm'), text: area().value, label: 'Text', readOnly: !canWrite(), options: options(),
+        titles: () => app.notes().filter(n => n.id !== editing?.id).map(n => ({ title: n.title, path: n.path })),
+        onChange: text => { area().value = text; typing(); },
+        onBlur: () => void commit(AUTO),
+        onLink: t => void go(t),
+      });
+      $('edit-fmt').replaceChildren(fmtBar(() => ed?.view || null));
+      document.documentElement.dataset.editor = 'ready';
+    } catch (err) {
+      // the textarea stays: the note can still be written
+      console.warn('The editor did not load; using the plain text box.', err);
+      document.documentElement.dataset.editor = 'failed';
+    }
+  })());
 
   // a note too big to save keeps the sheet open, so the text isn't lost with it
+  const tooBig = () => sizeOf(area().value) === 'too-big';
   $('edit-form').addEventListener('submit', e => {
-    if (/** @type {SubmitEvent} */ (e).submitter?.id === 'edit-save' && sizeOf(area().value) === 'too-big') { e.preventDefault(); toast(TOO_BIG); }
+    if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); }
   });
+  sheet.addEventListener('cancel', e => { if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); } });
   sheet.addEventListener('close', async () => {
     stopLive?.(); stopLive = null;
-    if (sheet.returnValue === 'save') await commit();
+    if (sheet.returnValue !== 'delete' && sheet.returnValue !== 'gone') await commit();
+    else clearTimeout(timer);
     editing = null;
   });
-  $('edit-delete').addEventListener('click', async () => {
+  const remove = async () => {
+    if (!editing) return;
     if (!await confirmModal('Delete this note? It goes to the bin.', { title: 'Delete note', danger: true, yes: 'Delete' })) return;
     const note = editing; editing = null;
+    clearTimeout(timer);
     sheet.close('delete');
     if (note && !editingGone) { await app.remove(note); toast('Deleted'); }
-  });
+  };
+  $('edit-delete').addEventListener('click', () => void remove());
 
   // where the note can move: the person's own notes and each space they can write, but not the one it is in
   const moveSel = () => /** @type {HTMLSelectElement} */ ($('edit-move'));
@@ -113,43 +210,87 @@ export function noteSheet(app, toast, canWrite) {
     const warn = back ? ` ${back === 1 ? 'One note here links' : `${back} notes here link`} to it; those links won’t find it there.` : '';
     if (!await confirmModal(`Move “${note.title}” to ${name}?${warn}`, { title: 'Move note', yes: 'Move' })) return;
     if (await commit()) return;
-    const why = await app.move(note, to);
-    if (why) { toast(why); return; }
+    const now = editing;   // as just saved
+    if (now?.id !== note.id) return;
+    stopLive?.(); stopLive = null;   // its delete here isn't "deleted on another device"
+    const why = await app.move(now, to);
+    if (why) { toast(why); follow(now); return; }
     editing = null;
     sheet.close('moved');
     toast(`Moved to ${name}`);
   });
 
-  /** @param {Note} note */
-  const show = note => {
-    editing = note;
-    input('edit-text').value = note.title;
-    input('edit-path').value = note.path || '';
-    area().value = note.body || '';
-    const rw = canWrite();
-    for (const id of ['edit-text', 'edit-path', 'edit-body']) input(id).readOnly = !rw;
-    $('edit-save').hidden = !rw; $('edit-delete').hidden = !rw;
-    fillMove();
-    $('edit-live').textContent = ''; $('edit-msg').textContent = '';
+  /** follow a note on the server @param {Note} note */
+  const follow = note => {
     let seen = false;
-    editingGone = false;
     stopLive?.();
     stopLive = app.watchNote(note.id, doc => {
       if (editing?.id !== note.id) return;
       if (doc) {
         seen = true;
-        $('edit-live').textContent = doc.body !== note.body || doc.title !== note.title ? 'Changed on another device; Save merges your edits into it.' : '';
+        const ours = doc.body === area().value && doc.title === input('edit-text').value.trim();
+        const differs = !ours && (doc.body !== editing.body || doc.title !== editing.title);
+        if (differs && !typed()) {
+          // nothing typed here: the other device's text comes in
+          editing = doc;
+          input('edit-text').value = doc.title;
+          input('edit-path').value = doc.path || '';
+          area().value = doc.body || '';
+          ed?.set(area().value);
+          if (reading) reader?.show(area().value);
+          redraw();
+        }
+        $('edit-live').textContent = !differs ? '' : typed() ? 'Changed on another device; your edits merge into it when saved.' : 'Changed on another device; this is the new text.';
       } else if (seen && typed()) {
         editingGone = true;
-        $('edit-live').textContent = 'This note was deleted on another device. Save adds your text back as a new note.';
+        $('edit-live').textContent = 'This note was deleted on another device. Saving adds your text back as a new note.';
       } else if (seen) {
         editing = null;
         sheet.close('gone');
         $('edit-msg').textContent = `“${note.title}” was deleted on another device.`;
       }
     });
-    redraw();
-    if (!sheet.open) sheet.showModal();
   };
-  return { open: show, redraw };
+
+  /** @param {Note} note */
+  const show = note => {
+    clearTimeout(timer);
+    editing = note;
+    recent.splice(0, recent.length, note.id, ...recent.filter(id => id !== note.id).slice(0, 19));
+    input('edit-text').value = note.title;
+    input('edit-path').value = note.path || '';
+    area().value = note.body || '';
+    const rw = canWrite();
+    for (const id of ['edit-text', 'edit-path', 'edit-body']) input(id).readOnly = !rw;
+    ed?.setReadOnly(!rw);
+    ed?.set(area().value);
+    $('edit-save').hidden = !rw; $('edit-delete').hidden = !rw;
+    fillMove();
+    $('edit-live').textContent = ''; $('edit-msg').textContent = '';
+    editingGone = false;
+    follow(note);
+    redraw();
+    setReading(!rw);
+    if (!sheet.open) sheet.showModal();
+    void load().then(() => { if (editing?.id === note.id) { ed?.setReadOnly(!canWrite()); ed?.set(area().value); setReading(reading || !canWrite()); } });
+  };
+  return {
+    /** open the sheet on a note (the one open now is saved first) @param {Note} note */
+    open: async note => { if (sheet.open && editing && editing.id !== note.id && await commit()) return; show(note); },
+    redraw,
+    /** the note open now, or null */
+    current: () => (sheet.open ? editing : null),
+    recent: () => [...recent],
+    /** read view on or off */
+    toggleRead: () => { if (sheet.open && reader) setReading(!reading); },
+    /** the open note's Markdown tidied (paste-clean's tidy: spacing, bullets, blank lines) */
+    tidy: () => {
+      if (!sheet.open || !canWrite()) return;
+      const text = tidyMarkdown(area().value);
+      if (text === area().value) { toast('Already tidy'); return; }
+      area().value = text; ed?.set(text); typing();
+      toast('Tidied');
+    },
+    remove,
+  };
 }

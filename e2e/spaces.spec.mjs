@@ -74,7 +74,7 @@ test('an invited member sees the space and edits in it; a viewer only reads; som
   await expect(v.locator('#edit-body')).toHaveJSProperty('readOnly', true);
   await expect(v.locator('#edit-save')).toBeHidden();
   await expect(v.locator('#edit-move-box')).toBeHidden();
-  await v.locator('#edit button[value=cancel]').click();
+  await v.locator('#edit button[value=close]').click();
 
   // c: no spaces at all
   await expect(c.locator('#space')).toBeHidden();

@@ -20,6 +20,10 @@ Test list (what each part is proved by):
   browser with two or three accounts: invite and edit, a viewer only reads, someone not invited sees nothing, removed
   or leaving loses the space and its notes on the device, a pending invite taken up at first sign-in, move, and a
   `[[Space/Note]]` link (`e2e/spaces.spec.mjs`).
+- Editor: the list loads no editor, live preview off the cursor's line, `[[` picks a note and the link opens it,
+  pasted HTML becomes Markdown, autosave after a pause and on leaving, the read view drops scripts and styles, quick
+  switcher and palette, axe on light, dark and OLED (`e2e/editor.spec.mjs`); the Vite check proves the list screen
+  bundles no editor; `node tools/vendor-editor.mjs --check` proves the vendored files match the pins.
 
 ## Later
 
@@ -39,6 +43,20 @@ Test list (what each part is proved by):
   different lines merge; a clash on the same line keeps the other device's text and saves this device's as a new note
   titled "<title> (conflict, <device>, <d Mon HH:MM>)", with a toast.
 - A rename writes the new title, keeps the old one in `aliases` and rewrites `[[old]]` links in the vault.
+
+## Editor (S2, decision 0011)
+
+- `app/src/editor/`: `index.js` (`createEditor`: CodeMirror, `[[` completion, wikilink and tag syntax), `live-preview.js`
+  (hides marks off the cursor's line; Source mode setting turns it off), `syntax.js`, `fmt-bar.js`, `read-view.js`
+  (marked + DOMPurify; `style=` dropped for the CSP). `note-sheet.js` loads them on first open.
+- `#edit-body` stays the source of truth: the editor mirrors into it, and it shows if CodeMirror fails to load.
+- Saves 3 s after typing stops, on blur and on `pagehide`; Close (`value=close`) saves too. `#edit-mode` toggles the
+  read view.
+- Quick switcher Ctrl/Cmd+O (also `#go-to`), command palette Ctrl/Cmd+P (`app/src/screens/picker.js`).
+- Device settings: `sourceMode`, `lineNumbers`, `readableWidth`, `dailyFolder` (`app/src/options.js`).
+- Vendoring: `node tools/vendor-editor.mjs` writes `app/public/vendor/{codemirror,marked,dompurify}/<version>/` from the
+  pinned devDependencies (names in `tools/codemirror-entry.js`); after a bump run it, then `node tools/sw-files.mjs app`.
+  It patches style-mod to `adoptedStyleSheets` and fails if that source changes.
 
 ## Spaces (S3, decision 0010)
 

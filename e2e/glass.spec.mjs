@@ -87,7 +87,7 @@ test('the sample in light, dark, OLED and Solid: axe on the bar, a toast and a s
     await settled(page);
     expect(await AxeBuilder(page), `${name}: the note sheet`).toEqual([]);
     await page.screenshot({ path: info.outputPath(`glass-${name}-sheet.png`) });
-    await page.locator('#edit').getByRole('button', { name: 'Cancel' }).click();
+    await page.locator('#edit').getByRole('button', { name: 'Close' }).click();
     await expect(page.locator('#edit')).toBeHidden();
   }
 });
