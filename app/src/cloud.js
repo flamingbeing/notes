@@ -2,7 +2,8 @@
 // update()] }) from app-sync (an exact version from core.anawj.com, named once in index.html's import map).
 //
 // Firestore layout (rules in firestore.app.rules):
-//   members/{uid}              { role: admin | member | viewer, v }   the role doc (source of truth; admins write it)
+//   members/{uid}              { role: admin | member | viewer, v }   the role doc (source of truth; admins change it
+//                              through the Worker's /api/members/, which revokes a removed person's access)
 //   spaces/{s}                 { name, owner, members: { uid: owner | edit | view }, memberIds, emails, invited }
 //                              a shared space (written only by the Worker, worker/spaces.js; spaces.js here lists them)
 //   spaces/{s}/notes/{id}      { path, title, body, links, tags, aliases, daily?, updatedAt, serverAt, _edits }
@@ -313,6 +314,16 @@ export async function start({ canReload = null }) {
   };
   app.auth.onUser(() => { claimsStatus = 0; void show(); });
 
+  /** @param {string} method @param {string} uid @param {unknown} [body] @returns {Promise<string>} */
+  const membersCall = async (method, uid, body) => {
+    try {
+      const token = await fa.currentUser?.getIdToken();
+      if (!token) return 'Sign in first.';
+      const r = await fetch(`/api/members/${encodeURIComponent(uid)}`, { method, headers: { Authorization: `Bearer ${token}`,
+        ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined });
+      return r.ok ? '' : (await r.json().catch(() => ({}))).error || `Refused (${r.status})`;
+    } catch { return 'Offline: try again.'; }
+  };
   /** @param {Promise<unknown>} saving */
   const refusal = saving => saving.then(() => '', e => (e instanceof Error && e.message) || 'The server refused it');
   /** @param {Note} record @param {Note | null} base -> '' or why not */
@@ -464,6 +475,13 @@ export async function start({ canReload = null }) {
       try { await api.move(space, note.id, to); } catch (e) { return /** @type {Error} */ (e).message; }
       await app.sync.hub.drop(space, COLL, [note.id]);
       return '';
+    },
+    // admins: set someone's app role, or remove them (they lose access at once; their sessions end). -> '' or the reason
+    members: {
+      /** @param {string} uid @param {'admin' | 'member' | 'viewer'} role */
+      setRole: (uid, role) => membersCall('PUT', uid, { role }),
+      /** @param {string} uid */
+      remove: uid => membersCall('DELETE', uid),
     },
     // Sign-out keeps this device's copy and unsent saves. -> how many are still unsent (they send at the next sign-in)
     async signOut() { await app.auth.signOut(); return unsent; },
