@@ -66,6 +66,7 @@ else {
       list.draw(items, changed);
       window.starter.ready = true;
     },
+    onFiles() { list.files(); },
     // a clash with another device's edit: the other device's text stays, this device's is kept as its own note
     onConflict(copy) { list.toast(`Edited on two devices at once; your version is kept as “${copy.title}”.`); },
     // taken out of a space (or it was deleted): its notes have left this device

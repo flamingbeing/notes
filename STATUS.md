@@ -8,18 +8,21 @@
   editor settings, autosave; loaded only when a note opens (decision 0011).
 - S3 shared spaces: switcher, members sheet, invites (pending until first sign-in), roles, move, delete; only the
   Worker writes space docs (decision 0010).
+- S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
+  never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com waits for the owner's
+  sign-in.
 
 ## Waiting on the owner
 
-- Nothing.
+- The live smoke test after deploy needs the owner's sign-in click.
 
 ## Next
 
-- S4 attachments, import and export.
+- Live smoke test of S4; then restore from the bin.
 
 ## Decisions (dated)
 
 - 2026-10-26: shared space docs are written only by the Worker; invites by Google email (decision 0010).
 - 2026-10-26: the editor is vendored CodeMirror 6, marked and DOMPurify, loaded on first note open (0011).
-- 2026-10-26: attachments wait for S4; the files module stays but has no screen.
+- 2026-10-26: attachments are file records named by `![[name]]`; import never overwrites; moves keep files (0012).
 - 2026-10-26: a same-line clash keeps the other device's text and saves this device's as a conflict copy note.

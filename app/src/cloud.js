@@ -29,6 +29,7 @@
 // and "Forget this device" wipes them on purpose.
 import { createApp } from '@core/app';
 import { auth } from '@core/auth';
+import { resolveAttachment, uniqueName } from './notes/attach.js';
 import { sync, leaveEntry } from '@core/sync';
 import { update } from '@core/update';
 import { files } from '@core/files';
@@ -48,7 +49,7 @@ export const REFUSED = 'The server refused that. A copy is kept in the refused l
 export const FILES = 'files';
 
 /** @typedef {import('./notes/model.js').Note} Note */
-/** @typedef {import('@core/files').FileRecord & { item?: string, _deleted?: boolean }} Attachment */
+/** @typedef {import('@core/files').FileRecord & { item?: string, path?: string, _deleted?: boolean }} Attachment */
 /** @typedef {{ uid: string, email: string, name: string }} User */
 /** @typedef {'not-set-up' | 'signed-out' | 'no-access' | 'ready'} Phase */
 /** @typedef {import('./spaces.js').Space} Space */
@@ -117,6 +118,7 @@ const forgetLists = async () => {
  *   saves laid over; changed: the ids whose copy changed since the last call (none the first time)
  * @property {(copy: Note) => void} [onConflict]  a note clashed with another device's edit: this device's text was
  *   saved as this new note
+ * @property {(files: Attachment[]) => void} [onFiles]  the open space's attachments changed
  * @property {(name: string) => void} [onRemoved]  the person was taken out of a space (or it was deleted): its notes left
  *   this device
  */
@@ -163,7 +165,7 @@ export async function start({ canReload = null }) {
       // commitRetry: a send refused with permission-denied just after sign-in (the role check still catching up) is tried
       // once more after 500 ms, as app-sync advises for rules that read a document another write is creating
       backend: { merge: { [COLL]: mergeNote }, stampMode: 'server', writeId: false, held: true, edits: '_edits', commitRetry: { codes: ['permission-denied'], delay: 500 },
-        onCommit: (/** @type {any} */ { scope, coll, before, after, at, fields }) => coll === COLL && !after && before
+        onCommit: (/** @type {any} */ { scope, coll, before, after, at, fields }) => (coll === COLL || coll === FILES) && !after && before
           ? [{ path: ['spaces', scope, 'bin', `${coll}:${before.id}`], data: { ...leaveEntry(coll, before, at), data: binCopy(before), ...fields } }] : [] },
       hub: { bin: 'bin' }, stores: { metaOnly: ['bin'] },
       // a save the server refused is set aside (kept, with its code) until the person retries or discards it
@@ -183,6 +185,10 @@ export async function start({ canReload = null }) {
 
   /** @type {(() => void) | null} */
   let offList = null;
+  /** @type {Attachment[]} the open space's attachments, as this device has them */
+  let atts = [];
+  /** @type {(() => void) | null} */
+  let offFiles = null;
   let seq = 0;
   // the token Firestore has been told about: its own token listener (added when the SDK started, so before this one)
   // runs in the same notification and restarts its connection with the new token. A list listen sent before that goes
@@ -191,7 +197,8 @@ export async function start({ canReload = null }) {
   fa.onIdTokenChanged(async (/** @type {any} */ u) => { tokenSeen = u ? await u.getIdToken().catch(() => '') : ''; void show(); });
   /** @type {(() => void) | null} */
   let offSettings = null;
-  const stopList = () => { offList?.(); offList = null; };
+  const stopList = () => { offList?.(); offList = null; offFiles?.(); offFiles = null; atts = []; };
+  const attachmentsOf = (/** @type {string} */ noteId) => atts.filter(a => a.item === noteId);
   // the token as it is now decides what the page shows (after sign-in, and after every claims ask); the newest call wins
   /** @type {Note[]} */
   let notes = [];
@@ -301,6 +308,7 @@ export async function start({ canReload = null }) {
       onList(notes, new Set(first ? [] : meta?.changed || []));
       first = false;
     });
+    offFiles ??= app.sync.watch(space, FILES, (/** @type {Attachment[]} */ list) => { atts = list.filter(x => !x._deleted); hooks?.onFiles?.(atts); });
     void copyConflicts();
   };
   app.auth.onUser(() => { claimsStatus = 0; void show(); });
@@ -372,6 +380,48 @@ export async function start({ canReload = null }) {
     // one note, live from the server: cb(note) when its copy changes, cb(null) once the server says it is gone -> stop()
     /** @param {string} noteId @param {(note: Note | null) => void} cb @returns {() => void} */
     watchNote: (noteId, cb) => app.sync.watchDoc(['spaces', space, COLL, noteId], cb),
+    // Attachments of the open space: the list, the one a reference means, add (kept on the device at once, uploaded when
+    // online), remove, and a URL to show one. add -> { att, refused }: refused is '' or why not
+    attachments: () => atts,
+    /** @param {string} noteId */
+    attachmentsOf,
+    /** @param {string} ref @returns {Attachment | null} */
+    resolveAttachment: ref => resolveAttachment(atts, ref),
+    /** @param {Note} note @param {Blob} file @param {string} name  @returns {Promise<{ att: Attachment | null, refused: string }>} */
+    async attach(note, file, name) {
+      const named = new File([file], uniqueName(atts, name), { type: file.type });
+      try {
+        const { record } = await app.files.add(named, { scope: space, extra: { item: note.id } });
+        return { att: /** @type {Attachment} */ (record), refused: '' };
+      } catch (e) { return { att: null, refused: (e instanceof Error && e.message) || 'The file could not be added' }; }
+    },
+    // Import: notes saved in rounds of 50 (new ids, so never over an existing note), files kept with their vault folder
+    // as `path`. importNotes -> how many were not saved; importFile -> '' or why not
+    /** @param {{ title: string, path: string, body: string }[]} list @returns {Promise<number>} */
+    async importNotes(list) {
+      let refused = 0;
+      for (let i = 0; i < list.length; i += 50) {
+        const part = list.slice(i, i + 50);
+        const recs = part.map(n => withDerived({ id: id(), title: n.title, body: n.body, path: n.path })).filter(r => sizeOf(r.body) !== 'too-big');
+        refused += part.length - recs.length;
+        const done = await app.sync.saveMany(COLL, space, recs);
+        refused += done.filter((/** @type {{ status: string }} */ r) => r.status === 'rejected').length;
+      }
+      return refused;
+    },
+    /** @param {Blob} file @param {string} name @param {string} path @returns {Promise<string>} */
+    async importFile(file, name, path) {
+      try { await app.files.add(new File([file], name, { type: file.type }), { scope: space, extra: { path } }); return ''; } catch (e) { return (e instanceof Error && e.message) || 'The file could not be added'; }
+    },
+    // the bytes of an attachment (for an export)
+    /** @param {Attachment} a @returns {Promise<Uint8Array>} */
+    async attachmentBytes(a) {
+      return new Uint8Array(await (await app.files.blob(a.id, { scope: space })).arrayBuffer());
+    },
+    /** @param {Attachment} a */
+    removeAttachment: a => app.files.remove(a, { scope: space }),
+    /** @param {Attachment} a @param {boolean} [thumb] */
+    attachmentUrl: (a, thumb = false) => app.files.url(a.id, { scope: space, thumb: thumb && !!a.thumb }),
     // Spaces. The open one, and the ones the person is in (as last heard)
     /** @returns {OpenSpace} */
     space: () => openSpace(),
@@ -410,6 +460,7 @@ export async function start({ canReload = null }) {
     /** @param {Note} note @param {string} to */
     async move(note, to) {
       if (!(await app.sync.flush())) return 'Some changes aren’t sent yet; try again when online.';
+      if (attachmentsOf(note.id).some(a => a.state !== 'stored')) return 'Its attachments are still uploading; try again when they have finished.';
       try { await api.move(space, note.id, to); } catch (e) { return /** @type {Error} */ (e).message; }
       await app.sync.hub.drop(space, COLL, [note.id]);
       return '';

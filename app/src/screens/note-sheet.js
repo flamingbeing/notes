@@ -9,6 +9,8 @@
 // The sheet follows its note on the server: a change made elsewhere comes in when nothing is typed here (and merges
 // with what is typed when it saves); a delete made elsewhere closes the sheet and says so, unless the person has typed
 // a change: then the sheet stays open, says so, and saving adds their text back as a new note.
+// Attachments: files attached (button), pasted or dropped are kept on the device at once and uploaded when online; the
+// text gets `![[name]]` at the cursor. The read view shows them (images inline). Remove drops the file, not the text.
 // A [[Space/Note]] link to a note in another space the person is in opens that space, then the note; "Move" sends the
 // note to another space they can write (or their own notes).
 import { confirmModal } from '@core/ui';
@@ -16,6 +18,7 @@ import { TOO_BIG } from '../cloud.js';
 import { linksIn } from '../notes/parse.js';
 import { sizeOf } from '../notes/model.js';
 import { tidyMarkdown } from '../notes/paste-clean.js';
+import { embedFor, fullPath, isImage, pastedName } from '../notes/attach.js';
 import { $, input, dialog } from '../dom.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
@@ -88,6 +91,7 @@ export function noteSheet(app, toast, canWrite) {
     if (await commit()) return;   // refused: stay on this note with the text as typed
     const have = app.find(target);
     if (have) { show(have); return; }
+    if (app.resolveAttachment(target)) { void openFile(target); return; }
     const far = app.findElsewhere(target);
     if (far) {
       const why = await app.switchTo(far.space);
@@ -104,6 +108,7 @@ export function noteSheet(app, toast, canWrite) {
     const targets = [...new Map(linksIn(area().value).filter(l => l.target).map(l => [l.target.toLowerCase(), l.target])).values()];
     $('edit-links').replaceChildren(...targets.map(t => {
       const to = app.find(t), far = to ? null : app.findElsewhere(t);   // (a note in another space: its link as written)
+      if (!to && !far && app.resolveAttachment(t)) return button(`${t} (file)`, () => void openFile(t));
       return button(to ? to.title : far ? t : `${t} (new)`, () => void go(t), to || far ? '' : 'missing');
     }));
     $('edit-links-box').hidden = targets.length === 0;
@@ -148,13 +153,100 @@ export function noteSheet(app, toast, canWrite) {
   };
   $('edit-mode').addEventListener('click', () => { setReading(!reading); if (!reading) ed?.focus(); });
 
+  // Attachments. The list under the text; the file itself opens in a new tab (a picture) or downloads (the Worker says so)
+  /** @param {string} target a reference as written */
+  const openFile = async target => {
+    const a = app.resolveAttachment(target);
+    if (!a) { toast('That file is not in this space.'); return; }
+    try { window.open(await app.attachmentUrl(a), '_blank', 'noopener'); } catch { toast('The file is not on this device yet, and cannot be fetched now.'); }
+  };
+  /** text at the cursor @param {string} text */
+  const insertText = text => {
+    if (ed) { ed.insert(text); return; }
+    const a = area(), at = a.selectionStart ?? a.value.length;
+    a.value = a.value.slice(0, at) + text + a.value.slice(a.selectionEnd ?? at);
+    a.selectionStart = a.selectionEnd = at + text.length;
+    typing();
+  };
+  /** @param {Iterable<File>} picked */
+  const attachFiles = async picked => {
+    const note = editing;
+    if (!note || !canWrite() || editingGone) return;
+    const names = [];
+    for (const f of picked) {
+      const name = isImage(f) && (!f.name || /^image\.\w+$/i.test(f.name)) ? pastedName(f.type) : f.name || 'file';
+      const { att, refused } = await app.attach(note, f, name);
+      if (att) { names.push(att); } else toast(refused);
+    }
+    if (editing !== note || !names.length) return;
+    insertText(names.map(embedFor).join('\n') + '\n');
+    toast(names.length === 1 ? `Attached ${names[0].name}` : `Attached ${names.length} files`);
+    redrawFiles();
+  };
+  /** the files of this note, with a picture's thumbnail */
+  function redrawFiles() {
+    if (!editing) return;
+    const mine = app.attachmentsOf(editing.id);
+    $('edit-files-box').hidden = mine.length === 0;
+    $('edit-attach-box').hidden = !canWrite() || editingGone;
+    const id = editing.id;
+    $('edit-files').replaceChildren(...mine.map(a => {
+      const li = document.createElement('li'), name = document.createElement('span');
+      name.className = 'name'; name.textContent = a.state === 'stored' ? fullPath(a) : `${fullPath(a)} (uploading)`;
+      if (isImage(a)) {
+        const img = document.createElement('img'); img.alt = ''; li.append(img);
+        void Promise.resolve(app.attachmentUrl(a, true)).then(u => { if (editing?.id === id) img.src = u; }, () => { img.remove(); });
+      }
+      li.append(name);
+      const open = document.createElement('button');
+      open.type = 'button'; open.textContent = 'Open'; open.addEventListener('click', () => void openFile(fullPath(a)));
+      li.append(open);
+      if (canWrite()) {
+        const put = document.createElement('button');
+        put.type = 'button'; put.textContent = 'Insert'; put.addEventListener('click', () => insertText(embedFor(a) + '\n'));
+        const del = document.createElement('button');
+        del.type = 'button'; del.className = 'danger'; del.textContent = 'Remove';
+        del.addEventListener('click', async () => {
+          if (!await confirmModal(`Remove “${a.name}” from this note’s files? The text that shows it stays.`, { title: 'Remove file', danger: true, yes: 'Remove' })) return;
+          await app.removeAttachment(a);
+        });
+        li.append(put, del);
+      }
+      return li;
+    }));
+    if (reading) reader?.show(area().value);
+  }
+  $('edit-attach').addEventListener('click', () => $('edit-attach-input').click());
+  $('edit-attach-input').addEventListener('change', () => {
+    const inp = /** @type {HTMLInputElement} */ ($('edit-attach-input'));
+    const picked = [...(inp.files || [])];
+    inp.value = '';
+    void attachFiles(picked);
+  });
+  // a picture or file pasted or dropped on the text; pasted text is the editor's
+  sheet.addEventListener('paste', e => {
+    const files = [...(/** @type {ClipboardEvent} */ (e).clipboardData?.files || [])];
+    if (!files.length || !canWrite()) return;
+    e.preventDefault(); e.stopPropagation();
+    void attachFiles(files);
+  }, true);
+  sheet.addEventListener('dragover', e => { if (canWrite() && e.dataTransfer?.types.includes('Files')) { e.preventDefault(); sheet.classList.add('dropping'); } });
+  sheet.addEventListener('dragleave', () => sheet.classList.remove('dropping'));
+  sheet.addEventListener('drop', e => {
+    sheet.classList.remove('dropping');
+    const files = [...(e.dataTransfer?.files || [])];
+    if (!files.length || !canWrite()) return;
+    e.preventDefault(); e.stopPropagation();
+    void attachFiles(files);
+  }, true);
+
   // the editor, the first time a note opens (the list screen loads none of it)
   /** @type {Promise<void> | null} */
   let loading = null;
   const load = () => (loading ??= (async () => {
     try {
       const [{ createEditor }, { readView }, { fmtBar }] = await Promise.all([import('../editor/index.js'), import('../editor/read-view.js'), import('../editor/fmt-bar.js')]);
-      reader = readView($('edit-read'), t => void go(t));
+      reader = readView($('edit-read'), t => void go(t), { resolve: t => app.resolveAttachment(t), url: a => app.attachmentUrl(a), open: t => void openFile(t) });
       ed = createEditor({
         parent: $('edit-cm'), text: area().value, label: 'Text', readOnly: !canWrite(), options: options(),
         titles: () => app.notes().filter(n => n.id !== editing?.id).map(n => ({ title: n.title, path: n.path })),
@@ -270,6 +362,7 @@ export function noteSheet(app, toast, canWrite) {
     editingGone = false;
     follow(note);
     redraw();
+    redrawFiles();
     setReading(!rw);
     if (!sheet.open) sheet.showModal();
     void load().then(() => { if (editing?.id === note.id) { ed?.setReadOnly(!canWrite()); ed?.set(area().value); setReading(reading || !canWrite()); } });
@@ -278,6 +371,8 @@ export function noteSheet(app, toast, canWrite) {
     /** open the sheet on a note (the one open now is saved first) @param {Note} note */
     open: async note => { if (sheet.open && editing && editing.id !== note.id && await commit()) return; show(note); },
     redraw,
+    /** the open note's attachments changed (a device sent one, or removed one) */
+    redrawFiles: () => { if (sheet.open) redrawFiles(); },
     /** the note open now, or null */
     current: () => (sheet.open ? editing : null),
     recent: () => [...recent],

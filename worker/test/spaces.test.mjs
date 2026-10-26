@@ -214,6 +214,50 @@ test('move a note between the vault and a space: both writable; one commit with 
   assert.equal(docs.get('spaces/bob/notes/n2').title, 'Other');
 });
 
+test('move a note with its attachments: records, bytes and bin entries go together; a racing save or an unstored file stops it', async () => {
+  const { call, docs, bucket, st, sid } = await shared();
+  const note = (id, extra = {}) => ({ id, path: '', title: id, body: 'x', links: [], tags: [], aliases: [], updatedAt: T0 - 5, serverAt: new Date(T0 - 5), ...extra });
+  const file = (id, item, extra = {}) => ({ id, name: `${id}.png`, type: 'image/webp', size: 3, state: 'stored', item, thumb: true, updatedAt: T0 - 5, serverAt: new Date(T0 - 5), ...extra });
+  const bytes = async k => bucket.put(k, new Blob([k]), { httpMetadata: { contentType: 'image/webp' } });
+  docs.set('spaces/ann/notes/n1', note('n1'));
+  docs.set('spaces/ann/files/f1', file('f1', 'n1'));
+  docs.set('spaces/ann/files/f2', file('f2', 'other'));
+  for (const k of ['ann/f1', 'ann/f1.thumb', 'ann/f2', 'ann/f2.thumb']) await bytes(k);
+  assert.equal((await call('ann', 'POST', '/api/spaces/ann/move', { id: 'n1', to: sid })).status, 200);
+  assert.ok(docs.has(`spaces/${sid}/files/f1`) && !docs.has('spaces/ann/files/f1'), 'the record moved');
+  assert.equal(docs.get(`spaces/${sid}/files/f1`).item, 'n1');
+  assert.ok(docs.has('spaces/ann/files/f2'), 'another note’s file stays');
+  assert.deepEqual([...bucket.objects.keys()].sort(), ['ann/f2', 'ann/f2.thumb', `${sid}/f1`, `${sid}/f1.thumb`]);
+  assert.equal(docs.get('spaces/ann/bin/files:f1').kind, 'files');
+  assert.equal(docs.get('spaces/ann/bin/notes:n1').kind, 'notes');
+
+  // a file still uploading: refused, nothing moved
+  docs.set('spaces/ann/notes/n2', note('n2'));
+  docs.set('spaces/ann/files/f3', file('f3', 'n2', { state: 'pending' }));
+  assert.equal((await call('ann', 'POST', '/api/spaces/ann/move', { id: 'n2', to: sid })).status, 409);
+  assert.ok(docs.has('spaces/ann/notes/n2') && !docs.has(`spaces/${sid}/notes/n2`));
+  // its bytes are missing: refused, and no copy is left in the target
+  docs.set('spaces/ann/files/f3', file('f3', 'n2'));
+  await bytes('ann/f3');
+  assert.equal((await call('ann', 'POST', '/api/spaces/ann/move', { id: 'n2', to: sid })).status, 409);
+  assert.ok(![...bucket.objects.keys()].some(k => k.startsWith(`${sid}/f3`)), 'the copy of f3 was removed');
+  assert.ok(docs.has('spaces/ann/notes/n2'));
+
+  // a save lands between the read and the commit: the move stops, the save is not lost, no stray copies
+  docs.set('spaces/ann/notes/n3', note('n3'));
+  docs.set('spaces/ann/files/f4', file('f4', 'n3', { thumb: false }));
+  await bytes('ann/f4');
+  const query = st.query;
+  st.query = async (...a) => { st.touch('spaces/ann/notes/n3'); return query(...a); };
+  assert.equal((await call('ann', 'POST', '/api/spaces/ann/move', { id: 'n3', to: sid })).status, 409);
+  st.query = query;
+  assert.ok(docs.has('spaces/ann/notes/n3') && docs.has('spaces/ann/files/f4'));
+  assert.ok(!docs.has(`spaces/${sid}/notes/n3`) && ![...bucket.objects.keys()].includes(`${sid}/f4`));
+  // without the race it moves
+  assert.equal((await call('ann', 'POST', '/api/spaces/ann/move', { id: 'n3', to: sid })).status, 200);
+  assert.ok(docs.has(`spaces/${sid}/files/f4`));
+});
+
 test('delete a space: owner only, closed to writes first, then in rounds; bytes and pending invites go too', async () => {
   const s = setup();
   const sid = (await s.call('dan', 'POST', '/api/spaces', { name: 'Big' })).body.id;

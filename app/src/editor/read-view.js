@@ -22,11 +22,12 @@ const marked = new Marked({
       const m = WIKILINK.exec(src);
       if (!m) return undefined;
       const target = m[2].trim();
-      return { type: 'wikilink', raw: m[0], target, text: (m[4] ?? '').trim() || (target + (m[3] || '')) || m[0] };
+      return { type: 'wikilink', raw: m[0], target, embed: m[1] === '!', text: (m[4] ?? '').trim() || (target + (m[3] || '')) || m[0] };
     },
-    renderer: (/** @type {any} */ t) => (t.target
-      ? `<a href="#" class="wikilink" data-note="${escape(t.target)}">${escape(t.text)}</a>`
-      : escape(t.raw)),
+    renderer: (/** @type {any} */ t) => (!t.target ? escape(t.raw)
+      // ![[x]]: a picture or file of the space (readView fills it in); a note by that name, a link as before
+      : t.embed ? `<span class="embed" data-embed="${escape(t.target)}" data-alt="${escape(t.text)}"></span>`
+        : `<a href="#" class="wikilink" data-note="${escape(t.target)}">${escape(t.text)}</a>`),
   }],
 });
 
@@ -39,18 +40,73 @@ DOMPurify.addHook('afterSanitizeAttributes', node => {
   }
 });
 
+// a relative picture path ![](img/a.png) is kept in data-src, so the browser doesn't ask the server for it; readView
+// shows the space's attachment of that name, if there is one
+DOMPurify.addHook('afterSanitizeAttributes', node => {
+  if (node.tagName === 'IMG') {
+    const src = node.getAttribute('src') || '';
+    if (!/^(https?:|data:image\/|blob:)/i.test(src)) { node.removeAttribute('src'); node.setAttribute('data-src', src); }
+  }
+});
+
 /** a note's Markdown -> safe HTML @param {string} text */
 export const toHtml = text => DOMPurify.sanitize(/** @type {string} */ (marked.parse(text, { async: false })), {
   FORBID_ATTR: ['style'], FORBID_TAGS: ['style', 'form'], ADD_ATTR: ['target'],
 });
 
-/** @param {HTMLElement} box @param {(target: string) => void} onLink */
-export function readView(box, onLink) {
+/**
+ * @typedef {import('../cloud.js').Attachment} Att
+ * @typedef {object} Files  the space's attachments
+ * @property {(target: string) => Att | null} resolve  the attachment a reference means
+ * @property {(a: Att) => Promise<string>} url  a URL to show it
+ * @property {(target: string) => void} open  open a file that isn't a picture
+ */
+
+/** pictures and files named in the page: ![[x]] and ![](x) @param {HTMLElement} box @param {Files} files */
+function fillEmbeds(box, files) {
+  const done = (/** @type {Element} */ el, /** @type {Att | null} */ a, /** @type {string} */ target, /** @type {string} */ alt) => {
+    if (!a) {
+      const gone = document.createElement('span');
+      gone.className = 'missing-file'; gone.textContent = alt || target;
+      el.replaceWith(gone);
+      return;
+    }
+    if (/^image\/(png|jpeg|webp|gif|avif)$/.test(a.type)) {
+      const img = document.createElement('img');
+      img.alt = alt || a.name;
+      el.replaceWith(img);
+      void files.url(a).then(u => { img.src = u; }, () => img.replaceWith(Object.assign(document.createElement('span'), { className: 'missing-file', textContent: alt || a.name })));
+    } else {
+      const link = document.createElement('a');
+      link.href = '#'; link.className = 'file'; link.dataset.file = target; link.textContent = alt || a.name;
+      el.replaceWith(link);
+    }
+  };
+  for (const el of box.querySelectorAll('[data-embed]')) {
+    const target = /** @type {HTMLElement} */ (el).dataset.embed || '';
+    if (!files.resolve(target)) {   // no such file: a note's embed stays a link to the note (embeds of notes come later)
+      const a = document.createElement('a');
+      a.href = '#'; a.className = 'wikilink'; a.dataset.note = target; a.textContent = /** @type {HTMLElement} */ (el).dataset.alt || target;
+      el.replaceWith(a);
+      continue;
+    }
+    done(el, files.resolve(target), target, /** @type {HTMLElement} */ (el).dataset.alt === target ? '' : /** @type {HTMLElement} */ (el).dataset.alt || '');
+  }
+  for (const el of box.querySelectorAll('img[data-src]')) {
+    const target = /** @type {HTMLElement} */ (el).dataset.src || '', alt = el.getAttribute('alt') || '';
+    done(el, files.resolve(target), target, alt);
+  }
+}
+
+/** @param {HTMLElement} box @param {(target: string) => void} onLink @param {Files} [files] */
+export function readView(box, onLink, files) {
   box.addEventListener('click', e => {
+    const f = /** @type {HTMLElement} */ (e.target).closest('a.file[data-file]');
+    if (f) { e.preventDefault(); files?.open(/** @type {HTMLElement} */ (f).dataset.file || ''); return; }
     const a = /** @type {HTMLElement} */ (e.target).closest('a.wikilink[data-note]');
     if (!a) return;
     e.preventDefault();
     onLink(/** @type {HTMLElement} */ (a).dataset.note || '');
   });
-  return { show: (/** @type {string} */ text) => { box.innerHTML = toHtml(text); } };
+  return { show: (/** @type {string} */ text) => { box.innerHTML = toHtml(text); if (files) fillEmbeds(box, files); } };
 }

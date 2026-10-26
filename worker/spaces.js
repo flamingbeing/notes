@@ -12,7 +12,9 @@
 //   DELETE /api/spaces/<sid>/members/<uid>                       owner: remove someone; anyone else: leave (own uid)
 //   DELETE /api/spaces/<sid>/invites/<key>                       owner: take back an invite not yet taken up
 //   POST   /api/spaces/<from>/move             { id, to }        a note from one space (or the caller's vault, its uid)
-//                                                                to another, in one commit; the caller writes both
+//                                                                to another, in one commit; the caller writes both. Its
+//                                                                attachments (files whose item is the note) go with it,
+//                                                                bytes too; 409 if the note changed since it was read
 //
 // Invites: an email with an account already in the app joins at once. Anyone else joins at their first sign-in with
 // that (verified) email, when /api/claims runs acceptInvites (members.js): invites/<key> = { spaces: { sid: { role,
@@ -29,6 +31,7 @@ const ROLES = ['edit', 'view'];
 const EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{1,63}$/;
 const NOTE_ID = /^[A-Za-z0-9_:-]{1,128}$/;
 const COLLS = ['notes', 'files', 'bin'];
+const MOVE_FILES = 40;   // attachments that move with a note (one commit holds at most 500 writes)
 const ROUND = 200;   // docs per delete round (a Worker request makes at most 50 calls on the Free plan)
 
 /** @param {string} email -> the invite key: hex sha-256 of the email, lower case */
@@ -128,16 +131,50 @@ export async function handleSpaces(request, { verify, store, bucket = null, orig
       const to = String(body.to || ''), id = String(body.id || '');
       if (!NOTE_ID.test(id) || !(to === me || SPACE_ID.test(to)) || to === sid) return json({ error: 'Which note, and where to?' }, 400);
       if (!writer || !(await writes(sid)) || !(await writes(to))) return json({ error: 'You can’t change both spaces.' }, 403);
-      const note = await store.getDoc(`spaces/${sid}/notes/${id}`);
-      if (!note) return json({ error: 'No such note.' }, 404);
+      // the note as read now: its source delete fails if it changed after this read (a save racing the move is not lost)
+      const got = await store.getDocT(`spaces/${sid}/notes/${id}`);
+      if (!got) return json({ error: 'No such note.' }, 404);
+      const { data: note, updateTime } = got;
       if (await store.getDoc(`spaces/${to}/notes/${id}`)) return json({ error: 'That space already has a note with this id.' }, 409);
+      // its attachments (file records whose item is this note) travel with it, bytes included
+      const files = (await store.query(`spaces/${sid}`, 'files', 'item', id, MOVE_FILES + 1));
+      if (files.length > MOVE_FILES) return json({ error: `A note can move with up to ${MOVE_FILES} attachments.` }, 413);
+      if (files.some(f => f.data.state !== 'stored')) return json({ error: 'Its attachments are still uploading; try again when they have finished.' }, 409);
+      for (const f of files) if (await store.getDoc(`spaces/${to}/files/${f.id}`)) return json({ error: 'That space already has a file with this id.' }, 409);
+      if (files.length && !bucket) return json({ error: 'Files are not set up yet.' }, 503);
+      // bytes first (copies; the source's stay until the records have moved), so a failed copy leaves everything where it was
+      const keys = files.flatMap(f => (f.data.thumb ? [f.id, f.id + '.thumb'] : [f.id]));
+      const undo = () => bucket?.delete(keys.map(k => `${to}/${k}`)).catch(() => {});
+      for (const k of keys) {
+        const o = await bucket.get(`${sid}/${k}`);
+        if (!o) { await undo(); return json({ error: 'An attachment’s file is missing; it can’t move.' }, 409); }
+        try { await bucket.put(`${to}/${k}`, o.body, { httpMetadata: o.httpMetadata, customMetadata: o.customMetadata }); } catch (e) { await undo(); throw e; }
+      }
       const { serverAt, ...keep } = note;
-      await store.write([
-        { path: `spaces/${to}/notes/${id}`, exists: false, set: [...Object.entries(keep).map(([k, v]) => /** @type {[string[], unknown]} */ ([[k], v])), [['updatedAt'], at]], serverTime: [['serverAt']] },
-        { path: `spaces/${sid}/notes/${id}`, delete: true },
-        // the bin entry a delete writes (cloud.js onCommit), so the source's other devices drop the note as for a delete
-        { path: `spaces/${sid}/bin/notes:${id}`, set: [[['id'], `notes:${id}`], [['kind'], 'notes'], [['data'], keep], [['deletedAt'], Math.max(at, Number(note.updatedAt) + 1 || 0)], [['updatedAt'], at]], serverTime: [['serverAt']] },
-      ]);
+      const bin = (/** @type {string} */ coll, /** @type {string} */ key, /** @type {any} */ data) => ({ path: `spaces/${sid}/bin/${coll}:${key}`, set: [[['id'], `${coll}:${key}`], [['kind'], coll], [['data'], data],
+        [['deletedAt'], Math.max(at, Number(data.updatedAt) + 1 || 0)], [['updatedAt'], at]], serverTime: [['serverAt']] });
+      try {
+        await store.write([
+          { path: `spaces/${to}/notes/${id}`, exists: false, set: [...Object.entries(keep).map(([k, v]) => /** @type {[string[], unknown]} */ ([[k], v])), [['updatedAt'], at]], serverTime: [['serverAt']] },
+          { path: `spaces/${sid}/notes/${id}`, delete: true, updateTime },
+          // the bin entry a delete writes (cloud.js onCommit), so the source's other devices drop the note as for a delete
+          bin('notes', id, keep),
+          ...files.flatMap(({ id: fid, data }) => {
+            const { serverAt: _s, ...rec } = data;
+            return [
+              { path: `spaces/${to}/files/${fid}`, exists: false, set: [...Object.entries(rec).map(([k, v]) => /** @type {[string[], unknown]} */ ([[k], v])), [['updatedAt'], at]], serverTime: [['serverAt']] },
+              { path: `spaces/${sid}/files/${fid}`, delete: true },
+              bin('files', fid, rec),
+            ];
+          }),
+        ]);
+      } catch (e) {
+        // the copies in the target are of no use now
+        await undo();
+        if (/** @type {any} */ (e)?.status === 400 || /** @type {any} */ (e)?.status === 409) return json({ error: 'The note changed while it was moving; nothing moved. Try again.' }, 409);
+        throw e;
+      }
+      if (keys.length) await bucket.delete(keys.map(k => `${sid}/${k}`)).catch(() => {});
       return json({ ok: true });
     }
 
