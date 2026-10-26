@@ -10,7 +10,7 @@
   Worker writes space docs (decision 0010).
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
   never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
-  export, import back, clean up, as the test user (app-devkit 1.10.2 sends the Referer the web key needs).
+  export, import back, clean up, as the test user (app-devkit 1.10.3 sends the Referer the web key needs).
 
 ## Waiting on the owner
 
