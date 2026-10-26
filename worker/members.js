@@ -6,6 +6,9 @@
 import { acceptInvites } from './spaces.js';
 
 export const ROLES = ['admin', 'member', 'viewer'];
+// The owner is an admin of every app made from the starter, with no role doc needed. A role doc still wins (so an
+// admin can demote or remove them); only a verified email counts.
+export const DEFAULT_ADMINS = ['kohwenjun@gmail.com'];
 
 export async function loadClaims({ uid, token, admin, store = null }) {
   let d = await admin.getDoc(`members/${uid}`);
@@ -14,6 +17,7 @@ export async function loadClaims({ uid, token, admin, store = null }) {
     const joined = await acceptInvites({ uid, email, store, newMember: !d });
     if (joined && !d) d = { role: 'member', v: 1 };   // (written in the same commit as the join)
   }
+  if (!d && email && DEFAULT_ADMINS.includes(email.toLowerCase())) return { g: { _: 'admin' }, v: 0 };
   if (!d || !ROLES.includes(d.role)) return null;   // not (or no longer) a member: claims cleared
   return { g: { _: d.role }, v: Number.isInteger(d.v) ? d.v : 0 };
 }
