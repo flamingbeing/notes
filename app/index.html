@@ -20,7 +20,10 @@
     "app-update/register.js": "https://core.anawj.com/update/0.2.0/register.js",
     "firebase/app": "./vendor/firebase/12.19.0/firebase-app.js",
     "firebase/auth": "./vendor/firebase/12.19.0/firebase-auth.js",
-    "firebase/firestore": "./vendor/firebase/12.19.0/firebase-firestore.js"
+    "firebase/firestore": "./vendor/firebase/12.19.0/firebase-firestore.js",
+    "@vendor/codemirror": "./vendor/codemirror/6.43.15/codemirror.js",
+    "marked": "./vendor/marked/18.1.1/marked.esm.js",
+    "dompurify": "./vendor/dompurify/3.4.17/purify.es.js"
   }
 }
   </script>
@@ -64,6 +67,7 @@
         <label for="filter" class="sr-only">Show</label>
         <select id="filter" hidden><option value="">All notes</option></select>
         <button id="daily" type="button" hidden>Today’s note</button>
+        <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
       </div>
       <form id="add" autocomplete="off">
         <label for="new-text">New note</label>
@@ -92,6 +96,12 @@
     <h2 id="settings-title">Settings</h2>
     <p><label><input type="checkbox" id="opt-bigRows"> Larger list rows (this device)</label></p>
     <p><label><input type="checkbox" id="opt-itemCount"> Show how many items there are (every device)</label></p>
+    <h3>Editor (this device)</h3>
+    <p><label><input type="checkbox" id="opt-sourceMode"> Source mode: show the Markdown as written</label></p>
+    <p><label><input type="checkbox" id="opt-lineNumbers"> Line numbers</label></p>
+    <p><label><input type="checkbox" id="opt-readableWidth"> Readable line width</label></p>
+    <p><label for="opt-dailyFolder">Folder for today’s note</label>
+      <input id="opt-dailyFolder" maxlength="200" placeholder="none" autocomplete="off"></p>
     <p id="settings-note" class="small">Sign in to change the options that follow your account.</p>
     <div class="row">
       <button id="settings-export" type="button">Export settings</button>
@@ -108,7 +118,13 @@
       <input id="edit-text" maxlength="200" required>
       <label for="edit-path">Folder</label>
       <input id="edit-path" maxlength="200" placeholder="none">
-      <label for="edit-body">Text</label>
+      <div class="row edit-tools">
+        <label for="edit-body" id="edit-body-label">Text</label>
+        <div id="edit-fmt" hidden></div>
+        <button id="edit-mode" type="button" class="small" aria-pressed="false" hidden>Read view</button>
+      </div>
+      <div id="edit-cm" hidden></div>
+      <div id="edit-read" class="read-view" hidden></div>
       <textarea id="edit-body" rows="12" spellcheck="true"></textarea>
       <p id="edit-size" class="small" role="status"></p>
       <p id="edit-live" class="small" role="status"></p>
@@ -123,9 +139,15 @@
       <div class="row">
         <button id="edit-save" value="save">Save</button>
         <button id="edit-delete" value="delete" type="button" class="danger">Delete</button>
-        <button value="cancel" formnovalidate>Cancel</button>
+        <button value="close" formnovalidate>Close</button>
       </div>
     </form>
+  </dialog>
+  <dialog id="picker" class="picker" aria-labelledby="picker-title">
+    <h2 id="picker-title" class="sr-only">Go to note</h2>
+    <input id="picker-q" type="text" role="combobox" aria-expanded="true" aria-controls="picker-list" aria-autocomplete="list" aria-labelledby="picker-title" autocomplete="off" spellcheck="false">
+    <ul id="picker-list" role="listbox" aria-labelledby="picker-title"></ul>
+    <p id="picker-empty" class="small" hidden>Nothing found.</p>
   </dialog>
 </body>
 </html>

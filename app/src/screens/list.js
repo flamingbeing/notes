@@ -1,12 +1,14 @@
 // The notes list (#list-view): every note in the person's vault, a search box (@core/search over title, body and tags,
 // with tag: and path: operators), a filter by tag or folder, a new note by title, and today's daily note. A note opens
-// in the note sheet (note-sheet.js); a save the server refused waits in the kit's refused list.
+// in the note sheet (note-sheet.js); the quick switcher and command palette (picker.js) reach notes and actions from
+// the keyboard. A save the server refused waits in the kit's refused list.
 import { refusedList, toaster, emptyState } from '@core/ui';
 import { createSearch } from '@core/search';
 import { COLL } from '../cloud.js';
 import { isoDay } from '../notes/model.js';
 import { $, input, sectionScreen } from '../dom.js';
 import { noteSheet } from './note-sheet.js';
+import { picker } from './picker.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -72,16 +74,42 @@ export function listScreen(app) {
     const title = input('new-text').value.trim();
     if (!title) return;
     input('new-text').value = '';
+    await openTitle(title);   // a title is one note: open it rather than make a second
+  });
+  const daily = async () => {
+    const { note, refused } = await app.daily(isoDay(), String(app.settings.get('dailyFolder') || ''));
+    if (refused) toast(refused); else void sheet.open(note);
+  };
+  $('daily').addEventListener('click', () => void daily());
+  /** a note by its title: the one there is, or a new one @param {string} title */
+  const openTitle = async title => {
     const have = app.find(title);
-    if (have) { sheet.open(have); return; }   // a title is one note: open it rather than make a second
+    if (have) { void sheet.open(have); return; }
     const { note, refused } = await app.create({ title });
     toast(refused || 'Added');
-    if (!refused) sheet.open(note);
+    if (!refused) void sheet.open(note);
+  };
+  /** @param {string} key */
+  const flip = key => () => app.settings.set(key, !app.settings.get(key));
+  const inNote = () => !!sheet.current();
+  const pick = picker({
+    notes: app.notes, recent: sheet.recent, canWrite: () => canWrite,
+    open: note => sheet.open(note), create: openTitle,
+    commands: [
+      { id: 'go', label: 'Go to note', run: () => pick.switcher() },
+      { id: 'new', label: 'New note', when: () => canWrite, run: () => { for (const d of document.querySelectorAll('dialog[open]')) /** @type {HTMLDialogElement} */ (d).close(); input('new-text').focus(); } },
+      { id: 'today', label: 'Open today’s note', when: () => canWrite, run: daily },
+      { id: 'search', label: 'Search notes', run: () => { for (const d of document.querySelectorAll('dialog[open]')) /** @type {HTMLDialogElement} */ (d).close(); input('q').focus(); } },
+      { id: 'read', label: 'Toggle read view', when: inNote, run: sheet.toggleRead },
+      { id: 'tidy', label: 'Tidy this note’s Markdown', when: () => inNote() && canWrite, run: sheet.tidy },
+      { id: 'delete', label: 'Delete this note', when: () => inNote() && canWrite, run: sheet.remove },
+      { id: 'source', label: 'Toggle source mode (Markdown as written)', run: flip('sourceMode') },
+      { id: 'numbers', label: 'Toggle line numbers', run: flip('lineNumbers') },
+      { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
+      { id: 'settings', label: 'Open settings', run: () => $('open-settings').click() },
+    ],
   });
-  $('daily').addEventListener('click', async () => {
-    const { note, refused } = await app.daily(isoDay());
-    if (refused) toast(refused); else sheet.open(note);
-  });
+  $('go-to').addEventListener('click', () => pick.switcher());
 
   input('q').addEventListener('input', () => draw(all, new Set()));
   filter().addEventListener('change', () => draw(all, new Set()));
@@ -112,7 +140,7 @@ export function listScreen(app) {
         p.className = 'path'; p.textContent = ` ${note.path}/`;
         b.append(p);
       }
-      b.addEventListener('click', () => sheet.open(note));
+      b.addEventListener('click', () => void sheet.open(note));
       li.classList.toggle('changed', changed.has(note.id));
       li.append(b);
       return li;

@@ -1,4 +1,5 @@
-// The Settings sheet (#settings) and what the options do to the page: a switch per option (@core/settings), and the
+// The Settings sheet (#settings) and what the options do to the page: a switch per option (@core/settings; the
+// editor's options apply in note-sheet.js), a box for the daily note's folder, and the
 // settings file (export, import). A switch for an account option waits for sign-in.
 import { toaster } from '@core/ui';
 import { $, input, dialog } from './dom.js';
@@ -24,6 +25,7 @@ export function settingsSheet(app, signedIn) {
       const box = input(`opt-${key}`);
       box.checked = !!settings.get(key);
     }
+    input('opt-dailyFolder').value = String(settings.get('dailyFolder') || '');
     input('opt-itemCount').disabled = !signedIn();
     $('settings-note').hidden = signedIn();
   };
@@ -33,6 +35,11 @@ export function settingsSheet(app, signedIn) {
       catch (err) { msg.textContent = /** @type {Error} */ (err).message; draw(); }
     });
   }
+  input('opt-dailyFolder').addEventListener('change', async e => {
+    try { await settings.set('dailyFolder', /** @type {HTMLInputElement} */ (e.target).value); msg.textContent = ''; }
+    catch (err) { msg.textContent = /** @type {Error} */ (err).message; }
+    draw();
+  });
   settings.watch(null, () => { if (sheet.open) draw(); });
 
   $('open-settings').addEventListener('click', () => { msg.textContent = ''; draw(); sheet.showModal(); });

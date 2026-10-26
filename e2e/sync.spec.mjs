@@ -1,6 +1,6 @@
 // Offline saves, two phones, merges and conflict copies, and renames (sign-out and forget: modules.spec.mjs).
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, serverNotes, uniq, APP } from './fixtures.mjs';
+import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, serverNotes, uniq, APP, fillBody } from './fixtures.mjs';
 
 test('a save made offline is kept on the phone and sent once back online, even after closing the page', async ({ phone }) => {
   const page = await phone();
@@ -38,10 +38,10 @@ async function twoEdits(a, b, t, mineB, theirsA) {
   await b.context().setOffline(true);
   await openNote(b, t);
   await expect(b.locator('#edit-body')).toHaveValue('one\ntwo\nthree');
-  await b.fill('#edit-body', mineB);
+  await fillBody(b, mineB);
   await b.click('#edit-save');
   await openNote(a, t);
-  await a.fill('#edit-body', theirsA);
+  await fillBody(a, theirsA);
   await a.click('#edit-save');
   await serverHas(theirsA, { body: true });
   await b.context().setOffline(false);
@@ -60,7 +60,7 @@ test('edits of different lines on two phones, one offline, merge into one note',
   for (const p of [a, b]) {
     await openNote(p, t);
     await expect(p.locator('#edit-body')).toHaveValue('one from b\ntwo\nthree from a', { timeout: 15_000 });
-    await p.locator('#edit button[value=cancel]').click();
+    await p.locator('#edit button[value=close]').click();
   }
   expect((await serverNotes()).some(n => String(n.data.title).startsWith(t + ' (conflict'))).toBe(false);
 });

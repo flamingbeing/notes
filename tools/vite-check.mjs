@@ -1,5 +1,6 @@
 // The Vite check (README, "Switch to Vite in one PR"; CI job "vite"): builds app/ with vite.config.mjs into dist/,
-// checks the built page still loads core, Firebase and register.js through its import map (none of it bundled), then
+// checks the built page still loads core, Firebase and register.js through its import map (none of it bundled) and
+// leaves the editor libraries to a lazy chunk, then
 // writes dist/'s service worker list and stamp, as a deploy would. CI then runs the browser suite on dist/
 // (APP_DIR=dist npx playwright test). dist/ is never committed or deployed.
 //   node tools/vite-check.mjs
@@ -25,6 +26,19 @@ if (js.includes('createApp needs config.sdk') || js.includes('sync needs')) prob
 // @core/files (decision 0009) stays external too: only a page that imports it loads it, exifr only on first use
 if (js.includes('files: remove() takes') || js.includes('DateTimeOriginal') || js.includes('idb-keyval')) problems.push('files code was bundled (@core/files must stay external)');
 if (/SDK_VERSION|@firebase\//.test(js)) problems.push('Firebase was bundled (it must load from the vendored files)');
+// The editor (CodeMirror, marked, DOMPurify) loads only when a note opens: the entry's static graph must not import it
+const entry = html.match(/<script type="module"[^>]*src="\.\/assets\/([^"]+)"/)?.[1];
+const statics = new Set(), todo = entry ? [entry] : [];
+while (todo.length) {
+  const f = /** @type {string} */ (todo.pop());
+  if (statics.has(f)) continue;
+  statics.add(f);
+  for (const m of fs.readFileSync(path.join(assets, f), 'utf8').matchAll(/(?:from|import)\s*"\.\/([^"]+\.js)"/g)) todo.push(m[1]);
+}
+if (!entry) problems.push('the built page has no module entry script');
+const editorLibs = /(?:from|import)\s*"(?:@vendor\/codemirror|marked|dompurify)"/;
+for (const f of statics) if (editorLibs.test(fs.readFileSync(path.join(assets, f), 'utf8'))) problems.push(`${f} loads the editor libraries up front (they must stay in a lazy chunk)`);
+if (!fs.readdirSync(assets).some(f => f.endsWith('.js') && !statics.has(f) && editorLibs.test(fs.readFileSync(path.join(assets, f), 'utf8')))) problems.push('no lazy chunk loads the editor libraries');
 if (fs.existsSync(path.join(DIST, 'src'))) problems.push('dist/ has src/ (the build should bundle it)');
 if (problems.length) { console.error(`vite-check: ${problems.join('; ')}`); process.exit(1); }
 const list = writeShell({ dir: DIST });

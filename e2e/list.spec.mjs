@@ -1,6 +1,6 @@
 // Sign-in, roles from the role doc, and the notes list: add, edit, delete to the bin; filter by tag and folder; today's note.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody } from './fixtures.mjs';
 
 test('signed out: the sign-in screen, accessible', async ({ phone }) => {
   const page = await phone();
@@ -26,7 +26,7 @@ test('a member adds, edits and deletes; the delete lands in the bin', async ({ p
   expect(await AxeBuilder(page)).toEqual([]);
 
   await openNote(page, t);
-  await page.fill('#edit-body', 'Some text #idea');
+  await fillBody(page, 'Some text #idea');
   await page.fill('#edit-path', 'work/ideas');
   expect(await AxeBuilder(page)).toEqual([]);
   await page.click('#edit-save');
@@ -78,11 +78,11 @@ test('today’s note: one per date, the same note on two phones', async ({ phone
   await expect(page.locator('#edit')).toBeVisible();
   const iso = await page.locator('#edit-text').inputValue();
   expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-  await page.fill('#edit-body', 'first line');
+  await fillBody(page, 'first line');
   await page.click('#edit-save');
   await page.click('#daily');
   await expect(page.locator('#edit-body')).toHaveValue('first line');
-  await page.locator('#edit button[value=cancel]').click();
+  await page.locator('#edit button[value=close]').click();
   await expect.poll(async () => (await serverNotes()).filter(n => n.path === `spaces/${uid}/notes/day-${iso}`).length, { timeout: 15_000 }).toBe(1);
 });
 
