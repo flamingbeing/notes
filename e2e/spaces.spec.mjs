@@ -119,6 +119,15 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   await b.getByRole('button', { name: 'Leave', exact: true }).last().click();
   await expect(b.locator('#space')).toBeHidden({ timeout: 15_000 });
   await expect(a.locator('#items')).toContainText(t);
+
+  // invited again but not opening it: the space is only watched in the background (for links, kept in memory); taken
+  // out, nothing of it is on the device
+  await invite(a, bob.email, 'edit');
+  await expect(b.locator('#space')).toBeVisible({ timeout: 15_000 });
+  await a.locator('#space-people li', { hasText: bob.email }).getByRole('button', { name: 'Remove' }).click();
+  await a.getByRole('button', { name: 'Remove', exact: true }).last().click();
+  await expect(b.locator('#space')).toBeHidden({ timeout: 15_000 });
+  await expect.poll(() => onDevice(b, t), { timeout: 15_000 }).toBe(false);
 });
 
 test('an admin invites someone not in the app yet: they join at their first sign-in; a taken-back invite does nothing', async ({ phone }) => {

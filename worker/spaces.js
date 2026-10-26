@@ -61,7 +61,9 @@ export function spaceAccess(store) {
 
 // At sign-in (/api/claims, members.js): the invites waiting for this verified email join their spaces; the invites go.
 // -> the number of spaces joined
-export async function acceptInvites({ uid, email, store, now = Date.now() }) {
+// newMember: the person has no role doc yet; one joining makes it (role member) in the same commit, so an invite is
+// never used up without the app role that lets them in
+export async function acceptInvites({ uid, email, store, now = Date.now(), newMember = false }) {
   if (!email) return 0;
   const key = await inviteKey(email);
   const inv = await store.getDoc(`invites/${key}`);
@@ -81,6 +83,7 @@ export async function acceptInvites({ uid, email, store, now = Date.now() }) {
     ops.push(op);
   }
   ops.push({ path: `invites/${key}`, delete: true });
+  if (newMember && joined) ops.push({ path: `members/${uid}`, exists: false, set: [[['role'], 'member'], [['v'], 1]] });
   await store.write(ops);
   return joined;
 }
@@ -127,6 +130,7 @@ export async function handleSpaces(request, { verify, store, bucket = null, orig
       if (!writer || !(await writes(sid)) || !(await writes(to))) return json({ error: 'You can’t change both spaces.' }, 403);
       const note = await store.getDoc(`spaces/${sid}/notes/${id}`);
       if (!note) return json({ error: 'No such note.' }, 404);
+      if (await store.getDoc(`spaces/${to}/notes/${id}`)) return json({ error: 'That space already has a note with this id.' }, 409);
       const { serverAt, ...keep } = note;
       await store.write([
         { path: `spaces/${to}/notes/${id}`, exists: false, set: [...Object.entries(keep).map(([k, v]) => /** @type {[string[], unknown]} */ ([[k], v])), [['updatedAt'], at]], serverTime: [['serverAt']] },

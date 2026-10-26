@@ -223,15 +223,17 @@ export async function start({ canReload = null }) {
   };
   const stopSpaces = () => { mine?.stop(); mine = null; for (const w of others.values()) w.off(); others.clear(); spaces = []; };
   // taken out of a space (or it was deleted): its notes leave this device; the open one gives way to the vault
+  // (called before watchOthers stops the removed spaces' watches: their note ids are taken first)
   /** @param {string[]} removed @param {Space[]} before */
   const leave = async (removed, before) => {
+    const held = new Map(removed.map(sid => [sid, others.get(sid)?.notes.map(n => n.id) || []]));
     for (const sid of removed) {
       const name = before.find(x => x.id === sid)?.name || 'a space';
-      let ids = others.get(sid)?.notes.map(n => n.id) || [];
+      let ids = held.get(sid) || [];
       if (sid === space) {
         ids = notes.map(n => n.id);
-        // its unsent saves can never be sent now
-        for (const x of app.sync.queue.entries()) if (x.state !== 'synced' && x.state !== 'archived') await app.sync.queue.discard(x.key).catch(() => {});
+        // its unsent notes and files can never be sent now (account options go to the vault: they stay)
+        for (const x of app.sync.queue.entries()) if ((x.kind === COLL || x.kind === FILES) && x.state !== 'synced' && x.state !== 'archived') await app.sync.queue.discard(x.key).catch(() => {});
         await go(uid);
       }
       others.get(sid)?.off(); others.delete(sid);
@@ -286,8 +288,8 @@ export async function start({ canReload = null }) {
     mine ??= spacesOf({ sdk, uid, onList: (list, { removed }) => {
       const before = spaces;
       spaces = list;
-      watchOthers();
       if (removed.length) void leave(removed, before);
+      watchOthers();
       void show();
     } });
     onState({ phase: 'ready', user, role, space: openSpace(), spaces });

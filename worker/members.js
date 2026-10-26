@@ -11,11 +11,8 @@ export async function loadClaims({ uid, token, admin, store = null }) {
   let d = await admin.getDoc(`members/${uid}`);
   const email = token?.email_verified ? String(token.email || '') : '';
   if (store && email) {
-    const joined = await acceptInvites({ uid, email, store });
-    if (joined && !d) {
-      d = { role: 'member', v: 1 };
-      await store.write([{ path: `members/${uid}`, exists: false, set: [[['role'], d.role], [['v'], d.v]] }]);
-    }
+    const joined = await acceptInvites({ uid, email, store, newMember: !d });
+    if (joined && !d) d = { role: 'member', v: 1 };   // (written in the same commit as the join)
   }
   if (!d || !ROLES.includes(d.role)) return null;   // not (or no longer) a member: claims cleared
   return { g: { _: d.role }, v: Number.isInteger(d.v) ? d.v : 0 };
