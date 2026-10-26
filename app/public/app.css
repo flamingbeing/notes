@@ -22,3 +22,51 @@ footer { margin-top: 2rem; }
 #settings label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 #settings label.file { display: inline-block; padding: .5rem .75rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; }
 #settings label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* the note editor (src/editor/): CodeMirror's own classes, coloured from the theme. Readable line width (the default)
+   keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
+#edit { max-width: 44rem; }
+#edit.wide { max-width: none; }
+.edit-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
+.edit-tools label { margin-inline-end: auto; }
+.fmt-bar { display: flex; flex-wrap: wrap; gap: .25rem; }
+.fmt-bar button { min-width: 2.25rem; }
+#edit-cm .cm-editor { border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--bg); min-height: 12rem; }
+#edit-cm .cm-editor.cm-focused { outline: 2px solid var(--focus); outline-offset: 1px; }
+#edit-cm .cm-scroller { font: inherit; line-height: var(--leading); max-height: 60vh; }
+#edit-cm .cm-content { padding: .5rem; caret-color: var(--text); }
+#edit-cm .cm-cursor { border-inline-start-color: var(--text); }
+#edit-cm .cm-selectionBackground, #edit-cm .cm-focused .cm-selectionBackground { background: var(--selection); }
+#edit-cm .cm-placeholder { color: var(--muted); }
+#edit-cm .cm-gutters { background: var(--surface); color: var(--muted); border-inline-end: 1px solid var(--line); }
+#edit-cm .cm-h { font-family: var(--font-head); font-weight: 700; }
+#edit-cm .cm-h1 { font-size: 1.5em; } #edit-cm .cm-h2 { font-size: 1.3em; } #edit-cm .cm-h3 { font-size: 1.15em; }
+#edit-cm .cm-strong { font-weight: 700; }
+#edit-cm .cm-em { font-style: italic; }
+#edit-cm .cm-strike { text-decoration: line-through; }
+#edit-cm .cm-code, #edit-cm .cm-codeblock { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+#edit-cm .cm-codeblock { background: var(--fill); }
+#edit-cm .cm-link, #edit-cm .cm-wikilink { color: var(--link); }
+#edit-cm .cm-wikilink { text-decoration: underline; cursor: pointer; }
+#edit-cm .cm-tag { color: var(--accent); }
+#edit-cm .cm-meta { color: var(--muted); }
+#edit-cm .cm-quote { border-inline-start: 3px solid var(--line); padding-inline-start: .75rem; color: var(--muted); }
+#edit-cm .cm-hr { border-bottom: 1px solid var(--line); }
+#edit-cm .cm-task { margin: 0 .35rem 0 0; vertical-align: middle; width: auto; }
+#edit-cm .cm-tooltip { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-s); }
+#edit-cm .cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--accent); color: var(--on-accent); }
+#edit-cm .cm-completionDetail { color: inherit; opacity: .75; font-style: normal; margin-inline-start: .5rem; }
+
+/* the read view (marked + DOMPurify) */
+.read-view { border: 1px solid var(--line); border-radius: var(--radius-s); padding: .25rem .75rem; min-height: 6rem; overflow-wrap: anywhere; }
+.read-view img { max-width: 100%; }
+.read-view pre { overflow-x: auto; background: var(--fill); padding: .5rem; border-radius: var(--radius-s); }
+.read-view blockquote { border-inline-start: 3px solid var(--line); margin-inline: 0; padding-inline-start: .75rem; color: var(--muted); }
+
+/* the quick switcher and command palette */
+.picker { padding: .75rem; }
+#picker-list { list-style: none; padding: 0; margin: .5rem 0 0; max-height: 50vh; overflow-y: auto; }
+#picker-list li { padding: .5rem; border-radius: var(--radius-s); cursor: pointer; }
+#picker-list li[aria-selected=true] { background: var(--accent); color: var(--on-accent); }
+#picker-list .path { opacity: .75; font-size: .85em; }
+#settings h3 { font-size: 1rem; margin: 1rem 0 .25rem; }

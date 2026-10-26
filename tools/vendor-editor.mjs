@@ -1,7 +1,8 @@
 // Vendors the editor's libraries into app/public/vendor/ from the exact versions package.json pins (devDependencies;
 // nothing from npm runs at runtime, decision 0010):
 //   - CodeMirror 6: the names tools/codemirror-entry.js lists, bundled and minified into one ES module,
-//     vendor/codemirror/<@codemirror/view version>/codemirror.js, with LICENSES.txt (every bundled package's licence)
+//     vendor/codemirror/<@codemirror/view version>/codemirror.js, with LICENSES.txt (every bundled package's licence);
+//     its styles go in a constructed sheet, not a <style> element (adoptedStyles below), for the page's CSP
 //   - marked: vendor/marked/<version>/marked.esm.js + LICENSE.md, as published
 //   - DOMPurify: vendor/dompurify/<version>/purify.es.js + LICENSE, as published (purify.es.mjs renamed, so it is served
 //     as JavaScript)
@@ -34,6 +35,20 @@ for (const [name, want] of Object.entries(pins)) {
   if (pkg(name).version !== want) throw new Error(`${name} is ${pkg(name).version} in node_modules, ${want} in package.json: run npm ci`);
 }
 
+// CodeMirror's styles (style-mod) go into a <style> element on a page, which the page's CSP (no inline styles) refuses;
+// they are put in a constructed sheet (document.adoptedStyleSheets) instead, as style-mod already does in a shadow root.
+// The one change made to the bundled code.
+const adoptedStyles = {
+  name: 'adopted-styles',
+  /** @param {string} code @param {string} id */
+  transform(code, id) {
+    if (!/[\\/]style-mod[\\/]/.test(id)) return null;
+    const out = code.replace('if (!root.head && root.adoptedStyleSheets && win.CSSStyleSheet)', 'if (root.adoptedStyleSheets && win.CSSStyleSheet)');
+    if (out === code) throw new Error('style-mod changed: check how it adds its styles (tools/vendor-editor.mjs, adoptedStyles)');
+    return out;
+  },
+};
+
 /** -> { [path under vendor/]: contents } and the import map entries */
 async function files() {
   /** @type {Record<string, string>} */
@@ -42,7 +57,7 @@ async function files() {
   /** @type {Set<string>} */
   const used = new Set();
   const result = await build({
-    configFile: false, logLevel: 'warn', root: ROOT,
+    configFile: false, logLevel: 'warn', root: ROOT, plugins: [adoptedStyles],
     build: { outDir: OUT, emptyOutDir: true, target: 'es2022', minify: false, write: false,
       lib: { entry: path.join(ROOT, 'tools/codemirror-entry.js'), formats: ['es'], fileName: () => 'codemirror.js' } },
   });

@@ -1,7 +1,8 @@
 // Live preview: the note's Markdown drawn as it will read (headings sized, **bold** bold, [[links]] as links, to-do boxes
 // as boxes), with the marks themselves hidden, except on the lines the cursor or selection is on, which show the raw
 // Markdown to edit. Decorations from a state field over the syntax tree (rebuilt when the text, selection or tree
-// changes). Clicking a [[link]] off the cursor's line opens its note (onLink); clicking a box ticks it.
+// changes; bold, italics, code and links get their look from the editor's highlighting, in source mode too).
+// Clicking a [[link]] off the cursor's line opens its note (onLink); clicking a box ticks it.
 import { StateField, EditorView, Decoration, WidgetType, syntaxTree } from '@vendor/codemirror';
 
 /** @typedef {import('@codemirror/state').EditorState} EditorState */
@@ -9,9 +10,6 @@ import { StateField, EditorView, Decoration, WidgetType, syntaxTree } from '@ven
 /** @typedef {import('@lezer/common').SyntaxNodeRef} NodeRef */
 
 const hide = Decoration.replace({});
-/** @param {string} cls */
-const mark = cls => Decoration.mark({ class: cls });
-const MARKS = { Emphasis: mark('cm-em'), StrongEmphasis: mark('cm-strong'), Strikethrough: mark('cm-strike'), InlineCode: mark('cm-code'), Link: mark('cm-link'), Hashtag: mark('cm-tag') };
 
 class Box extends WidgetType {
   /** @param {boolean} done */
@@ -52,7 +50,6 @@ function build(state) {
       const name = n.name;
       const heading = /^ATXHeading(\d)$/.exec(name);
       if (heading) { lines(n.from, n.from, `cm-h cm-h${heading[1]}`); return; }
-      if (name in MARKS && n.to > n.from) out.push(MARKS[/** @type {keyof MARKS} */ (name)].range(n.from, n.to));
       switch (name) {
         case 'HeaderMark':
           if (/^ATXHeading/.test(n.node.parent?.name || '') && off(n.from, n.to)) hideMark(n.from, n.to);
