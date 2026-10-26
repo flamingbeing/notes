@@ -375,6 +375,8 @@ export async function start({ canReload = null }) {
     space: () => openSpace(),
     /** @returns {Space[]} */
     spaces: () => spaces,
+    // the person's own notes (their vault): its space id is their uid ('' signed out)
+    vault: () => uid,
     // open another space (sid) or the vault (the uid): every unsent save is sent first -> '' or why not
     /** @param {string} sid @returns {Promise<string>} */
     async switchTo(sid) {

@@ -16,6 +16,10 @@ Test list (what each part is proved by):
   (`e2e/list.spec.mjs`); search operators and hints (`e2e/search.spec.mjs`).
 - Sync: offline save sent later, two phones, different lines merge, same line gives a conflict copy, rename rewrites
   links and a link to no note makes it (`e2e/sync.spec.mjs`).
+- Spaces: the Worker's routes × roles, pending invites, move, delete in rounds (`worker/test/spaces.test.mjs`); in the
+  browser with two or three accounts: invite and edit, a viewer only reads, someone not invited sees nothing, removed
+  or leaving loses the space and its notes on the device, a pending invite taken up at first sign-in, move, and a
+  `[[Space/Note]]` link (`e2e/spaces.spec.mjs`).
 
 ## Later
 
@@ -35,6 +39,16 @@ Test list (what each part is proved by):
   different lines merge; a clash on the same line keeps the other device's text and saves this device's as a new note
   titled "<title> (conflict, <device>, <d Mon HH:MM>)", with a toast.
 - A rename writes the new title, keeps the old one in `aliases` and rewrites `[[old]]` links in the vault.
+
+## Spaces (S3, decision 0010)
+
+- The switcher above the list opens "My notes" or a space (kept per account on this device, `notes:open:<uid>`);
+  New space, and the Members sheet (owner: rename, invite by Google email as edit or view, change a role, remove,
+  take back an invite, delete the space; others: leave). Only the Worker writes space docs (`/api/spaces`).
+- Writing in a space needs an app role that writes (admin, member) and owner or edit in the space.
+- A note moves with "Move" in its sheet (to "My notes" or a space the person can edit); links to it from the old
+  space don't follow (the sheet warns). `[[Space name/Note]]` links to a note in another space the person is in.
+- Account options stay in the vault (`spaces/<uid>/settings/<uid>`) whatever space is open.
 
 ## Files formats (`@core/files` v0, decision 0009)
 

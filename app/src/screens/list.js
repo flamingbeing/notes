@@ -94,7 +94,8 @@ export function listScreen(app) {
 
   const screen = sectionScreen('list-view', s => {
     const could = canWrite;
-    canWrite = s.role === 'admin' || s.role === 'member';
+    // writing needs an app role that writes and, in a shared space, owner or edit there
+    canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
     $('add').hidden = !canWrite;
     $('daily').hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)

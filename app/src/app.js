@@ -10,6 +10,7 @@ import { noAccessScreen } from './screens/no-access.js';
 import { notSetUpScreen } from './screens/not-set-up.js';
 import { listScreen } from './screens/list.js';
 import { settingsSheet } from './settings-sheet.js';
+import { spacesSheet } from './spaces-sheet.js';
 
 const typing = () => document.activeElement?.tagName === 'INPUT' && !!(/** @type {HTMLInputElement} */ (document.activeElement).value);
 const sheetOpen = () => !!document.querySelector('dialog[open]');
@@ -38,6 +39,7 @@ else {
   let signedIn = false;
   settingsSheet(app, () => signedIn);
   const list = listScreen(app);
+  const spaces = spacesSheet(app, list.toast);
   const show = screenSwitch({
     'signed-out': signedOutScreen(app, { onForget: ok => { if (ok) $('sign-out-msg').textContent = ''; } }),
     'no-access': noAccessScreen(),
@@ -56,6 +58,7 @@ else {
       $('sign-out').hidden = !s.user;
       $('open-settings').hidden = !s.user;
       signedIn = !!s.user;
+      if (s.phase === 'ready') spaces.draw(s);
       if (s.user) $('sign-out-msg').textContent = '';
       show(s);
     },
@@ -65,5 +68,7 @@ else {
     },
     // a clash with another device's edit: the other device's text stays, this device's is kept as its own note
     onConflict(copy) { list.toast(`Edited on two devices at once; your version is kept as “${copy.title}”.`); },
+    // taken out of a space (or it was deleted): its notes have left this device
+    onRemoved(name) { list.toast(`You’re no longer in “${name}”; its notes are gone from this device.`); },
   });
 }

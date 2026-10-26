@@ -3,6 +3,8 @@
 // made elsewhere shows under the text, and a delete made elsewhere closes the sheet and says so, unless the person has
 // typed a change: then the sheet stays open, says so, and Save adds their text back as a new note. A new title renames
 // the note and rewrites [[links]] to it in the vault. (A note not on the server yet is only "gone" once it was seen there.)
+// A [[Space/Note]] link to a note in another space the person is in opens that space, then the note; "Move" sends the
+// note to another space they can write (or their own notes).
 import { confirmModal } from '@core/ui';
 import { TOO_BIG } from '../cloud.js';
 import { linksIn } from '../notes/parse.js';
@@ -51,6 +53,12 @@ export function noteSheet(app, toast, canWrite) {
     if (await commit()) return;   // refused: stay on this note with the text as typed
     const have = app.find(target);
     if (have) { show(have); return; }
+    const far = app.findElsewhere(target);
+    if (far) {
+      const why = await app.switchTo(far.space);
+      if (why) toast(why); else show(far.note);
+      return;
+    }
     if (!canWrite()) { toast('There is no such note yet.'); return; }
     const { note, refused } = await app.create({ title: target });
     if (refused) { toast(refused); return; }
@@ -60,8 +68,8 @@ export function noteSheet(app, toast, canWrite) {
     if (!editing) return;
     const targets = [...new Map(linksIn(area().value).filter(l => l.target).map(l => [l.target.toLowerCase(), l.target])).values()];
     $('edit-links').replaceChildren(...targets.map(t => {
-      const to = app.find(t);
-      return button(to ? to.title : `${t} (new)`, () => void go(t), to ? '' : 'missing');
+      const to = app.find(t), far = to ? null : app.findElsewhere(t);   // (a note in another space: its link as written)
+      return button(to ? to.title : far ? t : `${t} (new)`, () => void go(t), to || far ? '' : 'missing');
     }));
     $('edit-links-box').hidden = targets.length === 0;
     const back = app.backlinks(editing.id);
@@ -88,6 +96,30 @@ export function noteSheet(app, toast, canWrite) {
     if (note && !editingGone) { await app.remove(note); toast('Deleted'); }
   });
 
+  // where the note can move: the person's own notes and each space they can write, but not the one it is in
+  const moveSel = () => /** @type {HTMLSelectElement} */ ($('edit-move'));
+  const fillMove = () => {
+    const here = app.space(), me = app.vault();
+    const opt = (/** @type {string} */ value, /** @type {string} */ label) => Object.assign(document.createElement('option'), { value, textContent: label });
+    const to = [...(here.id !== me && me ? [opt(me, 'My notes')] : []), ...app.spaces().filter(x => x.id !== here.id && x.role !== 'view').map(x => opt(x.id, x.name))];
+    moveSel().replaceChildren(opt('', 'Move to…'), ...to);
+    $('edit-move-box').hidden = !canWrite() || to.length === 0;
+  };
+  $('edit-move-go').addEventListener('click', async () => {
+    const note = editing, to = moveSel().value;
+    if (!note || !to || editingGone) return;
+    const name = moveSel().selectedOptions[0]?.textContent || '';
+    const back = app.backlinks(note.id).length;
+    const warn = back ? ` ${back === 1 ? 'One note here links' : `${back} notes here link`} to it; those links won’t find it there.` : '';
+    if (!await confirmModal(`Move “${note.title}” to ${name}?${warn}`, { title: 'Move note', yes: 'Move' })) return;
+    if (await commit()) return;
+    const why = await app.move(note, to);
+    if (why) { toast(why); return; }
+    editing = null;
+    sheet.close('moved');
+    toast(`Moved to ${name}`);
+  });
+
   /** @param {Note} note */
   const show = note => {
     editing = note;
@@ -97,6 +129,7 @@ export function noteSheet(app, toast, canWrite) {
     const rw = canWrite();
     for (const id of ['edit-text', 'edit-path', 'edit-body']) input(id).readOnly = !rw;
     $('edit-save').hidden = !rw; $('edit-delete').hidden = !rw;
+    fillMove();
     $('edit-live').textContent = ''; $('edit-msg').textContent = '';
     let seen = false;
     editingGone = false;

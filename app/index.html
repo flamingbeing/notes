@@ -53,6 +53,12 @@
       <p>This app isn't connected to its Firebase project yet (see README, "Fill").</p>
     </section>
     <section id="list-view" hidden>
+      <div class="row" id="space-bar">
+        <label for="space" class="sr-only">Space</label>
+        <select id="space"></select>
+        <button id="space-open" type="button" hidden>Members</button>
+        <button id="space-new" type="button" hidden>New space</button>
+      </div>
       <div id="refused-list"></div>
       <p id="edit-msg" class="small" role="status"></p>
       <div id="search">
@@ -120,12 +126,60 @@
         <h3>Linked from</h3>
         <ul id="edit-backlinks" class="links" aria-label="Linked from"></ul>
       </div>
+      <div id="edit-move-box" class="row" hidden>
+        <label for="edit-move" class="sr-only">Move to</label>
+        <select id="edit-move"></select>
+        <button id="edit-move-go" type="button">Move</button>
+      </div>
       <div class="row">
         <button id="edit-save" value="save">Save</button>
         <button id="edit-delete" value="delete" type="button" class="danger">Delete</button>
         <button value="cancel" formnovalidate>Cancel</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="space-new-sheet" aria-labelledby="space-new-title">
+    <form method="dialog" id="space-new-form">
+      <h2 id="space-new-title">New space</h2>
+      <label for="space-new-name">Name</label>
+      <input id="space-new-name" maxlength="200" required pattern="[^/]+" placeholder="Shared notes">
+      <p id="space-new-msg" class="small" role="status"></p>
+      <div class="row">
+        <button id="space-new-make" value="make">Make</button>
+        <button value="cancel" formnovalidate>Cancel</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="space-sheet" aria-labelledby="space-title">
+    <h2 id="space-title">Space</h2>
+    <form id="space-rename" class="row" autocomplete="off" hidden>
+      <label for="space-name" class="sr-only">Name</label>
+      <input id="space-name" maxlength="200" required pattern="[^/]+">
+      <button type="submit">Rename</button>
+    </form>
+    <h3>People</h3>
+    <ul id="space-people" class="people" aria-label="People"></ul>
+    <div id="space-pending-box" hidden>
+      <h3>Invited</h3>
+      <ul id="space-pending" class="people" aria-label="Invited"></ul>
+    </div>
+    <form id="space-invite" autocomplete="off" hidden>
+      <label for="invite-email">Invite by Google email</label>
+      <div class="row">
+        <input id="invite-email" type="email" maxlength="254" required placeholder="name@example.com">
+        <label for="invite-role" class="sr-only">Role</label>
+        <select id="invite-role"><option value="edit">can edit</option><option value="view">can view</option></select>
+        <button type="submit">Invite</button>
+      </div>
+    </form>
+    <p id="space-msg" class="small" role="status"></p>
+    <div class="row">
+      <button id="space-leave" type="button" class="danger" hidden>Leave space</button>
+      <button id="space-delete" type="button" class="danger" hidden>Delete space</button>
+      <button id="space-close" type="button">Close</button>
+    </div>
   </dialog>
 </body>
 </html>

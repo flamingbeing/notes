@@ -22,3 +22,8 @@ footer { margin-top: 2rem; }
 #settings label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 #settings label.file { display: inline-block; padding: .5rem .75rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; }
 #settings label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* shared spaces: the switcher, and the people in the members sheet */
+#space-bar select { flex: 1; min-width: 8rem; }
+.people { list-style: none; padding: 0; }
+.people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
+.people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
