@@ -1,6 +1,6 @@
 // An in-memory stand-in for an R2 bucket binding (put, get, delete), for worker/files.js in the unit tests and the
 // e2e server (e2e/serve.mjs). Only what files.js uses: put(key, body, { httpMetadata, customMetadata }),
-// get(key) -> { body, size, httpMetadata, customMetadata } | null, delete(key | keys).
+// get(key) -> { body, size, httpMetadata, customMetadata } | null, delete(key | keys), list({ prefix, limit }) (spaces.js).
 export function memoryBucket() {
   /** @type {Map<string, { bytes: Uint8Array, httpMetadata: object, customMetadata: object }>} */
   const objects = new Map();
@@ -17,6 +17,10 @@ export function memoryBucket() {
     },
     async delete(keys) {
       for (const k of [].concat(keys)) objects.delete(k);
+    },
+    async list({ prefix = '', limit = 1000 } = {}) {
+      const keys = [...objects.keys()].filter(k => k.startsWith(prefix)).sort();
+      return { objects: keys.slice(0, limit).map(key => ({ key })), truncated: keys.length > limit };
     },
   };
 }

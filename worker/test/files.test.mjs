@@ -102,12 +102,12 @@ test('size cap and Content-Length; an odd Content-Type is stored as octet-stream
   assert.equal((await handleFiles(noLength, { bucket: b, verify, origin: ORIGIN })).status, 411);
 });
 
-test('sites.js routes /api/files/: 503 without a bucket, then the emulator token on localhost', async () => {
+test('sites.js routes /api/files/: 503 without a bucket, then the emulator token on localhost (own vault)', async () => {
   const unsigned = (claims) => [{ alg: 'none' }, claims, ''].map((x, i) => i < 2 ? Buffer.from(JSON.stringify(x)).toString('base64url') : '').join('.');
   const now = Math.floor(Date.now() / 1000);
   const tok = unsigned({ aud: 'demo-x', iss: 'https://securetoken.google.com/demo-x', sub: 'ann', exp: now + 60, iat: now, auth_time: now, g: { _: 'member' } });
   const env = { FIREBASE_PROJECT: 'demo-x', EMULATOR: '1' };
-  const put = e => worker.fetch(new Request('http://localhost/api/files/_/a', { method: 'PUT', body: 'x', headers: { Authorization: `Bearer ${tok}`, 'Content-Length': '1' } }), e);
+  const put = e => worker.fetch(new Request('http://localhost/api/files/ann/a', { method: 'PUT', body: 'x', headers: { Authorization: `Bearer ${tok}`, 'Content-Length': '1' } }), e);
   let r = await put(env);
   assert.equal(r.status, 503);
   assert.equal(r.headers.get('X-Robots-Tag'), 'noindex, nofollow', 'with the security headers');
@@ -122,7 +122,7 @@ test('sites.js routes /api/files/: 503 without a bucket, then the emulator token
     gone = true;
     assert.equal((await put({ ...env, FILES, FIRESTORE_EMULATOR: 'fs' })).status, 403, 'revoked');
   } finally { globalThis.fetch = realFetch; }
-  assert.deepEqual([...FILES.objects.keys()], ['_/a']);
-  r = await worker.fetch(new Request('https://notes.flamingbeing.com/api/files/_/a', { method: 'PUT', body: 'x', headers: { Authorization: `Bearer ${tok}`, 'Content-Length': '1' } }), { ...env, FILES });
+  assert.deepEqual([...FILES.objects.keys()], ['ann/a']);
+  r = await worker.fetch(new Request('https://notes.flamingbeing.com/api/files/ann/a', { method: 'PUT', body: 'x', headers: { Authorization: `Bearer ${tok}`, 'Content-Length': '1' } }), { ...env, FILES });
   assert.equal(r.status, 401, 'unsigned tokens only on localhost');
 });

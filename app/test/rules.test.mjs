@@ -108,36 +108,36 @@ test('shared space notes: every space role × app role; non-members denied', asy
   assert.equal((await as('member', 'u-x').get('spaces/s-nospace1234/notes/n1')).ok, false, 'a space with no doc: nobody');
 });
 
-test('space docs: made by their owner alone; the owner changes them; a member may only leave', async () => {
+test('space docs: members read them, a memberIds query lists mine; no device writes them (the Worker does)', async () => {
   await emu.clear();
-  const own = { name: 'Team', owner: 'u-member', members: { 'u-member': 'owner' }, memberIds: ['u-member'] };
-  const mk = (data, id = SPACE) => as('member').create(`spaces/${id}`, data);
-  assert.equal((await mk({ ...own, members: { 'u-member': 'owner', 'u-x': 'edit' }, memberIds: ['u-member', 'u-x'] })).ok, false, 'only themselves at first');
-  assert.equal((await mk({ ...own, owner: 'u-x', members: { 'u-x': 'owner' }, memberIds: ['u-x'] })).ok, false, 'not for someone else');
-  assert.equal((await mk({ ...own, memberIds: [] })).ok, false, 'memberIds matches members');
-  assert.equal((await mk({ ...own, name: '' })).ok, false, 'a name');
-  assert.equal((await mk({ ...own, extra: 1 })).ok, false, 'known fields only');
-  assert.equal((await mk(own, 'u-victim')).ok, false, 'a space id never looks like a uid (a vault)');
-  assert.equal((await mk(own, 's-short')).ok, false, 'space ids are s- and 8 to 40 letters or digits');
-  assert.equal((await as('viewer', 'u-member').create(`spaces/${SPACE}`, own)).ok, false, 'app viewers make no spaces');
-  assert.equal((await mk(own)).ok, true);
+  const own = { name: 'Team', owner: 'u-member', members: { 'u-member': 'owner', 'u-view': 'view' }, memberIds: ['u-member', 'u-view'] };
+  assert.equal((await as('member').create(`spaces/${SPACE}`, { ...own, memberIds: ['u-member'], members: { 'u-member': 'owner' } })).ok, false, 'not even made by its owner-to-be');
+  await emu.seed(`spaces/${SPACE}`, own);
   assert.equal((await as('member').get(`spaces/${SPACE}`)).ok, true, 'a member reads it');
+  assert.equal((await as('viewer', 'u-view').get(`spaces/${SPACE}`)).ok, true, 'a viewer too');
   assert.equal((await as('member', 'u-x').get(`spaces/${SPACE}`)).ok, false, 'a non-member does not');
+  assert.equal((await as('member', 'u-x').get('spaces/s-nospace1234')).ok, true, 'a missing space reads as missing (the app asks before the Worker made it)');
   assert.equal(await containsQuery('u-member', 'member', 'spaces', 'memberIds', 'u-member'), true, 'my spaces: a memberIds query');
   assert.equal(await containsQuery('u-member', 'member', 'spaces', 'memberIds', 'u-x'), false, 'not someone else’s spaces');
-  // the owner adds people and changes roles; the owner stays
-  const three = { ...own, members: { 'u-member': 'owner', 'u-edit': 'edit', 'u-view': 'view' }, memberIds: ['u-member', 'u-edit', 'u-view'] };
-  assert.equal((await as('member').update(`spaces/${SPACE}`, { ...three, members: { ...three.members, 'u-edit': 'boss' } })).ok, false, 'known roles only');
-  assert.equal((await as('member').update(`spaces/${SPACE}`, { ...three, memberIds: ['u-member'] })).ok, false, 'memberIds matches');
-  assert.equal((await as('member').update(`spaces/${SPACE}`, three)).ok, true, 'the owner invites');
-  assert.equal((await as('member').update(`spaces/${SPACE}`, { ...three, owner: 'u-edit', members: { ...three.members, 'u-edit': 'owner' } })).ok, false, 'the owner stays');
-  assert.equal((await as('member', 'u-edit').update(`spaces/${SPACE}`, { ...three, members: { ...three.members, 'u-new': 'edit' }, memberIds: [...three.memberIds, 'u-new'] })).ok, false, 'an editor invites nobody');
-  assert.equal((await as('member', 'u-edit').update(`spaces/${SPACE}`, { ...three, name: 'Mine now' })).ok, false, 'nor renames it');
-  assert.equal((await as('member', 'u-edit').update(`spaces/${SPACE}`, { ...three, members: { 'u-member': 'owner', 'u-edit': 'edit' }, memberIds: ['u-member', 'u-edit'] })).ok, false, 'nor removes others');
-  assert.equal((await as('member', 'u-edit').delete(`spaces/${SPACE}`)).ok, false, 'nor deletes it');
-  assert.equal((await as('viewer', 'u-view').update(`spaces/${SPACE}`, { ...three, members: { 'u-member': 'owner', 'u-edit': 'edit' }, memberIds: ['u-member', 'u-edit'] })).ok, true, 'a member leaves');
-  assert.equal((await as('member', 'u-x').update(`spaces/${SPACE}`, three)).ok, false, 'a non-member changes nothing');
-  assert.equal((await as('member').delete(`spaces/${SPACE}`)).ok, false, 'not even the owner deletes it (its notes would be left to whoever makes it again)');
+  assert.equal((await as('member').update(`spaces/${SPACE}`, { ...own, name: 'New' })).ok, false, 'the owner renames through the Worker');
+  assert.equal((await as('member').update(`spaces/${SPACE}`, { ...own, members: { ...own.members, 'u-x': 'edit' }, memberIds: [...own.memberIds, 'u-x'] })).ok, false, 'and invites through it');
+  assert.equal((await as('viewer', 'u-view').update(`spaces/${SPACE}`, { ...own, members: { 'u-member': 'owner' }, memberIds: ['u-member'] })).ok, false, 'a member leaves through it');
+  assert.equal((await as('member').delete(`spaces/${SPACE}`)).ok, false, 'and deletes through it');
+  assert.equal((await as('admin', 'u-admin').get(`invites/abc`)).ok, false, 'pending invites: nobody on a device');
+  assert.equal((await as('admin', 'u-admin').set(`invites/abc`, { spaces: {} })).ok, false);
+});
+
+test('a space being deleted (closing) takes no new writes; reads go on', async () => {
+  await emu.clear();
+  const members = { 'u-member': 'owner', 'u-edit': 'edit' };
+  await emu.seed(`spaces/${SPACE}`, { name: 'Team', owner: 'u-member', members, memberIds: Object.keys(members), closing: true });
+  await emu.seed(`spaces/${SPACE}/notes/n1`, note());
+  for (const uid of Object.keys(members)) {
+    assert.equal((await as('member', uid).get(`spaces/${SPACE}/notes/n1`)).ok, true, `${uid} reads`);
+    assert.equal((await as('member', uid).set(`spaces/${SPACE}/notes/n2`, note(), at)).ok, false, `${uid} writes a note`);
+    assert.equal((await as('member', uid).delete(`spaces/${SPACE}/notes/n1`)).ok, false, `${uid} deletes a note`);
+    assert.equal((await as('member', uid).set(`spaces/${SPACE}/bin/notes:n1`, { id: 'notes:n1', kind: 'notes', data: {}, deletedAt: 1, updatedAt: 1 }, at)).ok, false, `${uid} writes the bin`);
+  }
 });
 
 test('files: the record of a photo or file in a vault or space; known fields only, in their shapes', async () => {

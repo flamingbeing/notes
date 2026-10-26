@@ -70,3 +70,8 @@ footer { margin-top: 2rem; }
 #picker-list li[aria-selected=true] { background: var(--accent); color: var(--on-accent); }
 #picker-list .path { opacity: .75; font-size: .85em; }
 #settings h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+/* shared spaces: the switcher, and the people in the members sheet */
+#space-bar select { flex: 1; min-width: 8rem; }
+.people { list-style: none; padding: 0; }
+.people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
+.people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
