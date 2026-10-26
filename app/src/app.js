@@ -1,6 +1,5 @@
 // The page's shell: the theme, the kit's sync chip and update prompt, the account footer, and the screen switch. The
-// sample screens (screens/) show a list with add, edit, delete, conflicts and refused saves; a new app replaces them and
-// keeps this wiring, cloud.js and the kit (@core/ui, @core/theme).
+// screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
 import { syncChip, updatePrompt, plural } from '@core/ui';
 import { themeSwitch } from '@core/theme';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
@@ -20,7 +19,8 @@ const sheetOpen = () => !!document.querySelector('dialog[open]');
 const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchParams(location.search).has('sw'));
 
 themeSwitch($('theme-switch'));
-window.starter = { ready: false, add: text => app?.add(text), signInAs: emulatorSignIn, files: () => app?.files };   // for the tests
+// for the tests: add(title, body?) -> '' or why the save was refused
+window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files };
 const app = await start({ canReload: withSW ? () => !typing() && !sheetOpen() : null });
 updatePrompt($('update-prompt'), { update: app?.update || null });
 
@@ -63,6 +63,7 @@ else {
       list.draw(items, changed);
       window.starter.ready = true;
     },
-    onFiles(by) { list.drawFiles(by); },
+    // a clash with another device's edit: the other device's text stays, this device's is kept as its own note
+    onConflict(copy) { list.toast(`Edited on two devices at once; your version is kept as “${copy.title}”.`); },
   });
 }

@@ -1,4 +1,4 @@
-/* The sample screens' layout; colours, type and the kit parts' look come from theme/theme.css and ui/ui.css. */
+/* The screens' layout; colours, type and the kit parts' look come from theme/theme.css and ui/ui.css. */
 body { margin: 0 auto; max-width: 40rem; padding: 0 var(--pad) 2rem; }
 .bar { display: flex; align-items: center; justify-content: space-between; gap: var(--pad); }
 h1 { font-size: 1.4rem; }
@@ -7,15 +7,16 @@ input { padding: .5rem; flex: 1; min-width: 10rem; }
 #items li button { width: 100%; text-align: left; margin: .25rem 0; }
 footer { margin-top: 2rem; }
 
-/* an item changed (here or on another device) since the list last showed */
+/* a note changed (here or on another device) since the list last showed */
 #items li.changed button { border-inline-start: 3px solid var(--accent); }
 
-/* an item's photos and files (@core/files): thumbnails on the list, rows in the edit sheet */
-.thumbs { display: inline-flex; gap: .25rem; margin-inline-start: .5rem; vertical-align: middle; }
-.thumb { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; background: var(--surface-2, #8882); }
-.files { list-style: none; padding: 0; }
-.files li { display: flex; align-items: center; gap: .5rem; margin: .25rem 0; }
-.files li a { flex: 1; overflow-wrap: anywhere; }
+/* a note's folder on the list; its links and backlinks in the sheet (a link to no note yet is dashed) */
+#items .path { opacity: .7; font-size: .85em; }
+#edit textarea { width: 100%; box-sizing: border-box; min-height: 12rem; font: inherit; padding: .5rem; }
+#edit input { width: 100%; box-sizing: border-box; }
+.links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
+.links button.missing { border-style: dashed; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the sample options (src/options.js) */
 #items.big li button { padding: 1rem .75rem; font-size: 1.15rem; }
 #settings label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }

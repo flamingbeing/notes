@@ -1,67 +1,90 @@
-// The list screen (#list-view): the items, with add and edit (members and admins), the kit's conflict sheet and the
-// list of saves the server refused. Each item shows its photos' thumbnails (and a clip for other files).
-import { conflictSheet, refusedList, toaster, emptyState } from '@core/ui';
+// The notes list (#list-view): every note in the person's vault, a search box (@core/search over title, body and tags,
+// with tag: and path: operators), a filter by tag or folder, a new note by title, and today's daily note. A note opens
+// in the note sheet (note-sheet.js); a save the server refused waits in the kit's refused list.
+import { refusedList, toaster, emptyState } from '@core/ui';
 import { createSearch } from '@core/search';
-import { COLL, REFUSED } from '../cloud.js';
+import { COLL } from '../cloud.js';
+import { isoDay } from '../notes/model.js';
 import { $, input, sectionScreen } from '../dom.js';
-import { itemSheet } from './item-sheet.js';
-import { thumbOf } from './attachments.js';
+import { noteSheet } from './note-sheet.js';
 
-/** @typedef {import('../cloud.js').Item} Item */
-/** @typedef {import('../cloud.js').Attachment} Attachment */
+/** @typedef {import('../cloud.js').Note} Note */
 
-/** @param {unknown} record  an item, or a refused save's record -> its text */
-const itemText = record => String(/** @type {{ text?: unknown } | null} */ (record)?.text ?? '');
+/** @param {unknown} record  a note, or a refused save's record -> its title */
+export const titleOf = record => String(/** @type {{ title?: unknown } | null} */ (record)?.title ?? '') || 'Untitled';
+const low = (/** @type {unknown} */ s) => String(s ?? '').toLowerCase();
+const bare = (/** @type {string} */ s) => low(s).replace(/^[#/]+|\/+$/g, '');
+// a note has a tag when it has it or one under it (#a matches #a/b); it is in a folder when its path is that folder or
+// one inside it
+/** @param {Note} n @param {string} t */
+export const hasTag = (n, t) => (n.tags || []).some(x => low(x) === bare(t) || low(x).startsWith(bare(t) + '/'));
+/** @param {Note} n @param {string} f */
+export const inFolder = (n, f) => low(n.path) === bare(f) || low(n.path).startsWith(bare(f) + '/');
 
 /** @param {import('../cloud.js').Started} app */
 export function listScreen(app) {
   let canWrite = false;
-  // search over the list: kept current from each draw (only records whose text changed are fed)
+  // search over the notes: kept current from each draw (only notes whose text changed are fed)
   const search = createSearch({
-    fields: ['text'],
-    operators: {
-      has: (rec, v) => v === 'number' && /\d/.test(itemText(rec)),
-      is: (rec, v) => v === 'long' && itemText(rec).length >= 20,
-    },
+    fields: ['title', 'body', 'tags'],
+    operators: { tag: (rec, v) => hasTag(/** @type {Note} */ (rec), v), path: (rec, v) => inFolder(/** @type {Note} */ (rec), v) },
   });
-  /** @type {Item[]} */
+  /** @type {Note[]} */
   let all = [];
   /** @type {Map<string, string>} id -> the text as indexed (a new subscription starts with no "changed" ids, so compare) */
   const known = new Map();
-  /** @param {Item[]} items */
-  const feed = items => {
-    const now = new Set(items.map(i => i.id));
+  const textOf = (/** @type {Note} */ n) => JSON.stringify([n.title, n.body, n.tags, n.path]);
+  /** @param {Note[]} notes */
+  const feed = notes => {
+    const now = new Set(notes.map(i => i.id));
     for (const id of known.keys()) if (!now.has(id)) { search.remove(id); known.delete(id); }
-    const stale = items.filter(i => known.get(i.id) !== itemText(i));
+    const stale = notes.filter(i => known.get(i.id) !== textOf(i));
     search.feed(stale);
-    for (const i of stale) known.set(i.id, itemText(i));
+    for (const i of stale) known.set(i.id, textOf(i));
   };
-  /** the items the box leaves in, in the order to show them */
+  const filter = () => /** @type {HTMLSelectElement} */ ($('filter'));
+  // the filter's choices: every tag (#tag) and folder (path/) in the vault
+  const fillFilter = () => {
+    const sel = filter(), was = sel.value;
+    const tags = [...new Set(all.flatMap(n => n.tags || []))].sort();
+    const folders = [...new Set(all.flatMap(n => (n.path || '').split('/').map((_, i, a) => a.slice(0, i + 1).join('/'))).filter(Boolean))].sort();
+    const opt = (/** @type {string} */ value, /** @type {string} */ label) => Object.assign(document.createElement('option'), { value, textContent: label });
+    sel.replaceChildren(opt('', 'All notes'), ...tags.map(t => opt('tag:' + t, '#' + t)), ...folders.map(f => opt('path:' + f, f + '/')));
+    sel.value = [...sel.options].some(o => o.value === was) ? was : '';
+    sel.hidden = sel.options.length < 2;
+  };
+  /** the notes the box and the filter leave in, in the order to show them */
   const visible = () => {
-    const q = input('q').value.trim();
-    if (!q) { $('search-msg').textContent = ''; return [...all].sort((a, b) => String(a.text).localeCompare(String(b.text))); }
-    const { hits, unknown } = search.search(q, { limit: 500 });
+    const f = filter().value, q = input('q').value.trim();
+    const kept = !f ? all : all.filter(n => f.startsWith('tag:') ? hasTag(n, f.slice(4)) : inFolder(n, f.slice(5)));
+    if (!q) { $('search-msg').textContent = ''; return [...kept].sort((a, b) => titleOf(a).localeCompare(titleOf(b))); }
+    const { hits, unknown } = search.search(q, { limit: 1000 });
     $('search-msg').textContent = unknown.length ? `Did you mean ${unknown.map(u => u.suggest).join(', ')}?` : hits.length ? '' : 'No matches';
-    const byId = new Map(all.map(i => [i.id, i]));
-    return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Item} */ i => !!i);
+    const byId = new Map(kept.map(i => [i.id, i]));
+    return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
-  /** @type {Map<string, Attachment[]>} */
-  let byItem = new Map();
   const toast = toaster($('toasts')).show;
-  const sheet = itemSheet(app, toast, id => byItem.get(id) || []);
-  const empty = emptyState($('empty'), { title: 'Nothing here yet', hint: 'Items you add show up here.', action: { label: 'Add the first item', onClick: () => input('new-text').focus() } });
-  conflictSheet($('conflict-sheet'), { sync: app.sync, text: itemText });
-  refusedList($('refused-list'), { sync: app.sync, kind: COLL, text: itemText });
+  const sheet = noteSheet(app, toast);
+  const empty = emptyState($('empty'), { title: 'No notes yet', hint: 'Notes you write show up here.', action: { label: 'Write the first note', onClick: () => input('new-text').focus() } });
+  refusedList($('refused-list'), { sync: app.sync, kind: COLL, text: titleOf });
   $('add').addEventListener('submit', async e => {
     e.preventDefault();
-    const text = input('new-text').value.trim();
-    if (!text) return;
-    const refused = await app.add(text);
-    input('new-text').value = '';   // (a refused save is kept in the refused list, not in the box)
-    toast(refused ? REFUSED : 'Added');
+    const title = input('new-text').value.trim();
+    if (!title) return;
+    input('new-text').value = '';
+    const have = app.find(title);
+    if (have) { sheet.open(have); return; }   // a title is one note: open it rather than make a second
+    const { note, refused } = await app.create({ title });
+    toast(refused || 'Added');
+    if (!refused) sheet.open(note);
+  });
+  $('daily').addEventListener('click', async () => {
+    const { note, refused } = await app.daily(isoDay());
+    if (refused) toast(refused); else sheet.open(note);
   });
 
-  input('q').addEventListener('input', () => api.draw(all, new Set()));
+  input('q').addEventListener('input', () => draw(all, new Set()));
+  filter().addEventListener('change', () => draw(all, new Set()));
   // "/" jumps to the box on a computer
   document.addEventListener('keydown', e => {
     const t = /** @type {HTMLElement} */ (e.target);
@@ -73,39 +96,35 @@ export function listScreen(app) {
     const could = canWrite;
     canWrite = s.role === 'admin' || s.role === 'member';
     $('add').hidden = !canWrite;
+    $('daily').hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
     if (canWrite !== could) draw(all, new Set());
   });
-  /** @param {Item[]} items @param {Set<string>} changed */
-  const draw = (items, changed) => {
-    all = items; feed(items);
+  /** @param {Note[]} notes @param {Set<string>} changed */
+  const draw = (notes, changed) => {
+    all = notes; feed(notes); fillFilter();
     const list = visible();
-    $('items').replaceChildren(...list.map(item => {
+    $('items').replaceChildren(...list.map(note => {
       const li = document.createElement('li'), b = document.createElement('button');
-      b.type = 'button'; b.textContent = item.text; b.disabled = !canWrite;
-      b.addEventListener('click', () => sheet.open(item));
-      const attached = byItem.get(item.id) || [];
-      if (attached.length) {
-        // decorative here (the sheet names them), so the button's name stays the item's text
-        const thumbs = document.createElement('span');
-        thumbs.className = 'thumbs'; thumbs.setAttribute('aria-hidden', 'true');
-        const others = attached.filter(f => !f.thumb).length;
-        thumbs.append(...attached.flatMap(f => thumbOf(app, f, '') || []), ...(others ? [`📎${others > 1 ? others : ''}`] : []));
-        b.append(thumbs);
+      b.type = 'button'; b.textContent = titleOf(note);
+      if (note.path) {
+        const p = document.createElement('span');
+        p.className = 'path'; p.textContent = ` ${note.path}/`;
+        b.append(p);
       }
-      li.classList.toggle('changed', changed.has(item.id));
+      b.addEventListener('click', () => sheet.open(note));
+      li.classList.toggle('changed', changed.has(note.id));
       li.append(b);
       return li;
     }));
-    $('count').textContent = list.length === items.length ? `${items.length} ${items.length === 1 ? 'item' : 'items'}` : `${list.length} of ${items.length} items`;
-    empty.show(items.length === 0 && canWrite);
+    $('count').textContent = list.length === notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}` : `${list.length} of ${notes.length} notes`;
+    empty.show(notes.length === 0 && canWrite);
+    sheet.redraw();
   };
-  const api = {
+  return {
     ...screen,
-    /** @param {Item[]} items @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
+    /** @param {Note[]} notes @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
     draw,
-    /** @param {Map<string, Attachment[]>} by  every item's photos and files */
-    drawFiles(by) { byItem = by; draw(all, new Set()); sheet.redraw(); },
+    toast,
   };
-  return api;
 }

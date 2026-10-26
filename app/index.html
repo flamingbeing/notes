@@ -53,23 +53,27 @@
       <p>This app isn't connected to its Firebase project yet (see README, "Fill").</p>
     </section>
     <section id="list-view" hidden>
-      <div id="conflict-sheet"></div>
       <div id="refused-list"></div>
       <p id="edit-msg" class="small" role="status"></p>
       <div id="search">
         <label for="q">Search</label>
-        <input id="q" type="search" autocomplete="off" placeholder="word, &quot;phrase&quot;, -leave out, has:number, is:long">
+        <input id="q" type="search" autocomplete="off" placeholder="word, &quot;phrase&quot;, -leave out, tag:work, path:folder">
         <p id="search-msg" class="small" role="status"></p>
       </div>
+      <div class="row">
+        <label for="filter" class="sr-only">Show</label>
+        <select id="filter" hidden><option value="">All notes</option></select>
+        <button id="daily" type="button" hidden>Today’s note</button>
+      </div>
       <form id="add" autocomplete="off">
-        <label for="new-text">New item</label>
+        <label for="new-text">New note</label>
         <div class="row">
-          <input id="new-text" name="text" maxlength="500" required>
+          <input id="new-text" name="title" maxlength="200" required placeholder="Title">
           <button type="submit">Add</button>
         </div>
       </form>
       <p id="count" class="small" role="status" hidden></p>
-      <ul id="items" aria-label="Items"></ul>
+      <ul id="items" aria-label="Notes"></ul>
       <div id="empty"></div>
     </section>
   </main>
@@ -99,13 +103,23 @@
 
   <dialog id="edit" aria-labelledby="edit-title">
     <form method="dialog" id="edit-form">
-      <h2 id="edit-title">Edit item</h2>
-      <label for="edit-text">Text</label>
-      <input id="edit-text" maxlength="500" required>
+      <h2 id="edit-title">Note</h2>
+      <label for="edit-text">Title</label>
+      <input id="edit-text" maxlength="200" required>
+      <label for="edit-path">Folder</label>
+      <input id="edit-path" maxlength="200" placeholder="none">
+      <label for="edit-body">Text</label>
+      <textarea id="edit-body" rows="12" spellcheck="true"></textarea>
+      <p id="edit-size" class="small" role="status"></p>
       <p id="edit-live" class="small" role="status"></p>
-      <ul id="edit-files" class="files" aria-label="Photos and files" hidden></ul>
-      <button id="edit-attach" type="button">Add photo or file</button>
-      <input id="edit-file" type="file" multiple hidden>
+      <div id="edit-links-box" hidden>
+        <h3>Links</h3>
+        <ul id="edit-links" class="links" aria-label="Links"></ul>
+      </div>
+      <div id="edit-backlinks-box" hidden>
+        <h3>Linked from</h3>
+        <ul id="edit-backlinks" class="links" aria-label="Linked from"></ul>
+      </div>
       <div class="row">
         <button id="edit-save" value="save">Save</button>
         <button id="edit-delete" value="delete" type="button" class="danger">Delete</button>

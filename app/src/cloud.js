@@ -35,7 +35,7 @@ import { firebaseConfig, APP } from './config.js';
 import { emulator, configured, roleOf, needsClaims } from './roles.js';
 import { OPTIONS, SETTINGS_COLL } from './options.js';
 import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote } from './notes/model.js';
-import { renamePlan } from './notes/links.js';
+import { renamePlan, linkIndex } from './notes/links.js';
 
 export { usingEmulator } from './roles.js';
 export const COLL = 'notes';
@@ -168,6 +168,8 @@ export async function start({ canReload = null }) {
   // the token as it is now decides what the page shows (after sign-in, and after every claims ask); the newest call wins
   /** @type {Note[]} */
   let notes = [];
+  /** @type {ReturnType<typeof linkIndex>} the vault's links and backlinks, rebuilt with each list */
+  let index = linkIndex([]);
   let vault = '';
   // a note's save that clashed with another device's edit (state conflict): this device's newest text for it is saved
   // as a conflict copy, then its saves are set aside, so the note shows the other device's text (never resent: a
@@ -206,6 +208,7 @@ export async function start({ canReload = null }) {
     let first = true;
     offList ??= app.sync.watch(vault, COLL, (/** @type {Note[]} */ list, /** @type {{ changed?: string[] }} */ meta) => {
       notes = list.filter(x => !x._deleted);
+      index = linkIndex(notes);
       onList(notes, new Set(first ? [] : meta?.changed || []));
       first = false;
     });
@@ -234,28 +237,43 @@ export async function start({ canReload = null }) {
     notes: () => notes,
     // Saves resolve to '' when stored or queued, or to the reason when refused at once (app-sync rejects then; the copy
     // waits in the refused list, so the page says so rather than fail) or too big.
-    /** @param {{ title: string, body?: string, path?: string }} n @returns {Promise<string>} */
-    create: n => put({ id: id(), title: n.title, body: n.body || '', path: n.path || '' }, null),
+    // a new note: { note, refused } (refused: '' or why not)
+    /** @param {{ title: string, body?: string, path?: string }} n @returns {Promise<{ note: Note, refused: string }>} */
+    async create(n) {
+      const note = withDerived({ id: id(), title: n.title, body: n.body || '', path: n.path || '' });
+      return { note, refused: await put(note, null) };
+    },
     // base: the copy the edit started from (the merge's base)
     /** @param {Note} note @param {Partial<Note>} patch @returns {Promise<string>} */
     edit: (note, patch) => put({ ...note, ...patch }, note),
-    // a new title, and every [[link]] to the old one in this space rewritten (the old title kept as an alias)
-    /** @param {Note} note @param {string} title @returns {Promise<string>} */
-    async rename(note, title) {
-      const plan = renamePlan(notes, note, title);
+    // a new title, and every [[link]] to the old one in this space rewritten (the old title kept as an alias); patch:
+    // the note's other edits, saved with it
+    /** @param {Note} note @param {string} title @param {Partial<Note>} [patch] @returns {Promise<string>} */
+    async rename(note, title, patch = {}) {
+      const edited = withDerived({ ...note, ...patch });
+      if (sizeOf(edited.body) === 'too-big') return TOO_BIG;
+      const plan = renamePlan(notes.map(n => (n.id === note.id ? edited : n)), edited, title);
       if (!plan.length) return '';
-      const done = await app.sync.saveMany(COLL, vault, plan.map(p => p.record));
+      const [self, ...others] = plan;
+      // this note on its own copy (the base the person started from), the others on theirs
+      const mine = await put(self.record, note);
+      if (mine) return mine;
+      const done = await app.sync.saveMany(COLL, vault, others.map(p => p.record));
       const no = done.find((/** @type {{ status: string }} */ r) => r.status === 'rejected');
       return no ? 'Some links could not be updated; the server refused it.' : '';
     },
+    // the note a [[link]] means (title, then alias, then folder/title), or null; the notes linking to a note
+    /** @param {string} target @returns {Note | null} */
+    find: target => index.resolve(target),
+    /** @param {string} noteId @returns {Note[]} */
+    backlinks: noteId => index.backlinks(noteId),
     // today's daily note (or the given date's): made if it isn't there, one id per date so two devices make one note
-    /** @param {string} iso @param {string} [folder] @returns {Promise<Note>} */
+    /** @param {string} iso @param {string} [folder] @returns {Promise<{ note: Note, refused: string }>} */
     async daily(iso, folder = '') {
       const have = notes.find(x => x.id === dailyNote(iso).id);
-      if (have) return have;
-      const n = dailyNote(iso, folder);
-      await put(n, null);
-      return n;
+      if (have) return { note: have, refused: '' };
+      const note = dailyNote(iso, folder);
+      return { note, refused: await put(note, null) };
     },
     /** @param {Note} note */
     remove: async note => {
