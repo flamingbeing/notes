@@ -24,10 +24,15 @@ Test list (what each part is proved by):
   pasted HTML becomes Markdown, autosave after a pause and on leaving, the read view drops scripts and styles, quick
   switcher and palette, axe on light, dark and OLED (`e2e/editor.spec.mjs`); the Vite check proves the list screen
   bundles no editor; `node tools/vendor-editor.mjs --check` proves the vendored files match the pins.
+- Attachments and vaults: add by button, paste and drop, read view shows the picture, a note moves with its files and
+  a racing save stops the move (409), import (folder and zip, dry run, never over what is there, unsafe paths and app
+  folders skipped) and export (zip) on the made-up vault in `e2e/fixtures/vault/` (`e2e/attach.spec.mjs`); the planners
+  and name rules (`app/test/vault.unit.test.mjs`, `attach.unit.test.mjs`); the Worker's move with files, unstored or
+  missing files, and the race (`worker/test/spaces.test.mjs`); the Vite check keeps fflate lazy and external.
 
 ## Later
 
-- Attachments in notes (S4); the files module stays in `app/public/files/` but has no screen or e2e until then.
+- Orphaned attachments (a deleted note's files stay until removed or the space is deleted); embedding another note (`![[note]]`) shows a link, not its text.
 - Restore from the bin (the bin entries keep the deleted version in `data`).
 - Multi-group, email-link and passcode sign-in (app-devkit `custom-token.js`).
 - Enforce the Content-Security-Policy (decision 0003).
@@ -67,6 +72,14 @@ Test list (what each part is proved by):
 - A note moves with "Move" in its sheet (to "My notes" or a space the person can edit); links to it from the old
   space don't follow (the sheet warns). `[[Space name/Note]]` links to a note in another space the person is in.
 - Account options stay in the vault (`spaces/<uid>/settings/<uid>`) whatever space is open.
+
+## Attachments, import and export (S4, decision 0012)
+
+- A file record may carry `item` (its note) and `path` (its vault folder, at most 1000 characters). Names: a picture is
+  stored as WebP or JPEG (GIF and SVG kept) with a thumbnail and no EXIF; the record keeps the original `name`, `type`
+  is the stored type. A new file's name is made unique among the space's own files (`photo 2.png`).
+- Import: `Import or export notes` in Settings or the command palette. Export: the same dialog, a zip of the open space.
+- Move: the Worker copies bytes, commits notes, files and bin entries once, then deletes the source bytes.
 
 ## Files formats (`@core/files` v0, decision 0009)
 
