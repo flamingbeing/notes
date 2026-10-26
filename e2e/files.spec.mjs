@@ -26,9 +26,9 @@ const openItem = async (page, text) => { await page.getByRole('button', { name: 
 const attach = (page, name, buffer, mimeType = 'image/png') => page.setInputFiles('#edit-file', { name, mimeType, buffer });
 // the shared space's file records on the server (db.list leaves document ids out)
 const records = async name => (await db.list('spaces/_/files')).filter(d => d.name === name);
-// how many blobs this phone keeps (IndexedDB starter-app-files / blobs)
+// how many blobs this phone keeps (IndexedDB notes-files / blobs)
 const cached = page => page.evaluate(() => new Promise((ok, no) => {
-  const r = indexedDB.open('starter-app-files');
+  const r = indexedDB.open('notes-files');
   r.onerror = () => no(r.error);
   r.onsuccess = () => {
     const d = r.result;

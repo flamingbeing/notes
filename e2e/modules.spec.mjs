@@ -5,7 +5,7 @@ import { test, expect, signIn, signInAgain, add, synced, serverHas, uniq, db, it
 const kept = page => page.evaluate(async () => {
   let n = 0;
   for (const { name } of await indexedDB.databases()) {
-    if (!/starter-app/.test(name || '')) continue;
+    if (!/notes/.test(name || '')) continue;
     n += await new Promise(res => {
       const r = indexedDB.open(name);
       r.onsuccess = async () => {
