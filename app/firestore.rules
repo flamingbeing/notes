@@ -68,21 +68,76 @@ service cloud.firestore {
       allow delete: if can('_', ['admin']);
     }
 
-    match /spaces/{g}/items/{id} {
-      allow read: if can(g, ['admin', 'member', 'viewer']);
-      allow create, update: if can(g, ['admin', 'member']) && stamped()
-        && request.resource.data.keys().hasOnly(['text', 'updatedAt', 'serverAt', '_edits'])
-        && (!('_edits' in request.resource.data) || request.resource.data._edits is map)
-        && request.resource.data.text is string && request.resource.data.text.size() > 0
-        && request.resource.data.text.size() <= 500
-        && request.resource.data.updatedAt is number;
-      allow delete: if can(g, ['admin', 'member']);
+    // Where notes live: spaces/<uid> is the person's own vault (no space doc); spaces/s-<random> is a shared space
+    // (S3), whose doc lists its members. Space ids must look like s-<8 to 40 letters or digits>, so nobody can make a
+    // space doc named after someone's uid and so reach their vault. The app's own role (claims) still gates everything.
+    function inVault(s) { return isSignedIn() && request.auth.uid == s; }
+    function isSpace(s) { return s.matches('^s-[A-Za-z0-9]{8,40}$'); }
+    function spaceRole(s) { return get(/databases/$(database)/documents/spaces/$(s)).data.members.get(request.auth.uid, ''); }
+    function inSpace(s, roles) {
+      return isSpace(s) && exists(/databases/$(database)/documents/spaces/$(s)) && spaceRole(s) in roles;
+    }
+    function mayRead(s) { return can('_', ['admin', 'member', 'viewer']) && (inVault(s) || inSpace(s, ['owner', 'edit', 'view'])); }
+    function mayWrite(s) { return can('_', ['admin', 'member']) && (inVault(s) || inSpace(s, ['owner', 'edit'])); }
+    function optString(d, k, max) { return !(k in d) || (d[k] is string && d[k].size() <= max); }
+    function optList(d, k, max) { return !(k in d) || (d[k] is list && d[k].size() <= max); }
+    // memberIds (for the "my spaces" list query) is always the members map's keys
+    function membersOk(d) {
+      return d.members is map && d.memberIds is list && d.memberIds.toSet() == d.members.keys().toSet()
+        && d.members.values().toSet().hasOnly(['owner', 'edit', 'view']) && d.members.get(d.owner, '') == 'owner';
     }
 
-    // A photo or file on an item (@core/files): the record only; the bytes are in the Worker's R2 bucket.
-    match /spaces/{g}/files/{id} {
-      allow read: if can(g, ['admin', 'member', 'viewer']);
-      allow create, update: if can(g, ['admin', 'member']) && stamped()
+    // A shared space: { name, owner, members: { uid: owner | edit | view }, memberIds }. Members read it; a person
+    // with write access makes one with only themselves in it; its owner changes it (the owner stays) or deletes it;
+    // any other member may only take themselves out.
+    match /spaces/{s} {
+      allow get: if isSpace(s) && can('_', ['admin', 'member', 'viewer'])
+        && (resource == null || request.auth.uid in resource.data.memberIds);
+      // "my spaces": a query on memberIds array-contains the person (a list's rules can't read the doc id)
+      allow list: if can('_', ['admin', 'member', 'viewer']) && request.auth.uid in resource.data.memberIds;
+      allow create: if isSpace(s) && can('_', ['admin', 'member'])
+        && request.resource.data.keys().hasOnly(['name', 'owner', 'members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200
+        && request.resource.data.owner == request.auth.uid
+        && request.resource.data.members.keys().toSet() == [request.auth.uid].toSet() && membersOk(request.resource.data)
+        && stampOk();
+      allow update: if isSpace(s) && can('_', ['admin', 'member', 'viewer']) && stampOk()
+        && request.resource.data.keys().hasOnly(['name', 'owner', 'members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
+        && membersOk(request.resource.data)
+        && (
+          (resource.data.owner == request.auth.uid && can('_', ['admin', 'member'])
+            && request.resource.data.owner == resource.data.owner
+            && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200)
+          || (request.auth.uid in resource.data.members && request.auth.uid != resource.data.owner
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
+            && request.resource.data.members.diff(resource.data.members).affectedKeys() == [request.auth.uid].toSet()
+            && !(request.auth.uid in request.resource.data.members))
+        );
+      allow delete: if isSpace(s) && can('_', ['admin', 'member']) && resource.data.owner == request.auth.uid;
+    }
+
+    // A note (src/notes/model.js): links, tags and aliases are worked out by the app; the body is at most 1 MiB (the
+    // document limit; the app refuses a little earlier).
+    match /spaces/{s}/notes/{id} {
+      allow read: if mayRead(s);
+      allow create, update: if mayWrite(s) && stamped()
+        && request.resource.data.keys().hasOnly(['path', 'title', 'body', 'links', 'tags', 'aliases', 'daily', 'updatedAt', 'serverAt', '_edits'])
+        && (!('_edits' in request.resource.data) || request.resource.data._edits is map)
+        && request.resource.data.title is string && request.resource.data.title.size() > 0
+        && request.resource.data.title.size() <= 300
+        && request.resource.data.body is string && request.resource.data.body.size() <= 1048576
+        && optString(request.resource.data, 'path', 500)
+        && optList(request.resource.data, 'links', 2000) && optList(request.resource.data, 'tags', 500)
+        && optList(request.resource.data, 'aliases', 100)
+        && (!('daily' in request.resource.data) || (request.resource.data.daily is string && request.resource.data.daily.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && request.resource.data.updatedAt is number;
+      allow delete: if mayWrite(s);
+    }
+
+    // A photo or file (@core/files, S4 attaches them to notes): the record only; the bytes are in the Worker's R2 bucket.
+    match /spaces/{s}/files/{id} {
+      allow read: if mayRead(s);
+      allow create, update: if mayWrite(s) && stamped()
         && request.resource.data.keys().hasOnly(['name', 'type', 'size', 'w', 'h', 'thumb', 'taken', 'state', 'item',
           'updatedAt', 'serverAt', '_edits'])
         && (!('_edits' in request.resource.data) || request.resource.data._edits is map)
@@ -96,17 +151,16 @@ service cloud.firestore {
         && (!('thumb' in request.resource.data) || request.resource.data.thumb is bool)
         && (!('taken' in request.resource.data) || request.resource.data.taken is number)
         && request.resource.data.state in ['local', 'stored']
-        && request.resource.data.item is string && request.resource.data.item.size() > 0
+        && (!('item' in request.resource.data) || (request.resource.data.item is string && request.resource.data.item.size() > 0))
         && request.resource.data.updatedAt is number;
-      allow delete: if can(g, ['admin', 'member']);
+      allow delete: if mayWrite(s);
     }
 
-    // Each person's account options (@core/settings): one doc named by their uid, writable by them alone. The group can read the
-    // docs because a list listen cannot be proven to ask for only one (rules are not filters); keep secrets out of options.
+    // Each person's account options (@core/settings): one doc named by their uid, in their own vault only.
     // One field per option (src/options.js); null forgets a saved value.
-    match /spaces/{g}/settings/{id} {
-      allow read: if can(g, ['admin', 'member', 'viewer']);
-      allow create, update: if can(g, ['admin', 'member', 'viewer']) && request.auth.uid == id && stamped()
+    match /spaces/{s}/settings/{id} {
+      allow read: if can('_', ['admin', 'member', 'viewer']) && inVault(s);
+      allow create, update: if can('_', ['admin', 'member', 'viewer']) && inVault(s) && request.auth.uid == id && stamped()
         && request.resource.data.keys().hasOnly(['profile', 'itemCount', 'updatedAt', 'serverAt', '_edits'])
         && (!('_edits' in request.resource.data) || request.resource.data._edits is map)
         && (!('profile' in request.resource.data) || request.resource.data.profile == null || request.resource.data.profile is string)
@@ -115,10 +169,10 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // A deleted item's last version, written in the delete's own transaction (cloud.js onCommit).
-    match /spaces/{g}/bin/{id} {
-      allow read: if can(g, ['admin', 'member', 'viewer']);
-      allow create, update: if can(g, ['admin', 'member']) && stamped()
+    // A deleted note's last version, written in the delete's own transaction (cloud.js onCommit).
+    match /spaces/{s}/bin/{id} {
+      allow read: if mayRead(s);
+      allow create, update: if mayWrite(s) && stamped()
         && request.resource.data.keys().hasOnly(['id', 'kind', 'data', 'deletedAt', 'updatedAt', 'serverAt']);
     }
   }
