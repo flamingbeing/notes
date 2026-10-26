@@ -45,6 +45,7 @@ const SHELL = [
   'src/screens/note-sheet.js',
   'src/screens/signed-out.js',
   'src/settings-sheet.js',
+  'src/spaces.js',
   'theme/choice.js',
   'theme/colour.js',
   'theme/early.js',
