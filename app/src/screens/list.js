@@ -155,5 +155,7 @@ export function listScreen(app) {
     /** @param {Note[]} notes @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
     draw,
     toast,
+    /** the open space's attachments changed */
+    files: () => sheet.redrawFiles(),
   };
 }

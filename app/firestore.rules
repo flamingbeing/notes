@@ -122,7 +122,7 @@ service cloud.firestore {
     match /spaces/{s}/files/{id} {
       allow read: if mayRead(s);
       allow create, update: if mayWrite(s) && stamped()
-        && request.resource.data.keys().hasOnly(['name', 'type', 'size', 'w', 'h', 'thumb', 'taken', 'state', 'item',
+        && request.resource.data.keys().hasOnly(['name', 'type', 'size', 'w', 'h', 'thumb', 'taken', 'state', 'item', 'path',
           'updatedAt', 'serverAt', '_edits'])
         && (!('_edits' in request.resource.data) || request.resource.data._edits is map)
         && request.resource.data.name is string && request.resource.data.name.size() > 0
@@ -136,6 +136,7 @@ service cloud.firestore {
         && (!('taken' in request.resource.data) || request.resource.data.taken is number)
         && request.resource.data.state in ['local', 'stored']
         && (!('item' in request.resource.data) || (request.resource.data.item is string && request.resource.data.item.size() > 0))
+        && (!('path' in request.resource.data) || (request.resource.data.path is string && request.resource.data.path.size() <= 1000))
         && request.resource.data.updatedAt is number;
       allow delete: if mayWrite(s);
     }

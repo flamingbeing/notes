@@ -23,7 +23,8 @@
     "firebase/firestore": "./vendor/firebase/12.19.0/firebase-firestore.js",
     "@vendor/codemirror": "./vendor/codemirror/6.43.15/codemirror.js",
     "marked": "./vendor/marked/18.1.1/marked.esm.js",
-    "dompurify": "./vendor/dompurify/3.4.17/purify.es.js"
+    "dompurify": "./vendor/dompurify/3.4.17/purify.es.js",
+    "fflate": "./vendor/fflate/0.8.2/fflate.js"
   }
 }
   </script>
@@ -138,9 +139,17 @@
         <h3>Links</h3>
         <ul id="edit-links" class="links" aria-label="Links"></ul>
       </div>
+      <div id="edit-files-box" hidden>
+        <h3>Attachments</h3>
+        <ul id="edit-files" class="files" aria-label="Attachments"></ul>
+      </div>
       <div id="edit-backlinks-box" hidden>
         <h3>Linked from</h3>
         <ul id="edit-backlinks" class="links" aria-label="Linked from"></ul>
+      </div>
+      <div id="edit-attach-box" class="row" hidden>
+        <button id="edit-attach" type="button">Attach files…</button>
+        <input id="edit-attach-input" type="file" multiple hidden aria-label="Files to attach">
       </div>
       <div id="edit-move-box" class="row" hidden>
         <label for="edit-move" class="sr-only">Move to</label>

@@ -155,6 +155,9 @@ test('files: the record of a photo or file in a vault or space; known fields onl
   assert.equal((await put({ ...ok, state: 'gone' })).ok, false);
   assert.equal((await put({ ...ok, item: '' })).ok, false, 'an item, if any, is named');
   assert.equal((await put({ ...ok, name: '' })).ok, false);
+  assert.equal((await put({ ...ok, path: 'Vault/img' })).ok, true, 'the folder it came from in a vault');
+  assert.equal((await put({ ...ok, path: 5 })).ok, false);
+  assert.equal((await put({ ...ok, path: 'x'.repeat(1001) })).ok, false);
   assert.equal((await put({ ...ok, size: 1.5 })).ok, false);
   assert.equal((await put({ ...ok, thumb: 'yes' })).ok, false);
   assert.equal((await as('member').set('spaces/u-member/files/g', ok)).ok, false, 'unstamped');

@@ -108,6 +108,8 @@ export function createEditor(o) {
     setReadOnly: ro => view.dispatch({ effects: editable.reconfigure(editableOf(ro)) }),
     /** @param {EditorOptions} opt */
     setOptions: opt => view.dispatch({ effects: [preview.reconfigure(previewOf(opt)), numbers.reconfigure(numbersOf(opt))] }),
+    /** text at the cursor (replacing the selection) @param {string} text */
+    insert: text => view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true, userEvent: 'input' }),
     focus: () => view.focus(),
     destroy: () => view.destroy(),
   };

@@ -16,6 +16,13 @@ footer { margin-top: 2rem; }
 #edit input { width: 100%; box-sizing: border-box; }
 .links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
 .links button.missing { border-style: dashed; }
+.files { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.files li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+.files img { width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: .25rem; }
+.files .name { flex: 1 1 8rem; overflow-wrap: anywhere; }
+.read-view img { max-width: 100%; height: auto; }
+.read-view .missing-file { opacity: .7; font-style: italic; }
+#edit.dropping { outline: 2px dashed currentColor; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the sample options (src/options.js) */
 #items.big li button { padding: 1rem .75rem; font-size: 1.15rem; }

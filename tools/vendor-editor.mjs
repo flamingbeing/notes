@@ -6,7 +6,9 @@
 //   - marked: vendor/marked/<version>/marked.esm.js + LICENSE.md, as published
 //   - DOMPurify: vendor/dompurify/<version>/purify.es.js + LICENSE, as published (purify.es.mjs renamed, so it is served
 //     as JavaScript)
-// The page loads them through its import map ("@vendor/codemirror", "marked", "dompurify"), only from the note sheet.
+//   - fflate (zip for vault import and export): vendor/fflate/<version>/fflate.js (esm/browser.js) + LICENSE, as published
+// The page loads them through its import map ("@vendor/codemirror", "marked", "dompurify", "fflate"), only from the
+// note sheet and the vault import/export sheet.
 //   node tools/vendor-editor.mjs            write them (and remove other versions of them)
 //   node tools/vendor-editor.mjs --check    fail if the vendored files or the import map differ from what this writes (CI)
 // After a bump: npm i -D -E <package>@<version>, run this, then node tools/sw-files.mjs app.
@@ -31,7 +33,7 @@ const stripMap = (/** @type {string} */ code) => code.replace(/\n\/\/# sourceMap
 // every pinned package must be installed at its pin (npm ci)
 const pins = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).devDependencies;
 for (const [name, want] of Object.entries(pins)) {
-  if (!/^(@codemirror|@lezer)\/|^(marked|dompurify)$/.test(name)) continue;
+  if (!/^(@codemirror|@lezer)\/|^(marked|dompurify|fflate)$/.test(name)) continue;
   if (pkg(name).version !== want) throw new Error(`${name} is ${pkg(name).version} in node_modules, ${want} in package.json: run npm ci`);
 }
 
@@ -79,16 +81,20 @@ async function files() {
   const dp = pkg('dompurify').version;
   out[`dompurify/${dp}/purify.es.js`] = stripMap(fs.readFileSync(path.join(MODULES, 'dompurify/dist/purify.es.mjs'), 'utf8'));
   out[`dompurify/${dp}/${licenceOf('dompurify').file}`] = licenceOf('dompurify').text;
+  const ff = pkg('fflate').version;
+  out[`fflate/${ff}/fflate.js`] = stripMap(fs.readFileSync(path.join(MODULES, 'fflate/esm/browser.js'), 'utf8'));
+  out[`fflate/${ff}/${licenceOf('fflate').file}`] = licenceOf('fflate').text;
   const map = {
     '@vendor/codemirror': `./vendor/codemirror/${cm}/codemirror.js`,
     marked: `./vendor/marked/${mk}/marked.esm.js`,
     dompurify: `./vendor/dompurify/${dp}/purify.es.js`,
+    fflate: `./vendor/fflate/${ff}/fflate.js`,
   };
   return { out, map };
 }
 
 const { out, map } = await files();
-const LIBS = ['codemirror', 'marked', 'dompurify'];
+const LIBS = ['codemirror', 'marked', 'dompurify', 'fflate'];
 const onDisk = () => LIBS.flatMap(lib => {
   const dir = path.join(VENDOR, lib);
   if (!fs.existsSync(dir)) return [];

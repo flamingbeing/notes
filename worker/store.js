@@ -2,17 +2,20 @@
 // writes of single fields (members.<uid>, an array's items, the server's time), listing a collection's ids, and finding
 // an account by its email. As the service account (rules do not apply); on localhost with EMULATOR, the emulators.
 //
-// store({ project, emulator, accessToken, getDoc }) -> { getDoc, write, listIds, userByEmail }
+// store({ project, emulator, accessToken, getDoc }) -> { getDoc, getDocT, query, write, listIds, userByEmail }
 //   getDoc(path) -> plain data | null                         (claims.js admin.getDoc, passed through)
+//   getDocT(path) -> { data, updateTime } | null              (updateTime: the version, for an op's updateTime)
+//   query(parent, coll, field, value, max) -> [{ id, data }]  the docs of <parent>/<coll> whose field equals value
 //   write(ops)   one atomic commit; each op is
 //                { path, delete: true }  or
 //                { path, set?: [[field, ...keys], value][], remove?: [field, ...keys][], union?: [[...], values[]][],
-//                  pull?: [[...], values[]][], serverTime?: [...][], exists?: boolean }
-//                (only the fields named change; exists: true fails when the doc is gone, false when it is there)
+//                  pull?: [[...], values[]][], serverTime?: [...][], exists?: boolean, updateTime?: string }
+//                (only the fields named change; exists: true fails when the doc is gone, false when it is there;
+//                updateTime, from getDocT, fails when the doc changed since, on a delete too)
 //   listIds(collectionPath, max) -> up to max doc ids in it
 //   userByEmail(email) -> { uid, email, verified } | null
 // worker/test/spaces.test.mjs uses an in-memory store of the same shape (worker/test/memory-store.mjs).
-import { toValue } from './claims.js';
+import { toValue, fromValue } from './claims.js';
 
 const SIMPLE = /^[A-Za-z_][A-Za-z_0-9]*$/;
 /** @param {string[]} keys -> a Firestore field path (`odd keys` quoted) */
@@ -46,10 +49,26 @@ export function store({ project, emulator, accessToken, getDoc }) {
   }
   return {
     getDoc,
+    /** @param {string} path */
+    async getDocT(path) {
+      const r = await fetch(`${fsBase}/v1/${name(path).split('/').map(encodeURIComponent).join('/')}`, { headers: { Authorization: `Bearer ${await accessToken()}` } });
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error(`get ${r.status}`);
+      const d = await r.json();
+      return { data: fromValue({ mapValue: { fields: d.fields || {} } }), updateTime: d.updateTime };
+    },
+    /** @param {string} parent @param {string} coll @param {string} field @param {unknown} value @param {number} max */
+    async query(parent, coll, field, value, max) {
+      const rows = await call(`${fsBase}/v1/${db}/documents/${parent.split('/').map(encodeURIComponent).join('/')}:runQuery`, { structuredQuery: {
+        from: [{ collectionId: coll }], limit: max,
+        where: { fieldFilter: { field: { fieldPath: fieldPath([field]) }, op: 'EQUAL', value: toValue(value) } } } });
+      return rows.filter((/** @type {any} */ x) => x.document).map((/** @type {any} */ x) => ({
+        id: x.document.name.split('/').at(-1), data: fromValue({ mapValue: { fields: x.document.fields || {} } }) }));
+    },
     /** @param {any[]} ops */
     async write(ops) {
       const writes = ops.map(op => {
-        if (op.delete) return { delete: name(op.path) };
+        if (op.delete) return { delete: name(op.path), ...(op.updateTime ? { currentDocument: { updateTime: op.updateTime } } : {}) };
         const sets = op.set || [], removes = op.remove || [];
         const transforms = [
           ...(op.union || []).map((/** @type {[string[], unknown[]]} */ [k, v]) => ({ fieldPath: fieldPath(k), appendMissingElements: { values: v.map(toValue) } })),
@@ -60,7 +79,7 @@ export function store({ project, emulator, accessToken, getDoc }) {
           update: { name: name(op.path), fields: nest(sets) },
           updateMask: { fieldPaths: [...sets.map((/** @type {[string[], unknown]} */ [k]) => fieldPath(k)), ...removes.map(fieldPath)] },
           ...(transforms.length ? { updateTransforms: transforms } : {}),
-          ...(op.exists != null ? { currentDocument: { exists: op.exists } } : {}),
+          ...(op.updateTime ? { currentDocument: { updateTime: op.updateTime } } : op.exists != null ? { currentDocument: { exists: op.exists } } : {}),
         };
       });
       await call(`${fsBase}/v1/${db}/documents:commit`, { writes });
