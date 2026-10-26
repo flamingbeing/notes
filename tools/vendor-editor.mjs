@@ -1,5 +1,5 @@
 // Vendors the editor's libraries into app/public/vendor/ from the exact versions package.json pins (devDependencies;
-// nothing from npm runs at runtime, decision 0010):
+// nothing from npm runs at runtime, decision 0011):
 //   - CodeMirror 6: the names tools/codemirror-entry.js lists, bundled and minified into one ES module,
 //     vendor/codemirror/<@codemirror/view version>/codemirror.js, with LICENSES.txt (every bundled package's licence);
 //     its styles go in a constructed sheet, not a <style> element (adoptedStyles below), for the page's CSP
