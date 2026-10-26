@@ -9,6 +9,7 @@ import { isoDay } from '../notes/model.js';
 import { $, input, sectionScreen } from '../dom.js';
 import { noteSheet } from './note-sheet.js';
 import { picker } from './picker.js';
+import { transferSheet } from '../transfer-sheet.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -92,6 +93,8 @@ export function listScreen(app) {
   /** @param {string} key */
   const flip = key => () => app.settings.set(key, !app.settings.get(key));
   const inNote = () => !!sheet.current();
+  const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
+  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); transfer.open(); });
   const pick = picker({
     notes: app.notes, recent: sheet.recent, canWrite: () => canWrite,
     open: note => sheet.open(note), create: openTitle,
@@ -106,6 +109,7 @@ export function listScreen(app) {
       { id: 'source', label: 'Toggle source mode (Markdown as written)', run: flip('sourceMode') },
       { id: 'numbers', label: 'Toggle line numbers', run: flip('lineNumbers') },
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
+      { id: 'transfer', label: 'Import or export notes', run: transfer.open },
       { id: 'settings', label: 'Open settings', run: () => $('open-settings').click() },
     ],
   });

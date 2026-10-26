@@ -144,10 +144,11 @@ export async function handleSpaces(request, { verify, store, bucket = null, orig
       if (files.length && !bucket) return json({ error: 'Files are not set up yet.' }, 503);
       // bytes first (copies; the source's stay until the records have moved), so a failed copy leaves everything where it was
       const keys = files.flatMap(f => (f.data.thumb ? [f.id, f.id + '.thumb'] : [f.id]));
+      const undo = () => bucket?.delete(keys.map(k => `${to}/${k}`)).catch(() => {});
       for (const k of keys) {
         const o = await bucket.get(`${sid}/${k}`);
-        if (!o) return json({ error: 'An attachment’s file is missing; it can’t move.' }, 409);
-        await bucket.put(`${to}/${k}`, o.body, { httpMetadata: o.httpMetadata, customMetadata: o.customMetadata });
+        if (!o) { await undo(); return json({ error: 'An attachment’s file is missing; it can’t move.' }, 409); }
+        try { await bucket.put(`${to}/${k}`, o.body, { httpMetadata: o.httpMetadata, customMetadata: o.customMetadata }); } catch (e) { await undo(); throw e; }
       }
       const { serverAt, ...keep } = note;
       const bin = (/** @type {string} */ coll, /** @type {string} */ key, /** @type {any} */ data) => ({ path: `spaces/${sid}/bin/${coll}:${key}`, set: [[['id'], `${coll}:${key}`], [['kind'], coll], [['data'], data],
@@ -169,7 +170,7 @@ export async function handleSpaces(request, { verify, store, bucket = null, orig
         ]);
       } catch (e) {
         // the copies in the target are of no use now
-        await bucket?.delete(keys.map(k => `${to}/${k}`)).catch(() => {});
+        await undo();
         if (/** @type {any} */ (e)?.status === 400 || /** @type {any} */ (e)?.status === 409) return json({ error: 'The note changed while it was moving; nothing moved. Try again.' }, 409);
         throw e;
       }

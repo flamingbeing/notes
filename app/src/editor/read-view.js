@@ -55,7 +55,7 @@ export const toHtml = text => DOMPurify.sanitize(/** @type {string} */ (marked.p
 });
 
 /**
- * @typedef {{ id: string, name: string, type: string }} Att
+ * @typedef {import('../cloud.js').Attachment} Att
  * @typedef {object} Files  the space's attachments
  * @property {(target: string) => Att | null} resolve  the attachment a reference means
  * @property {(a: Att) => Promise<string>} url  a URL to show it

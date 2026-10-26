@@ -115,6 +115,7 @@
       <label class="file">Import settings <input id="settings-import" type="file" accept="application/json,.json"></label>
     </div>
     <p id="settings-msg" class="small" role="status"></p>
+    <div class="row"><button id="open-transfer" type="button">Import or export notes</button></div>
     <div class="row"><button id="settings-close" type="button">Close</button></div>
   </dialog>
 
@@ -162,6 +163,24 @@
         <button value="close" formnovalidate>Close</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="transfer" aria-labelledby="transfer-title">
+    <h2 id="transfer-title">Import or export</h2>
+    <h3>Import a vault</h3>
+    <p class="small">Obsidian folders and zips. Nothing is overwritten: notes and files already here are skipped.</p>
+    <div class="row">
+      <label class="file">Folder <input id="transfer-folder" type="file" webkitdirectory multiple></label>
+      <label class="file">Zip <input id="transfer-zip" type="file" accept=".zip,application/zip"></label>
+    </div>
+    <p id="transfer-plan" class="small" role="status"></p>
+    <ul id="transfer-skipped" class="small" aria-label="Skipped"></ul>
+    <div class="row"><button id="transfer-go" type="button" hidden>Import</button></div>
+    <h3>Export</h3>
+    <p class="small">The open space as a zip: notes as Markdown in their folders, with their files.</p>
+    <div class="row"><button id="transfer-export" type="button">Export as zip</button></div>
+    <p id="transfer-msg" class="small" role="status"></p>
+    <div class="row"><button id="transfer-close" type="button">Close</button></div>
   </dialog>
 
   <dialog id="space-new-sheet" aria-labelledby="space-new-title">

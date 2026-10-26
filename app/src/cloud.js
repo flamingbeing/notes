@@ -395,6 +395,31 @@ export async function start({ canReload = null }) {
         return { att: /** @type {Attachment} */ (record), refused: '' };
       } catch (e) { return { att: null, refused: (e instanceof Error && e.message) || 'The file could not be added' }; }
     },
+    // Import: notes saved in rounds of 50 (new ids, so never over an existing note), files kept with their vault folder
+    // as `path`. importNotes -> how many were not saved; importFile -> '' or why not
+    /** @param {{ title: string, path: string, body: string }[]} list @returns {Promise<number>} */
+    async importNotes(list) {
+      let refused = 0;
+      for (let i = 0; i < list.length; i += 50) {
+        const part = list.slice(i, i + 50);
+        const recs = part.map(n => withDerived({ id: id(), title: n.title, body: n.body, path: n.path })).filter(r => sizeOf(r.body) !== 'too-big');
+        refused += part.length - recs.length;
+        const done = await app.sync.saveMany(COLL, space, recs);
+        refused += done.filter((/** @type {{ status: string }} */ r) => r.status === 'rejected').length;
+      }
+      return refused;
+    },
+    /** @param {Blob} file @param {string} name @param {string} path @returns {Promise<string>} */
+    async importFile(file, name, path) {
+      try { await app.files.add(new File([file], name, { type: file.type }), { scope: space, extra: { path } }); return ''; } catch (e) { return (e instanceof Error && e.message) || 'The file could not be added'; }
+    },
+    // the bytes of an attachment (for an export)
+    /** @param {Attachment} a @returns {Promise<Uint8Array>} */
+    async attachmentBytes(a) {
+      const r = await fetch(await app.files.url(a.id, { scope: space }));
+      if (!r.ok) throw new Error(`${a.name}: ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    },
     /** @param {Attachment} a */
     removeAttachment: a => app.files.remove(a, { scope: space }),
     /** @param {Attachment} a @param {boolean} [thumb] */
