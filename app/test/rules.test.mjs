@@ -137,7 +137,7 @@ test('space docs: made by their owner alone; the owner changes them; a member ma
   assert.equal((await as('member', 'u-edit').delete(`spaces/${SPACE}`)).ok, false, 'nor deletes it');
   assert.equal((await as('viewer', 'u-view').update(`spaces/${SPACE}`, { ...three, members: { 'u-member': 'owner', 'u-edit': 'edit' }, memberIds: ['u-member', 'u-edit'] })).ok, true, 'a member leaves');
   assert.equal((await as('member', 'u-x').update(`spaces/${SPACE}`, three)).ok, false, 'a non-member changes nothing');
-  assert.equal((await as('member').delete(`spaces/${SPACE}`)).ok, true, 'the owner deletes it');
+  assert.equal((await as('member').delete(`spaces/${SPACE}`)).ok, false, 'not even the owner deletes it (its notes would be left to whoever makes it again)');
 });
 
 test('files: the record of a photo or file in a vault or space; known fields only, in their shapes', async () => {

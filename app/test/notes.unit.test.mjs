@@ -150,4 +150,9 @@ test('rename: rewrites links in the space (heading and alias kept, code left), o
   // a shared title: renaming one Gamma leaves links that still mean the other alone
   const g = renamePlan(all, all[3], 'Gamma 2');
   assert.deepEqual(g.map(p => p.record.id), ['4']);
+  // renaming the Gamma that [[Gamma]] meant relinks it (judged before the rename), and [[Old/Gamma]] too
+  const h = renamePlan(all, all[2], 'Gamma 1');
+  assert.deepEqual(h.map(p => p.record.id), ['3', '6']);
+  assert.equal(h[0].record.body, '[[Old/Gamma 1]] `[[Beta]]` [[Missing]]');
+  assert.equal(h[1].record.body, '[[Delta]] [[Gamma 1]]');
 });

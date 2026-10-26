@@ -31,12 +31,13 @@ export function noteSheet(app, toast, canWrite) {
   // the person's edits saved: a new title renames (and relinks); a note deleted elsewhere comes back as a new note
   const commit = async () => {
     const note = editing;
-    if (!note || !typed() || !canWrite()) return;
+    if (!note || !typed() || !canWrite()) return '';
     const title = input('edit-text').value.trim() || note.title, body = area().value, path = input('edit-path').value.trim();
     const why = editingGone ? (await app.create({ title, body, path })).refused
       : title !== note.title ? await app.rename(note, title, { body, path })
         : await app.edit(note, { body, path });
     toast(why || 'Saved');
+    return why;
   };
   const button = (/** @type {string} */ label, /** @type {() => void} */ onClick, cls = '') => {
     const li = document.createElement('li'), b = document.createElement('button');
@@ -47,7 +48,7 @@ export function noteSheet(app, toast, canWrite) {
   };
   // go to another note from this one: this one's edits are saved first; a link to no note makes it
   const go = async (/** @type {string} */ target) => {
-    await commit();
+    if (await commit()) return;   // refused: stay on this note with the text as typed
     const have = app.find(target);
     if (have) { show(have); return; }
     if (!canWrite()) { toast('There is no such note yet.'); return; }
@@ -71,6 +72,10 @@ export function noteSheet(app, toast, canWrite) {
   };
   area().addEventListener('input', () => redraw());
 
+  // a note too big to save keeps the sheet open, so the text isn't lost with it
+  $('edit-form').addEventListener('submit', e => {
+    if (/** @type {SubmitEvent} */ (e).submitter?.id === 'edit-save' && sizeOf(area().value) === 'too-big') { e.preventDefault(); toast(TOO_BIG); }
+  });
   sheet.addEventListener('close', async () => {
     stopLive?.(); stopLive = null;
     if (sheet.returnValue === 'save') await commit();

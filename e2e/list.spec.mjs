@@ -125,3 +125,19 @@ test('a role change during a token refresh still reaches the page', async ({ pho
     await expect(page.locator('#add')).toBeHidden();
   }
 });
+
+test('a note too big to save keeps the sheet open with the text, so nothing typed is lost', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('big');
+  await add(page, t);
+  await openNote(page, t);
+  await page.locator('#edit-body').evaluate((el, n) => {
+    const a = /** @type {HTMLTextAreaElement} */ (el);
+    a.value = 'x'.repeat(n); a.dispatchEvent(new Event('input'));
+  }, 1_100_000);
+  await page.click('#edit-save');
+  await expect(page.locator('.toast', { hasText: 'too big to save' })).toBeVisible();
+  await expect(page.locator('#edit')).toBeVisible();
+  expect(await page.locator('#edit-body').evaluate(el => /** @type {HTMLTextAreaElement} */ (el).value.length)).toBe(1_100_000);
+});

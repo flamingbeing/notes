@@ -58,7 +58,7 @@ export function relink(body, from, to) {
 
 /**
  * A rename's saves: the note under its new title (the old one kept as an alias), and each note of the same space
- * whose links[] has the old title, with its links rewritten. Each entry: { record, base } for saveMany.
+ * that links to it by the old title or its folder and old title, with those links rewritten. Each entry: { record, base } for saveMany.
  * @param {Note[]} notes  the space's notes @param {Note} note @param {string} title  the new title
  * @returns {{ record: Note, base: Note }[]}
  */
@@ -67,16 +67,20 @@ export function renamePlan(notes, note, title) {
   if (!to || to === from) return [];
   const aliases = [...new Set([...(note.aliases || []).filter(a => keyOf(a) !== keyOf(to)), from])];
   const self = withDerived({ ...note, title: to, aliases });
-  const k = keyOf(from);
-  // a link to the old title still means this note only if no other note holds that title
-  const idx = linkIndex(notes.map(n => (n.id === note.id ? self : n)));
+  // [[Old]] counts only if it meant this note before the rename (another note may share the title); a path link
+  // [[folder/Old]] always means it, and becomes [[folder/New]]
+  const meant = linkIndex(notes).resolve(from)?.id === note.id;
+  const qual = note.path ? `${note.path}/${from}` : '';
+  const keys = [meant ? keyOf(from) : '', keyOf(qual)].filter(Boolean);
+  const rewrite = (/** @type {string} */ body) => {
+    let out = meant ? relink(body, from, to) : body;
+    return qual ? relink(out, qual, `${note.path}/${to}`) : out;
+  };
   /** @type {{ record: Note, base: Note }[]} */
   const out = [{ record: self, base: note }];
   for (const n of notes) {
-    if (n._deleted || !(n.links || []).includes(k)) continue;
-    const meant = idx.resolve(from);
-    if (meant && meant.id !== note.id) continue;
-    const body = relink(n.id === note.id ? self.body : n.body, from, to);
+    if (n._deleted || !(n.links || []).some(l => keys.includes(l))) continue;
+    const body = rewrite(n.id === note.id ? self.body : n.body);
     if (n.id === note.id) { if (body !== self.body) out[0] = { record: withDerived({ ...self, body }), base: note }; continue; }
     if (body !== n.body) out.push({ record: withDerived({ ...n, body }), base: n });
   }
