@@ -73,9 +73,12 @@ deploy (`FIREBASE_PROJECT`, `WIF_PROVIDER`, `RULES_DEPLOYER`), Google sign-in sw
 app's host as an authorised domain, and a first `members/{uid}` doc with role `admin`.
 
 **Live smoke test**: `.github/workflows/live-smoke.yml` (app-devkit's `live-smoke`) signs a test user in on the deployed
-site, by hand and after each Deploy, and runs `e2e-live/signin.live.spec.mjs` (signed in, no data, no console errors).
+site, by hand and after each Deploy, and runs `e2e-live/signin.live.spec.mjs`: in the test user's own vault, a made-up
+note with a picture, export, import back (all skipped: import never overwrites), then the note and picture removed;
+no console errors.
 It needs the repo secrets `<NAME>_TEST_EMAIL` and `<NAME>_TEST_PASSWORD` (the name in capitals, hyphens as `_`; fill
-renames them) and skips with a notice until they exist. The test user is in no app data.
+renames them) and skips with a notice until they exist. The test user is an app member (`members/{uid}` role
+`member`) in no shared space; the sign-in check sends the site as Referer (the web key is referrer-restricted).
 
 `.starter.json` records the template version and commit the app started from; app-devkit's drift report compares an
 app with the template and never changes it.

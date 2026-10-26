@@ -9,8 +9,8 @@
 - S3 shared spaces: switcher, members sheet, invites (pending until first sign-in), roles, move, delete; only the
   Worker writes space docs (decision 0010).
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
-  never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com waits for the owner's
-  sign-in.
+  never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
+  export, import back, clean up, as the test user (app-devkit 1.10.2 sends the Referer the web key needs).
 
 ## Waiting on the owner
 
