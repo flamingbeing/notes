@@ -6,7 +6,7 @@ Decision:
 
 - **Attachments:** a picture or file added to a note (button, paste or drop) becomes a record in the space's `files`
   collection (`item` = the note, `path` = the vault folder it came from), bytes in R2 through the Worker (decision
-  0009). The note's text names it the way Obsidian does, `![[name]]` or `![alt](folder/name)`; the read view resolves
+  0009). The note's text names it the way Obsidian does, `![[name]]` or an image link with the file's path; the read view resolves
   the name (full path, else a path ending in it, else the file name; shortest first) and shows pictures, with other
   files as links. The record's `name` is the original file name (a picture is re-encoded to WebP or JPEG with its EXIF
   dropped, so `type` is the real stored type).
