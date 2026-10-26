@@ -18,12 +18,12 @@
     "@codemirror/view": "6.43.15",
     "@lezer/highlight": "1.2.5",
     "@lezer/markdown": "1.8.1",
-    "@playwright/test": "1.56.1",
+    "@playwright/test": "1.64.1",
     "app-sync": "github:flamingbeing/app-sync#v1.3.10",
     "axe-core": "4.14.0",
     "dompurify": "3.4.17",
     "marked": "18.1.1",
-    "typescript": "5.8.3",
-    "vite": "6.3.5"
+    "typescript": "7.0.2",
+    "vite": "8.3.5"
   }
 }
