@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fsAdmin } from '../.devkit/playwright/helpers.mjs';
 
-export const db = fsAdmin('demo-starter-app');
+export const db = fsAdmin('demo-notes');
 export const APP = '/app/?emulator';
 export const uniq = (p = 't') => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
@@ -87,7 +87,7 @@ export const serverHas = text => expect.poll(async () => (await db.list('spaces/
 // The id of the shared item with this text (db.list leaves document ids out).
 export async function itemIdOf(text) {
   const host = process.env.FIRESTORE_EMULATOR_HOST || '127.0.0.1:8080';
-  const r = await fetch(`http://${host}/v1/projects/demo-starter-app/databases/(default)/documents/spaces/_/items?pageSize=300`, { headers: { Authorization: 'Bearer owner' } });
+  const r = await fetch(`http://${host}/v1/projects/demo-notes/databases/(default)/documents/spaces/_/items?pageSize=300`, { headers: { Authorization: 'Bearer owner' } });
   const d = ((await r.json()).documents || []).find(x => x.fields?.text?.stringValue === text);
   return d?.name.split('/').pop();
 }

@@ -3,7 +3,7 @@
 // the service account (SA_EMAIL, SA_KEY) is a Worker secret (wrangler secret put), kept across deploys.
 // tools/fill.mjs sets the name, route, project and bucket name.
 {
-  "name": "starter-app",
+  "name": "notes",
   "main": "worker/sites.js",
   "compatibility_date": "2026-10-01",
   "assets": {
@@ -19,10 +19,10 @@
   "preview_urls": false,
   "workers_dev": false,
   "keep_vars": true,
-  "vars": { "FIREBASE_PROJECT": "demo-starter-app" },
+  "vars": { "FIREBASE_PROJECT": "flamingbeing-notes" },
   // the app's files (@core/files; worker/files.js): one private bucket per app, made once before the first deploy
   // (README, "Files"); tools/fill.mjs names it after the app
-  "r2_buckets": [{ "binding": "FILES", "bucket_name": "starter-app-files" }],
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "notes-files" }],
   // the real address, as in worker/routes.js SITES; the first deploy adds the custom domain
-  "routes": [{ "pattern": "app.example.com", "custom_domain": true }]
+  "routes": [{ "pattern": "notes.flamingbeing.com", "custom_domain": true }]
 }
