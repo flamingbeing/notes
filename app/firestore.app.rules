@@ -26,44 +26,26 @@ service cloud.firestore {
       return isSpace(s) && exists(/databases/$(database)/documents/spaces/$(s)) && spaceRole(s) in roles;
     }
     function mayRead(s) { return can('_', ['admin', 'member', 'viewer']) && (inVault(s) || inSpace(s, ['owner', 'edit', 'view'])); }
-    function mayWrite(s) { return can('_', ['admin', 'member']) && (inVault(s) || inSpace(s, ['owner', 'edit'])); }
+    // a space being deleted (closing, worker/spaces.js) takes no new writes
+    function notClosing(s) { return get(/databases/$(database)/documents/spaces/$(s)).data.get('closing', false) == false; }
+    function mayWrite(s) { return can('_', ['admin', 'member']) && (inVault(s) || (inSpace(s, ['owner', 'edit']) && notClosing(s))); }
     function optString(d, k, max) { return !(k in d) || (d[k] is string && d[k].size() <= max); }
     function optList(d, k, max) { return !(k in d) || (d[k] is list && d[k].size() <= max); }
-    // memberIds (for the "my spaces" list query) is always the members map's keys
-    function membersOk(d) {
-      return d.members is map && d.memberIds is list && d.memberIds.toSet() == d.members.keys().toSet()
-        && d.members.values().toSet().hasOnly(['owner', 'edit', 'view']) && d.members.get(d.owner, '') == 'owner';
-    }
 
-    // A shared space: { name, owner, members: { uid: owner | edit | view }, memberIds }. Members read it; a person
-    // with write access makes one with only themselves in it; its owner changes it (the owner stays) or deletes it;
-    // any other member may only take themselves out.
+    // A shared space: { name, owner, members: { uid: owner | edit | view }, memberIds, emails, invited, updatedAt,
+    // closing? }. Members read it; only the Worker writes it (worker/spaces.js: make, rename, invite, roles, leave,
+    // delete), so a device can never undo a member the Worker just added (decision 0010).
     match /spaces/{s} {
       allow get: if isSpace(s) && can('_', ['admin', 'member', 'viewer'])
         && (resource == null || request.auth.uid in resource.data.memberIds);
       // "my spaces": a query on memberIds array-contains the person (a list's rules can't read the doc id)
       allow list: if can('_', ['admin', 'member', 'viewer']) && request.auth.uid in resource.data.memberIds;
-      allow create: if isSpace(s) && can('_', ['admin', 'member'])
-        && request.resource.data.keys().hasOnly(['name', 'owner', 'members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
-        && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200
-        && request.resource.data.owner == request.auth.uid
-        && request.resource.data.members.keys().toSet() == [request.auth.uid].toSet() && membersOk(request.resource.data)
-        && stampOk();
-      allow update: if isSpace(s) && can('_', ['admin', 'member', 'viewer']) && stampOk()
-        && request.resource.data.keys().hasOnly(['name', 'owner', 'members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
-        && membersOk(request.resource.data)
-        && (
-          (resource.data.owner == request.auth.uid && can('_', ['admin', 'member'])
-            && request.resource.data.owner == resource.data.owner
-            && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200)
-          || (request.auth.uid in resource.data.members && request.auth.uid != resource.data.owner
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['members', 'memberIds', 'updatedAt', 'serverAt', '_edits'])
-            && request.resource.data.members.diff(resource.data.members).affectedKeys() == [request.auth.uid].toSet()
-            && !(request.auth.uid in request.resource.data.members))
-        );
-      // never from a device: its notes would outlive it and anyone could make the space again and read them (deleting
-      // a space, notes first, is the server's job: S3)
-      allow delete: if false;
+      allow create, update, delete: if false;
+    }
+
+    // Pending invites by email (worker/spaces.js): the Worker's alone.
+    match /invites/{key} {
+      allow read, write: if false;
     }
 
     // A note (src/notes/model.js): links, tags and aliases are worked out by the app; the body is at most 1 MiB (the
