@@ -416,9 +416,7 @@ export async function start({ canReload = null }) {
     // the bytes of an attachment (for an export)
     /** @param {Attachment} a @returns {Promise<Uint8Array>} */
     async attachmentBytes(a) {
-      const r = await fetch(await app.files.url(a.id, { scope: space }));
-      if (!r.ok) throw new Error(`${a.name}: ${r.status}`);
-      return new Uint8Array(await r.arrayBuffer());
+      return new Uint8Array(await (await app.files.blob(a.id, { scope: space })).arrayBuffer());
     },
     /** @param {Attachment} a */
     removeAttachment: a => app.files.remove(a, { scope: space }),
