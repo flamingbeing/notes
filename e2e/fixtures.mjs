@@ -28,10 +28,9 @@ async function routeSync(context, served) {
 async function routeCoreRetry(context) {
   await context.route(/^https:\/\/core\.anawj\.com\//, async route => {
     for (let i = 0; i < 3; i++) {
-      try {
-        const response = await route.fetch({ timeout: 15_000 });
-        if (response.status() < 500) return await route.fulfill({ response });
-      } catch { /* retry */ }
+      let response = null;
+      try { response = await route.fetch({ timeout: 8_000 }); } catch { /* retry */ }
+      if (response && response.status() < 500) return route.fulfill({ response }).catch(() => {});   // closed page: nothing to serve
       await new Promise(r => setTimeout(r, 300 * (i + 1)));
     }
     await route.continue().catch(() => {});

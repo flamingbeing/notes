@@ -19,7 +19,7 @@ const run = (label, input, want) => {
 };
 run('junk code', 'junk\n', /not a Notes code/);
 run('empty', '\n', /No code given/);
-run('bogus refresh', encodeCode({ projectId: PROJECT_ID, refreshToken: `bogus-${Date.now()}` }) + '\n', /no longer works/);
+if (!process.argv.includes('--no-real')) run('bogus refresh', encodeCode({ projectId: PROJECT_ID, refreshToken: `bogus-${Date.now()}` }) + '\n', /no longer works/);
 run('wrong project', encodeCode({ projectId: 'other-app', refreshToken: 'x' }) + '\n', /another app/);
 if (fs.existsSync(path.join(home, '.config', 'notes-mcp', 'token.json'))) { fails++; console.log('login FAIL: a token file was saved'); }
 fs.rmSync(home, { recursive: true, force: true });

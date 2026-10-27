@@ -15,7 +15,7 @@ const logDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mcp-soak-logs-'));
 let pass = 0, failed = null;
 const step = (label, cmd, argv, env = {}, cwd = root) => {
   const t = Date.now();
-  const r = spawnSync(cmd, argv, { cwd, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 600_000, shell: process.platform === 'win32' && cmd === 'npx' });
+  const r = spawnSync(cmd, argv, { cwd, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 600_000, shell: process.platform === 'win32' && (cmd === 'npx' || cmd === 'npm') });
   const log = path.join(logDir, `${label.replace(/\W+/g, '_')}-${t}.log`);
   fs.writeFileSync(log, `${r.stdout}\n${r.stderr}`);
   const ok = r.status === 0;
@@ -23,7 +23,7 @@ const step = (label, cmd, argv, env = {}, cwd = root) => {
   if (!ok && !failed) failed = { label, log };
   return ok;
 };
-if (!fs.existsSync(path.join(root, 'mcp', 'node_modules'))) step('npm ci mcp', 'npm', ['ci', '--no-audit', '--no-fund'], {}, path.join(root, 'mcp'));
+if (!fs.existsSync(path.join(root, 'mcp', 'node_modules')) && !step('npm ci mcp', 'npm', ['ci', '--no-audit', '--no-fund'], {}, path.join(root, 'mcp'))) { console.log('FAIL 0/' + rounds + ' npm ci in mcp/ failed'); process.exit(1); }
 for (let i = 1; i <= rounds; i++) {
   let all = true;
   for (const skew of [0, 3600e3, -3600e3, 25 * 3600e3]) {
@@ -31,7 +31,7 @@ for (let i = 1; i <= rounds; i++) {
   }
   if (!args.includes('--no-emulator')) all = step(`r${i} auth emulator`, 'npx', ['-y', 'firebase-tools@15.33.0', 'emulators:exec', '--only', 'auth', '--project', 'demo-notes', `node soak/mcp-emulator.mjs`], { SOAK_N: '20' }) && all;
   if (!args.includes('--no-real')) all = step(`r${i} real bogus refresh`, process.execPath, ['soak/mcp-real.mjs']) && all;
-  all = step(`r${i} login bad code`, process.execPath, ['soak/mcp-login.mjs']) && all;
+  all = step(`r${i} login bad code`, process.execPath, ['soak/mcp-login.mjs', ...args.filter(a => a === '--no-real')]) && all;
   if (all) pass++;
 }
 console.log(failed ? `FAIL ${pass}/${rounds} first: ${failed.label} ${failed.log}` : `PASS ${pass}/${rounds}`);
