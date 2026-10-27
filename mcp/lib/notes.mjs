@@ -45,6 +45,7 @@ export const words = text => [...String(text).matchAll(/"([^"]+)"|(\S+)/g)].map(
 /** @param {any[]} notes @param {string} text @param {number} [limit] */
 export function searchNotes(notes, text, limit = DEFAULT_LIMIT) {
   const needles = words(text);
+  if (!needles.length) return { rows: [], total: 0, needles };
   const hits = notes.map(n => {
     const hay = [n.title, ...(n.aliases || []), ...(n.tags || []).map(t => `#${t}`), n.path || ''].join('\n').toLowerCase();
     const body = String(n.body || '').toLowerCase();

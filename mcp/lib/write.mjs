@@ -3,6 +3,7 @@
 
 import crypto from 'node:crypto';
 import { withDerived, sizeOf } from '../../app/src/notes/model.js';
+import { keyOf } from '../../app/src/notes/parse.js';
 
 export const TITLE_MAX = 300;   // firestore.app.rules
 
@@ -21,6 +22,14 @@ function check(rec) {
 export function buildNewNote({ title, body = '', folder = '' }, at) {
   const rec = withDerived({ title, body, path: folder, aliases: [], updatedAt: at });
   return { id: newId(), record: check(/** @type {any} */ (rec)) };
+}
+
+// A title is one note's name within a folder ([[links]] and the tools find notes by it), so a second one is refused.
+/** @param {any[]} notes @param {string} title @param {string} folder @param {string} [exceptId] */
+export function checkTitleFree(notes, title, folder, exceptId) {
+  const key = keyOf(title);
+  const clash = notes.find(n => n.id !== exceptId && (n.path || '') === folder && keyOf(n.title) === key);
+  if (clash) throw new Error(`A note called "${clash.title}" already exists${folder ? ` in "${folder}"` : ' at the top level'} (id ${clash.id}); pick another title or use update_note or append_to_note.`);
 }
 
 // text goes on a line of its own after what is there

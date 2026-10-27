@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { readToken, writeToken, deleteToken, makeSession, refreshIdToken, requestClaims, pkce, authUrl, login, NotSignedInError } from '../lib/auth.mjs';
+import { readToken, writeToken, deleteToken, makeSession, refreshIdToken, requestClaims, pkce, authUrl, login, NotSignedInError, NoAccessError } from '../lib/auth.mjs';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notes-mcp-test-'));
 const file = path.join(dir, 'sub', 'token.json');
@@ -55,8 +55,8 @@ test('session: caches, rotates the refresh token, forces, and asks /api/claims w
   assert.equal(claimed, 1, 'a token that has the role does not ask again');
 });
 
-test('claims: not a member -> NotSignedInError; bad refresh token -> NotSignedInError', async () => {
-  await assert.rejects(() => requestClaims({ fetch: async () => ok({ claims: {} }), appUrl: 'https://notes.example', idToken: 'T' }), NotSignedInError);
+test('claims: not a member -> NoAccessError; bad refresh token -> NotSignedInError', async () => {
+  await assert.rejects(() => requestClaims({ fetch: async () => ok({ claims: {} }), appUrl: 'https://notes.example', idToken: 'T' }), NoAccessError);
   await assert.rejects(() => requestClaims({ fetch: async () => fail(500, 'x'), appUrl: 'https://notes.example', idToken: 'T' }), /Notes access check failed \(500\)/);
   writeToken({ refreshToken: 'BAD', email: 'me@example.com' }, file);
   const fetch = async () => fail(400, { message: 'INVALID_REFRESH_TOKEN' });

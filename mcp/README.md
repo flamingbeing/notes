@@ -10,12 +10,12 @@ It signs in as you and uses Firestore with your own sign-in, so the same `app/fi
 | `list_notes({ space?, folder?, tag?, limit? })` | notes, newest first, with id, title, folder, tags and date |
 | `search_notes({ text, space?, limit? })` | notes whose title, tags or text contain every word (`"quoted phrase"` stays whole) |
 | `read_note({ note, space? })` | the full text of one note; `note` is an id, a title or alias, or `folder/Title` |
-| `create_note({ title, body?, folder?, tags?, space? })` | adds a note; refuses a title already taken in that folder |
+| `create_note({ title, body?, folder?, space? })` | adds a note (`#tags` in the text are picked up as in the app); refuses a title already taken in that folder |
 | `append_to_note({ note, text, space? })` | adds text to the end of a note |
-| `update_note({ note, title?, body?, folder?, tags?, space?, confirm? })` | overwrites the fields given (a rename keeps the old title as an alias) |
+| `update_note({ note, title?, body?, folder?, space?, confirm?, version? })` | overwrites the fields given (a rename keeps the old title as an alias; refused if the new title is taken) |
 | `delete_note({ note, space?, confirm? })` | moves a note to the bin, as the app does; restore it there |
 
-Adding (`create_note`, `append_to_note`) saves at once. Overwriting and deleting are two calls: without `confirm` they only show what would change; Claude shows you that and repeats with `confirm: true` once you agree.
+Adding (`create_note`, `append_to_note`) saves at once. Overwriting and deleting are two calls: without `confirm` they only show what would change; Claude shows you that and repeats with `confirm: true` and the preview's `version` once you agree; if the note changed in between, nothing is saved.
 
 ## Privacy: read this first
 

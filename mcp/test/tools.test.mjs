@@ -78,13 +78,16 @@ test('update: a preview first; confirm overwrites; a note changed since is refus
   const preview = await run('update_note', args);
   assert.match(preview.text, /Would overwrite "Ideas" in My notes \(id n2\):\ntitle: "Ideas" -> "Ideas 2"\ntext: 5 -> 8 characters[\s\S]*confirm: true/);
   assert.equal(fake.store.get(`spaces/${UID}/notes/n2`).data.body, 'Kayak', 'nothing saved by the preview');
-  assert.match((await run('update_note', { ...args, confirm: true })).text, /^Overwrote "Ideas"/);
+  const v = /version: "?(\w+)/.exec(preview.text)[1];
+  assert.match((await run('update_note', { ...args, confirm: true })).text, /Preview the overwrite first/, 'no version, no change');
+  assert.match((await run('update_note', { ...args, confirm: true, version: 'v99' })).text, /changed since the preview/);
+  assert.match((await run('update_note', { ...args, confirm: true, version: v })).text, /^Overwrote "Ideas"/);
   const saved = fake.store.get(`spaces/${UID}/notes/n2`).data;
   assert.deepEqual([saved.title, saved.body, saved.aliases], ['Ideas 2', 'New text', ['Ideas']]);
   assert.ok((await run('update_note', { note: 'n2' })).err, 'nothing to change');
   const orig = src.replace;
   src.replace = async (...a) => { fake.store.get(`spaces/${UID}/notes/n2`).version++; return orig(...a); };
-  const clash = await run('update_note', { note: 'n2', body: 'Again', confirm: true });
+  const clash = await run('update_note', { note: 'n2', body: 'Again', confirm: true, version: `v${fake.store.get(`spaces/${UID}/notes/n2`).version}` });
   assert.ok(clash.err); assert.match(clash.text, /changed since you read it/);
 });
 
@@ -92,12 +95,21 @@ test('delete: a preview first; confirm removes the note and writes the bin entry
   const { run, fake } = setup();
   assert.match((await run('delete_note', { note: 'Ward round' })).text, /Would delete "Ward round" in My notes \(id n1, 20 characters\); it would go to the bin\.[\s\S]*confirm: true/);
   assert.ok(fake.store.has(`spaces/${UID}/notes/n1`));
-  assert.match((await run('delete_note', { note: 'Ward round', confirm: true })).text, /^Deleted "Ward round".*in the bin\.$/);
+  assert.match((await run('delete_note', { note: 'Ward round', confirm: true })).text, /Preview the delete first/);
+  assert.match((await run('delete_note', { note: 'Ward round', confirm: true, version: 'v1' })).text, /^Deleted "Ward round".*in the bin\.$/);
   assert.ok(!fake.store.has(`spaces/${UID}/notes/n1`));
   const bin = fake.store.get(`spaces/${UID}/bin/notes:n1`).data;
   assert.deepEqual([bin.id, bin.kind, bin.deletedAt, bin.data.id, bin.data.title, bin.data.body], ['notes:n1', 'notes', AT, 'n1', 'Ward round', 'Check the list #todo']);
   assert.ok(!('serverAt' in bin.data), 'the stamp is not copied into the bin');
   assert.equal(fake.commits.at(-1).length, 2, 'delete + bin entry together');
   assert.ok((await run('read_note', { note: 'Ward round' })).err, 'gone from reads at once (cache dropped)');
-  assert.ok((await run('delete_note', { note: 'Team plan', space: 'Reading', confirm: true })).err);
+  assert.ok((await run('delete_note', { note: 'Team plan', space: 'Reading', confirm: true, version: 'v1' })).err);
+});
+
+test('create and rename refuse a title already used in the folder; search ignores blank text', async () => {
+  const { run } = setup();
+  assert.match((await run('create_note', { title: 'ideas' })).text, /already exists/);
+  assert.match((await run('create_note', { title: 'Ward round' })).text, /^Created/);
+  assert.match((await run('update_note', { note: 'n2', title: 'Ward round' })).text, /already exists/);
+  assert.match((await run('search_notes', { text: 'Kayak' })).text, /Ideas/);
 });

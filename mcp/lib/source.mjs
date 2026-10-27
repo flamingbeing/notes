@@ -12,15 +12,16 @@ export function makeNotesSource({ firestore, uid, now = () => Date.now(), cacheM
   if (!uid) throw new Error('No signed-in account');
   /** @type {Map<string, { at: number, notes: any[] }>} */
   const cache = new Map();
+  /** @type {{ at: number, list: any[] } | null} */
   let spaceList = null;
 
   async function spaces() {
-    if (!spaceList) {
+    if (!spaceList || now() - spaceList.at >= cacheMs) {
       const shared = await firestore.queryContains('spaces', 'memberIds', uid);
-      spaceList = [{ id: uid, name: VAULT, role: 'owner', vault: true },
-        ...shared.map(s => ({ id: s.id, name: String(s.name || s.id), role: String(s.members?.[uid] || 'view') }))];
+      spaceList = { at: now(), list: [{ id: uid, name: VAULT, role: 'owner', vault: true },
+        ...shared.map(s => ({ id: s.id, name: String(s.name || s.id), role: String(s.members?.[uid] || 'view') }))] };
     }
-    return spaceList;
+    return spaceList.list;
   }
 
   // a space named by its id or its name (case ignored); none: the vault
@@ -35,7 +36,7 @@ export function makeNotesSource({ firestore, uid, now = () => Date.now(), cacheM
     throw new SpaceError(`No space "${ref}" (or you are not in it). list_spaces shows yours.`);
   }
 
-  const forget = () => cache.clear();
+  const forget = () => { cache.clear(); spaceList = null; };
   const canWrite = s => s.vault || s.role === 'owner' || s.role === 'edit';
   const mustWrite = s => { if (!canWrite(s)) throw new SpaceError(`You can only read "${s.name}" (your role there is ${s.role}).`); return s; };
 

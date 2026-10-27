@@ -10,6 +10,8 @@ import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 
 export class NotSignedInError extends Error {}
+// signed in, but the app has no role for this account: signing in again would not help
+export class NoAccessError extends Error {}
 
 const b64url = buf => Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const lc = s => String(s || '').trim().toLowerCase();
@@ -66,7 +68,7 @@ const claimsOf = idToken => {
 // token refresh carries them. Throws when the person is not a member of Notes.
 export async function requestClaims({ fetch = globalThis.fetch, appUrl, idToken }) {
   const body = await postJson(fetch, `${appUrl}/api/claims`, { method: 'POST', headers: { Authorization: `Bearer ${idToken}` } }, 'Notes access check');
-  if (!body.claims || !body.claims.g) throw new NotSignedInError('this Google account has no access to Notes (ask the owner to add you)');
+  if (!body.claims || !body.claims.g) throw new NoAccessError('this Google account has no access to Notes (ask the owner to add you)');
   return body.claims;
 }
 

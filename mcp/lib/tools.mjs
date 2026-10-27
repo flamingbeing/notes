@@ -4,7 +4,7 @@
 
 import { z } from 'zod';
 import { filterNotes, formatNoteList, searchNotes, formatSearch, findNote, formatNote, DEFAULT_LIMIT, MAX_LIMIT } from './notes.mjs';
-import { buildNewNote, buildAppend, buildUpdate, describeUpdate } from './write.mjs';
+import { buildNewNote, buildAppend, buildUpdate, describeUpdate, checkTitleFree } from './write.mjs';
 
 export const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 // adds to the notes (a new one, or text on the end of one)
@@ -16,8 +16,16 @@ const space = z.string().max(100).optional().describe('A shared space (name or i
 const limit = z.number().int().min(1).max(MAX_LIMIT).optional().describe(`Most rows to return (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT})`);
 const ref = z.string().min(1).max(500).describe('The note\'s id, or its title (a "folder/Title" when two share one)');
 const folder = z.string().max(500).describe('Folder, e.g. "work/ideas" (no leading or trailing slash); empty for the top level');
-const confirm = z.boolean().optional().describe('false or left out: only preview, nothing changes. true: do it. Show the preview to the user and confirm only after they agree.');
-const PREVIEW = name => `\n\nPreview only: nothing has changed yet. Show this to the user; once they agree, call ${name} again with the same arguments and confirm: true.`;
+const confirm = z.boolean().optional().describe('Left out or false: only preview, nothing changes. true: do it, together with the version from the preview. Show the preview to the user and confirm only after they agree.');
+const version = z.string().max(100).optional().describe('The version line from the preview; with confirm: true, the change is made only if the note is still that version');
+const PREVIEW = (name, v) => `\n\nPreview only: nothing has changed yet (version: ${v}). Show this to the user; once they agree, call ${name} again with the same arguments, confirm: true and version: "${v}".`;
+// the confirming call must carry the version the user was shown, so what they agreed to is what is changed
+function checkShown(what, yes, shown, current) {
+  if (yes !== true) return false;
+  if (!shown) throw new Error(`Preview ${what} first and pass the version from it with confirm: true.`);
+  if (shown !== current._updateTime) throw new Error(`"${current.title}" changed since the preview; read it again and redo the change.`);
+  return true;
+}
 
 const STALE = /FAILED_PRECONDITION|ABORTED|ALREADY_EXISTS/;
 const changedMeanwhile = e => e && STALE.test(e.code || '');
@@ -61,7 +69,7 @@ export function defineTools(getSource, { now = () => Date.now() } = {}) {
       name: 'search_notes',
       title: 'Search notes',
       description: 'Find notes whose title, aliases, tags, folder or text contain every word given (any case; "quoted phrase" stays whole). Titles first.',
-      shape: { text: z.string().min(1).max(500), space, limit },
+      shape: { text: z.string().trim().min(1).max(500), space, limit },
       annotations: READ_ONLY,
       async run({ text, space: name, limit: n }) {
         const { src, sp } = await where(name);
@@ -90,6 +98,7 @@ export function defineTools(getSource, { now = () => Date.now() } = {}) {
       async run({ title, body, folder: dir, space: name }) {
         const { src, sp } = await where(name);
         const { id, record } = buildNewNote({ title, body, folder: dir }, now());
+        checkTitleFree(await src.notes(sp, true), record.title, record.path || '');
         await src.create(sp, id, record);
         return `Created "${record.title}" in ${sp.name} (id ${id}).`;
       },
@@ -117,15 +126,16 @@ export function defineTools(getSource, { now = () => Date.now() } = {}) {
       name: 'update_note',
       title: 'Overwrite a note',
       description: 'Replace a note\'s text, and/or its title or folder; only what is given changes. Overwrites: a new title keeps the old one as an alias, but links in other notes are not rewritten. To add text, use append_to_note.',
-      shape: { note: ref, body: z.string().max(900_000).optional(), title: z.string().min(1).max(300).optional(), folder: folder.optional(), space, confirm },
+      shape: { note: ref, body: z.string().max(900_000).optional(), title: z.string().min(1).max(300).optional(), folder: folder.optional(), space, confirm, version },
       annotations: REPLACES,
-      async run({ note, body, title, folder: dir, space: name, confirm: yes }) {
+      async run({ note, body, title, folder: dir, space: name, confirm: yes, version: shown }) {
         if (body === undefined && title === undefined && dir === undefined) throw new Error('Nothing to change: give body, title or folder.');
         const { src, sp } = await where(name);
         const current = await stored(src, sp, note);
         const record = buildUpdate(current, { title, body, folder: dir }, now());
+        if (record.title !== current.title || (record.path || '') !== (current.path || '')) checkTitleFree(await src.notes(sp, true), record.title, record.path || '', current.id);
         const what = `"${current.title}" in ${sp.name} (id ${current.id})`;
-        if (yes !== true) return `Would overwrite ${what}:\n${describeUpdate(current, record)}${PREVIEW('update_note')}`;
+        if (!checkShown('the overwrite', yes, shown, current)) return `Would overwrite ${what}:\n${describeUpdate(current, record)}${PREVIEW('update_note', current._updateTime)}`;
         try { await src.replace(sp, current.id, record, current._updateTime); }
         catch (e) { throw changedMeanwhile(e) ? new Error(`${what} changed since you read it; read it again and redo the change.`) : e; }
         return `Overwrote ${what}.`;
@@ -135,13 +145,13 @@ export function defineTools(getSource, { now = () => Date.now() } = {}) {
       name: 'delete_note',
       title: 'Delete a note',
       description: 'Delete a note. It goes to the app\'s bin (Settings → Bin), the same as deleting in the app, so it can be restored there.',
-      shape: { note: ref, space, confirm },
+      shape: { note: ref, space, confirm, version },
       annotations: REPLACES,
-      async run({ note, space: name, confirm: yes }) {
+      async run({ note, space: name, confirm: yes, version: shown }) {
         const { src, sp } = await where(name);
         const current = await stored(src, sp, note);
         const what = `"${current.title}" in ${sp.name} (id ${current.id}, ${current.body.length} characters)`;
-        if (yes !== true) return `Would delete ${what}; it would go to the bin.${PREVIEW('delete_note')}`;
+        if (!checkShown('the delete', yes, shown, current)) return `Would delete ${what}; it would go to the bin.${PREVIEW('delete_note', current._updateTime)}`;
         try { await src.remove(sp, current, now()); }
         catch (e) { throw changedMeanwhile(e) ? new Error(`${what} changed since you read it; read it again first.`) : e; }
         return `Deleted ${what}; it is in the bin.`;
