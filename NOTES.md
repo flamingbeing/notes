@@ -145,6 +145,15 @@ text changed). Nothing is saved, so there is no format to migrate.
   newest first (`newest(record)`, default `updatedAt`).
 - Later: a `toJSON`/`loadJSON` cache of the index (rebuild at start is cheap below ~10k records).
 
+## Backup and spreadsheets (`@core/backup`, decision 0017)
+
+- `app/public/backup/`: `buildBackup`, `planRestore` / `describePlan` / `restore` (add-only, waits for the server copy),
+  `.json.gz` (`gzip.js`), CSV and Excel from shared rows (`rows.js`). Unit tests: `app/test/backup.unit.test.mjs`
+  (the Excel test points `xlsx` at the vendored file); e2e: `e2e/backup.spec.mjs`. The sheet is `app/src/transfer/backup-sheet.js`.
+- `xlsx` is vendored by hand (SheetJS 0.20.3 from cdn.sheetjs.com, `LICENSE` beside it); to bump it, replace the folder,
+  the import map line, `tsconfig.json` paths, run `node tools/sw-files.mjs app`, and update the CSP hash in `worker/headers.js`.
+- `recipes/backup.json` adds the module to another app with `tools/add.mjs`.
+
 ## Google Drive copy (`@core/drive`, decision 0017)
 
 Settings → Google Drive → Allow, then Sync now: one Markdown file per note in `Notes/<space>/<folder>/<title>.md` in the

@@ -19,6 +19,8 @@
       "@core/files": ["./app/public/files/index.js"],
       "@core/settings": ["./node_modules/app-ui/settings/index.js"],
       "@core/search": ["./app/public/search/index.js"],
+      "@core/backup": ["./app/public/backup/index.js"],
+      "xlsx": ["./app/public/vendor/xlsx/0.20.3/xlsx.d.ts"],
       "@core/drive": ["./app/public/drive/index.js"],
       "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
       "app-ui/*": ["./node_modules/app-ui/*"],
@@ -26,5 +28,5 @@
       "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
     }
   },
-  "include": ["app/src/**/*.js", "app/src/**/*.d.ts", "app/public/files/*", "app/public/search/*.js", "app/public/search/*.d.ts", "app/public/drive/*.js", "e2e/fixtures/outside-package/src/*.js"]
+  "include": ["app/src/**/*.js", "app/src/**/*.d.ts", "app/public/files/*", "app/public/search/*.js", "app/public/search/*.d.ts", "app/public/drive/*.js", "app/public/backup/*.js", "app/public/backup/*.d.ts", "e2e/fixtures/outside-package/src/*.js"]
 }

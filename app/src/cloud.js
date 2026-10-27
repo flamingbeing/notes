@@ -332,6 +332,18 @@ export async function start({ canReload = null }) {
     return sizeOf(r.body) === 'too-big' ? Promise.resolve(TOO_BIG) : refusal(app.sync.save(COLL, space, r, base));
   };
   const id = () => (crypto.randomUUID?.() || String(Date.now()) + Math.random().toString(36).slice(2)).replace(/-/g, '');
+  /** saves in rounds of 50 @param {Note[]} list @returns {Promise<number>} how many were not saved */
+  const saveRounds = async list => {
+    let refused = 0;
+    for (let i = 0; i < list.length; i += 50) {
+      const part = list.slice(i, i + 50);
+      const recs = part.map(n => withDerived(n)).filter(r => sizeOf(r.body) !== 'too-big');
+      refused += part.length - recs.length;
+      const done = await app.sync.saveMany(COLL, space, recs);
+      refused += done.filter((/** @type {{ status: string }} */ r) => r.status === 'rejected').length;
+    }
+    return refused;
+  };
   return {
     // the modules' apis, for the UI kit's parts (update: with a service worker only, else null)
     auth: app.auth, sync: app.sync, settings: app.settings, update: app.update || null, files: app.files,
@@ -409,17 +421,12 @@ export async function start({ canReload = null }) {
     // Import: notes saved in rounds of 50 (new ids, so never over an existing note), files kept with their vault folder
     // as `path`. importNotes -> how many were not saved; importFile -> '' or why not
     /** @param {{ title: string, path: string, body: string }[]} list @returns {Promise<number>} */
-    async importNotes(list) {
-      let refused = 0;
-      for (let i = 0; i < list.length; i += 50) {
-        const part = list.slice(i, i + 50);
-        const recs = part.map(n => withDerived({ id: id(), title: n.title, body: n.body, path: n.path })).filter(r => sizeOf(r.body) !== 'too-big');
-        refused += part.length - recs.length;
-        const done = await app.sync.saveMany(COLL, space, recs);
-        refused += done.filter((/** @type {{ status: string }} */ r) => r.status === 'rejected').length;
-      }
-      return refused;
-    },
+    importNotes: list => saveRounds(list.map(n => ({ id: id(), title: n.title, body: n.body, path: n.path }))),
+    // Restore: notes the backup holds that this space does not (their own ids; the caller checked none is here) -> how many were not saved
+    /** @param {Record<string, any>[]} list @returns {Promise<number>} */
+    addNotes: list => saveRounds(/** @type {Note[]} */ (list)),
+    // true once the server's copy has been heard (a restore waits for it: before that the list may be weeks old)
+    serverCopyIn: () => !!app.sync.facts().confirmed,
     /** @param {Blob} file @param {string} name @param {string} path @returns {Promise<string>} */
     async importFile(file, name, path) {
       try { await app.files.add(new File([file], name, { type: file.type }), { scope: space, extra: { path } }); return ''; } catch (e) { return (e instanceof Error && e.message) || 'The file could not be added'; }

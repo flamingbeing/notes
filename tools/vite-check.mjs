@@ -21,7 +21,9 @@ const js = fs.readdirSync(assets).filter(f => f.endsWith('.js')).map(f => fs.rea
 const problems = [];
 const before = importMap(fs.readFileSync(path.join(ROOT, 'app/index.html'), 'utf8'));
 if (JSON.stringify(importMap(html)) !== JSON.stringify(before)) problems.push('the built page lost or changed its import map');
-for (const name of Object.keys(before)) if (!js.includes(`"${name}"`)) problems.push(`${name} is not imported by name (bundled, or no longer used)`);
+// xlsx is imported by @core/backup (served as is, not bundled), so the app's own code never names it
+const viaModules = new Set(['xlsx']);
+for (const name of Object.keys(before)) if (!viaModules.has(name) && !js.includes(`"${name}"`)) problems.push(`${name} is not imported by name (bundled, or no longer used)`);
 if (js.includes('createApp needs config.sdk') || js.includes('sync needs')) problems.push('engine code was bundled (core must stay external)');
 // @core/files (decision 0009) stays external too: only a page that imports it loads it, exifr only on first use
 if (js.includes('files: remove() takes') || js.includes('DateTimeOriginal') || js.includes('idb-keyval')) problems.push('files code was bundled (@core/files must stay external)');

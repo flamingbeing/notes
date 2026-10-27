@@ -11,6 +11,7 @@ import { $, input, dialog, sectionScreen } from '../shell/dom.js';
 import { notePage } from './note-page.js';
 import { picker } from './picker.js';
 import { transferSheet } from '../transfer/transfer-sheet.js';
+import { backupSheet } from '../transfer/backup-sheet.js';
 import { driveSheet } from '../drive/drive-sheet.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
@@ -124,7 +125,8 @@ export function listScreen(app) {
   const flip = key => () => app.settings.set(key, !app.settings.get(key));
   const inNote = () => !!page.current();
   const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
-  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); transfer.open(); });
+  const backup = backupSheet(app, msg => toast(msg), () => canWrite);
+  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); backup.reset(); transfer.open(); });
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
   const drive = driveSheet(app, msg => toast(msg), () => openSpace);
   $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); drive.open(); });

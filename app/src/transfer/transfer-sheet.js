@@ -2,6 +2,7 @@
 // (what would be added, what skipped and why); the open space out as a zip. The planning is vault.js (pure); the zip
 // library (fflate) loads only when a zip is read or made. Import never overwrites (vault.js skips what is there).
 import { $, input, dialog } from '../shell/dom.js';
+import { download } from '../shell/download.js';
 import { planImport, summary, exportFiles } from '../notes/vault.js';
 
 const MAX_ZIP_BYTES = 300_000_000;
@@ -93,9 +94,7 @@ export function transferSheet(app, toast, canWrite) {
         else { try { out[f.path] = await app.attachmentBytes(f.att); } catch { missing++; } }
       }
       const blob = new Blob([zipSync(out, { level: 0 }).slice().buffer], { type: 'application/zip' });
-      const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'notes-export.zip' });
-      document.body.append(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      download(blob, 'notes-export.zip');
       msg.textContent = `Exported ${Object.keys(out).length} files` + (missing ? `; ${missing} could not be fetched` : '');
     } catch (e) { msg.textContent = /** @type {Error} */ (e).message; } finally { busy = false; }
   });
