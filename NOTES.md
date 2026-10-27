@@ -138,3 +138,12 @@ text changed). Nothing is saved, so there is no format to migrate.
   in `unknown` for a "did you mean" line. A query with no words (only filters, phrases or leave-outs) lists matches
   newest first (`newest(record)`, default `updatedAt`).
 - Later: a `toJSON`/`loadJSON` cache of the index (rebuild at start is cheap below ~10k records).
+
+## Backup and spreadsheets (`@core/backup`, decision 0016)
+
+- `app/public/backup/`: `buildBackup`, `planRestore` / `describePlan` / `restore` (add-only, waits for the server copy),
+  `.json.gz` (`gzip.js`), CSV and Excel from shared rows (`rows.js`). Unit tests: `app/test/backup.unit.test.mjs`
+  (the Excel test points `xlsx` at the vendored file); e2e: `e2e/backup.spec.mjs`. The sheet is `app/src/transfer/backup-sheet.js`.
+- `xlsx` is vendored by hand (SheetJS 0.20.3 from cdn.sheetjs.com, `LICENSE` beside it); to bump it, replace the folder,
+  the import map line, `tsconfig.json` paths, run `node tools/sw-files.mjs app`, and update the CSP hash in `worker/headers.js`.
+- `recipes/backup.json` adds the module to another app with `tools/add.mjs`.

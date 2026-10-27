@@ -1,0 +1,20 @@
+{
+  "module": "backup",
+  "about": "Backup and restore: the data as a .json.gz file, one CSV or an Excel file (SheetJS, loaded only on that tap); a restore only adds what is missing (@core/backup); local here until a second kind of app wants it.",
+  "importMap": { "@core/backup": "./backup/index.js", "xlsx": "./vendor/xlsx/0.20.3/xlsx.mjs" },
+  "vendor": ["app/public/vendor/xlsx/0.20.3"],
+  "files": [
+    { "from": "app/public/backup" },
+    { "from": "app/test/backup.unit.test.mjs" }
+  ],
+  "tsconfigPaths": {
+    "@core/backup": ["./app/public/backup/index.js"],
+    "xlsx": ["./app/public/vendor/xlsx/0.20.3/xlsx.d.ts"]
+  },
+  "tsconfigInclude": ["app/public/backup/*.js", "app/public/backup/*.d.ts"],
+  "viteAlias": { "@core/backup": "./app/public/backup/index.js" },
+  "docs": [
+    "backup: the module is app/public/backup/index.js (buildBackup, planRestore, restore, packBackup, backupToCsv, backupToXlsx); the notes app's sheet that uses it is app/src/transfer/backup-sheet.js in the notes repo, which is the model for yours.",
+    "backup: add \"xlsx$\" to the external list in vite.config.mjs (it is loaded by import('xlsx') and served from vendor/), and give the app a saveRecords(list) that keeps the records' own ids (notes' addNotes) and serverCopyIn() (app-sync's sync.facts().confirmed)."
+  ]
+}

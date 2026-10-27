@@ -17,6 +17,7 @@
     "@core/files": "./files/index.js",
     "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.8/settings/index.js",
     "@core/search": "./search/index.js",
+    "@core/backup": "./backup/index.js",
     "app-update/register.js": "https://core.anawj.com/update/0.2.0/register.js",
     "firebase/app": "./vendor/firebase/12.19.0/firebase-app.js",
     "firebase/auth": "./vendor/firebase/12.19.0/firebase-auth.js",
@@ -24,7 +25,8 @@
     "@vendor/codemirror": "./vendor/codemirror/6.43.15/codemirror.js",
     "marked": "./vendor/marked/18.1.1/marked.esm.js",
     "dompurify": "./vendor/dompurify/3.4.17/purify.es.js",
-    "fflate": "./vendor/fflate/0.8.2/fflate.js"
+    "fflate": "./vendor/fflate/0.8.2/fflate.js",
+    "xlsx": "./vendor/xlsx/0.20.3/xlsx.mjs"
   }
 }
   </script>
@@ -202,6 +204,17 @@
     <p class="small">The open space as a zip: notes as Markdown in their folders, with their files.</p>
     <div class="row"><button id="transfer-export" type="button">Export as zip</button></div>
     <p id="transfer-msg" class="small" role="status"></p>
+    <h3>Backup</h3>
+    <p class="small">The open space’s notes and your settings as one file to keep. Files are listed, not included. Restoring only adds what is missing.</p>
+    <div class="row">
+      <button id="backup-save" type="button">Back up (.json.gz)</button>
+      <button id="backup-csv" type="button">Spreadsheet (CSV)</button>
+      <button id="backup-xlsx" type="button">Spreadsheet (Excel)</button>
+    </div>
+    <div class="row"><label class="file">Restore from a backup <input id="backup-file" type="file" accept=".gz,.json,.csv,.xlsx"></label></div>
+    <p id="backup-plan" class="small" role="status"></p>
+    <div class="row"><button id="backup-go" type="button" hidden>Restore</button></div>
+    <p id="backup-msg" class="small" role="status"></p>
     <div class="row"><button id="transfer-close" type="button">Close</button></div>
   </dialog>
 

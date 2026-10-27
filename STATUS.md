@@ -15,6 +15,8 @@
   full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
   by feature under `app/src/`.
 
+- Backup and spreadsheets (decision 0016): More → Import or export → Backup: `.json.gz`, CSV, Excel; restore only adds.
+
 ## Waiting on the owner
 
 - The live smoke test after deploy needs the owner's sign-in click.
