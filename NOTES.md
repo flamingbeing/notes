@@ -159,7 +159,7 @@ text changed). Nothing is saved, so there is no format to migrate.
 Settings → Google Drive → Allow, then Sync now: one Markdown file per note in `Notes/<space>/<folder>/<title>.md` in the
 person's Drive. Scope `drive.file` only, asked by popup from the Google sign-in; Drive by `fetch`. The app owns the
 `<!-- notes:start -->` block in each file; text around it is kept and edits inside it are merged (3-way, by line) at the
-next sync. Only changed notes are sent; nothing is deleted in Drive. Tests: `app/test/drive.unit.test.mjs` and
+next sync. Only changed notes are sent, four at a time; nothing is deleted in Drive. A run lists the app's files once (`prime()`) and looks files up from that list; a note whose file still has the version this device wrote is planned from the kept file text (`file:` key) without a download, and the write still checks the version first (changed: read and merge). 100 new notes take about 106 Drive calls (were about 406); 100 changed ones about 201 (were 400). Tests: `app/test/drive.unit.test.mjs` and
 `e2e/drive.spec.mjs` against `app/test/fake-drive.mjs`; the live Drive is checked by hand with the owner's account after a
 change (the Drive API must be enabled for the Firebase project). `recipes/drive.json` lists the files to copy into another app.
 
