@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Notes MCP server: reads your own notes (and shared spaces), adds, appends to, overwrites and deletes them. See README.md.
-//   node server.mjs login    sign in with Google in the browser
+//   node server.mjs login [code]  sign in with the code from the app (Settings → Connect MCP), or, with no code and a
+//                            Google client set in config.mjs, with Google in the browser
 //   node server.mjs logout   delete the stored token
 //   node server.mjs          run the MCP server on stdio (Claude Desktop / Claude Code start it); not signed in yet,
 //                            the first tool call opens the browser to sign in (no terminal needed)
@@ -8,7 +9,7 @@
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { CLIENT_ID, CLIENT_SECRET, API_KEY, PROJECT_ID, APP_URL, isConfigured } from './config.mjs';
-import { login, makeSession, deleteToken, defaultTokenFile, NotSignedInError, openBrowser } from './lib/auth.mjs';
+import { login, loginWithCode, makeSession, deleteToken, defaultTokenFile, NotSignedInError, openBrowser } from './lib/auth.mjs';
 import { makeFirestore } from './lib/firestore.mjs';
 import { makeNotesSource } from './lib/source.mjs';
 import { defineTools, callTool, READ_ONLY } from './lib/tools.mjs';
@@ -21,7 +22,7 @@ const log = m => process.stderr.write(m + '\n');
 // at once with the address, so it works from Claude Desktop with no terminal. One sign-in at a time.
 let signingIn = null;
 async function startSignIn(why) {
-  if (!isConfigured()) return new Error('The Notes connector is not set up yet (no Google sign-in client). Ask the app owner.');
+  if (!isConfigured()) return new Error(`${why} Sign in with a code: in the Notes app open Settings → Advanced → Connect MCP, copy the code, then run:\nnode "${SELF}" login\nand paste it.`);
   const started = !signingIn;
   if (started) {
     let url = '';
@@ -77,13 +78,24 @@ async function serve() {
   log(`notes MCP server running (token file ${defaultTokenFile()})`);
 }
 
+// No code on the command line and no Google client: ask for the code (the line is not echoed to a log or history)
+async function askCode() {
+  const { createInterface } = await import('node:readline/promises');
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try { return (await rl.question('Paste the code from Notes (Settings → Advanced → Connect MCP): ')).trim(); }
+  finally { rl.close(); }
+}
+
 async function main(cmd) {
   if (cmd === 'login') {
-    if (!isConfigured()) {
-      log('The Google OAuth client ID and secret are not set yet. The app owner fills them into config.mjs\n'
-        + '(see README.md, "One-time owner setup"), or set NOTES_GOOGLE_CLIENT_ID and NOTES_GOOGLE_CLIENT_SECRET.');
-      process.exit(1);
+    const code = process.argv[3] || (!isConfigured() ? await askCode() : '');
+    if (code) {
+      const { email } = await loginWithCode({ code, apiKey: API_KEY, projectId: PROJECT_ID });
+      log(`Signed in as ${email}. Token saved to ${defaultTokenFile()} (only on this computer).`);
+      log('Restart Claude Desktop or Claude Code if it was already running.');
+      return;
     }
+    if (!isConfigured()) { log('No code given.'); process.exit(1); }
     const { email } = await login({ clientId: CLIENT_ID, clientSecret: CLIENT_SECRET, apiKey: API_KEY });
     log(`Signed in as ${email}. Token saved to ${defaultTokenFile()} (only on this computer).`);
     log('Restart Claude Desktop or Claude Code if it was already running.');
@@ -91,11 +103,11 @@ async function main(cmd) {
   }
   if (cmd === 'logout') {
     log(deleteToken() ? `Signed out: deleted ${defaultTokenFile()}.` : 'Not signed in (no token file).');
-    log('To revoke access fully: Google Account → Security → Third-party access (your connections) → remove it.');
+    log('To end it everywhere: Notes → Settings → Disconnect MCP (a code stays valid until then). Google sign-in: Google Account → Security → Third-party access.');
     return;
   }
   if (cmd && cmd !== 'serve') {
-    log('Usage: node server.mjs [login | logout]   (no argument: run the MCP server on stdio)');
+    log('Usage: node server.mjs [login [code] | logout]   (no argument: run the MCP server on stdio)');
     process.exit(2);
   }
   await serve();

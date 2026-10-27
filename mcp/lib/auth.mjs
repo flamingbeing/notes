@@ -8,6 +8,7 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
+import { decodeCode } from '../../app/src/mcp/code.js';
 
 export class NotSignedInError extends Error {}
 // signed in, but the app has no role for this account: signing in again would not help
@@ -201,4 +202,25 @@ export async function login({ clientId, clientSecret, apiKey, fetch = globalThis
 
   writeToken({ refreshToken: fb.refreshToken, email: fb.email }, tokenFile);
   return { email: lc(fb.email) };
+}
+
+// ---- sign-in by code (Settings → Connect MCP in the app) ----
+
+// The code carries the page's own Firebase refresh token, so no Google client is needed. It is checked by one real
+// refresh: a code from another project, a revoked one or a made-up one is refused here, before anything is saved.
+export async function loginWithCode({ code, apiKey, projectId, fetch = globalThis.fetch, tokenFile = defaultTokenFile() }) {
+  const c = decodeCode(code);
+  if (c.projectId !== projectId) throw new Error(`That code is for another app (${c.projectId}), not Notes (${projectId}).`);
+  let r;
+  try { r = await refreshIdToken({ fetch, apiKey, refreshToken: c.refreshToken }); }
+  catch (e) {
+    if (/TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_DISABLED|USER_NOT_FOUND|INVALID_GRANT/.test(e.code || e.message)) {
+      throw new NotSignedInError('That code no longer works (it was disconnected or the account signed out everywhere). Make a new one in Settings → Connect MCP.');
+    }
+    throw e;
+  }
+  const email = claimsOf(r.idToken).email;
+  if (!email) throw new Error('The code signs in, but its account has no email, so Notes cannot use it.');
+  writeToken({ refreshToken: r.refreshToken, email }, tokenFile);
+  return { email: lc(email) };
 }

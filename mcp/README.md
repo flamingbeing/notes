@@ -23,6 +23,14 @@ Adding (`create_note`, `append_to_note`) saves at once. Overwriting and deleting
 - **Your sign-in stays on your computer.** Only a Firebase refresh token and your email are stored, in `~/.config/notes-mcp/token.json` (mode 0600). Nothing goes to any server other than Google's (sign-in, Firestore), the Notes app's own address (`/api/claims`, to get your role) and, through Claude, Anthropic.
 - **To revoke access:** run `node server.mjs logout`, or delete that file (on Windows `C:\Users\you\.config\notes-mcp\token.json`), and remove the app in your Google Account → Security → Third-party access.
 
+## Sign in with a code (no setup needed)
+
+1. In the Notes app: Settings → turn on **Connect Claude to my notes (MCP)** (under Advanced, off until you do, per device), then **Connect MCP → Show code**.
+2. Claude Desktop (the `.mcpb`): ask Claude about your notes; it tells you to run the login command below. Claude Code: run `node server.mjs login` yourself. Paste the code when asked (or `node server.mjs login <code>`).
+3. Restart Claude Desktop or Claude Code if it was already running.
+
+The code is your Notes sign-in's refresh token with the project id; it is shown only on that tap and never stored by the app. `login` checks it with one refresh, then keeps the refresh token and your email in `~/.config/notes-mcp/token.json` (mode 0600, no keychain needed). **Disconnect MCP** in the app ends every sign-in of your account (Firebase cannot end just one), so a code you showed stops working and you sign in to the app again. The Google browser sign-in below still works when `config.mjs` has a Desktop client, and is only used then.
+
 ## Install
 
 **Claude Desktop (easiest):** download **[notes.mcpb](https://github.com/flamingbeing/notes/releases/download/notes-mcp/notes.mcpb)**, open it (or drag it onto Settings → Extensions) and Install. The first time you ask about your notes a browser window opens to sign in with Google; once the page says you are signed in, ask again. To update, download and open the file again (the `notes-mcp` release is rebuilt by `.github/workflows/notes-mcpb.yml`).
@@ -35,7 +43,7 @@ claude mcp add notes -- node "$PWD/server.mjs"      # Claude Code
 codex mcp add notes -- node "$PWD/server.mjs"       # Codex CLI
 ```
 
-Commands: `node server.mjs login`, `node server.mjs logout`, `node server.mjs` (the server on stdio; Claude starts it).
+Commands: `node server.mjs login [code]`, `node server.mjs logout`, `node server.mjs` (the server on stdio; Claude starts it).
 
 ## How it works
 
@@ -53,7 +61,7 @@ No network (HTTP stubbed, a fake Firestore that mirrors the rules' field checks)
 cd mcp && npm ci && npm test
 ```
 
-## One-time owner setup
+## One-time owner setup (only for the Google browser sign-in; the code path needs none)
 
 In the Google Cloud console for the project behind Notes' Firebase project:
 

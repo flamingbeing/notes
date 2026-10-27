@@ -10,7 +10,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const SERVER = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'server.mjs');
 
-test('lists the tools and, not signed in, says the connector needs setting up', async () => {
+test('lists the tools and, not signed in, asks for a code from the app', async () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), 'notes-mcp-home-'));
   const transport = new StdioClientTransport({ command: process.execPath, args: [SERVER], env: { PATH: process.env.PATH, HOME: home, USERPROFILE: home }, stderr: 'ignore' });
   const client = new Client({ name: 'test', version: '0' });
@@ -21,7 +21,7 @@ test('lists the tools and, not signed in, says the connector needs setting up', 
     assert.equal(tools.find(t => t.name === 'read_note').annotations.readOnlyHint, true);
     const r = await client.callTool({ name: 'list_spaces', arguments: {} });
     assert.equal(r.isError, true);
-    assert.match(r.content[0].text, /not set up yet \(no Google sign-in client\)/);
+    assert.match(r.content[0].text, /Sign in with a code.*Connect MCP/);
   } finally {
     await client.close();
     fs.rmSync(home, { recursive: true, force: true });

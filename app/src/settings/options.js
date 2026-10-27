@@ -25,6 +25,8 @@ export const OPTIONS = {
   bulkEdit: { scope: 'device', default: false },
   shareIn: { scope: 'device', default: false },
   feedbackOn: { scope: 'device', default: false },
+  // Advanced: the one-time code for the Notes MCP server (Connect MCP)
+  mcpOn: { scope: 'device', default: false },
 };
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */

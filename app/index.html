@@ -131,6 +131,8 @@
     <p><label><input type="checkbox" id="opt-bulkEdit"> Select many notes and change them together</label></p>
     <p><label><input type="checkbox" id="opt-shareIn"> Receive shares from other apps (Android)</label></p>
     <p><label><input type="checkbox" id="opt-feedbackOn"> Send feedback</label></p>
+    <h3>Advanced (this device, off until you turn it on)</h3>
+    <p><label><input type="checkbox" id="opt-mcpOn"> Connect Claude to my notes (MCP)</label></p>
     <h3>Editor (this device)</h3>
     <p><label><input type="checkbox" id="opt-sourceMode"> Source mode: show the Markdown as written</label></p>
     <p><label><input type="checkbox" id="opt-lineNumbers"> Line numbers</label></p>
@@ -147,7 +149,7 @@
     <p id="settings-msg" class="small" role="status"></p>
     <div class="row"><button id="open-transfer" type="button">Import or export notes</button></div>
     <div class="row"><button id="open-drive" type="button">Google Drive</button></div>
-    <div class="row"><button id="open-bin" type="button" hidden>Bin</button><button id="open-feedback" type="button" hidden>Send feedback</button></div>
+    <div class="row"><button id="open-bin" type="button" hidden>Bin</button><button id="open-feedback" type="button" hidden>Send feedback</button><button id="open-mcp" type="button" hidden>Connect MCP</button></div>
     <div class="row"><button id="settings-close" type="button">Close</button></div>
   </dialog>
 
@@ -254,6 +256,18 @@
     <div class="row"><button id="share-new" type="button">Add as a new note</button></div>
     <div class="row"><label for="share-note" class="sr-only">Note</label><select id="share-note"></select><button id="share-add" type="button">Add to this note</button></div>
     <div class="row"><button id="share-cancel" type="button">Cancel</button></div>
+  </dialog>
+
+  <dialog id="mcp" aria-labelledby="mcp-title">
+    <h2 id="mcp-title">Connect MCP</h2>
+    <p class="small">Lets Claude Desktop or Claude Code read and write your notes as you. Show the code, then paste it where the Notes connector asks (<code>login</code>). Anyone with the code can use your notes, so keep it to yourself.</p>
+    <div class="row"><button id="mcp-show" type="button">Show code</button><button id="mcp-copy" type="button" hidden>Copy</button></div>
+    <label for="mcp-code" class="sr-only">Code</label>
+    <textarea id="mcp-code" rows="4" readonly hidden spellcheck="false" autocomplete="off"></textarea>
+    <p class="small">Disconnect ends every sign-in of this account (this device’s too: you sign in again), so a code you showed stops working. Firebase cannot end just one.</p>
+    <div class="row"><button id="mcp-off" type="button">Disconnect MCP</button></div>
+    <p id="mcp-msg" class="small" role="status"></p>
+    <div class="row"><button id="mcp-close" type="button">Close</button></div>
   </dialog>
 
   <dialog id="feedback" aria-labelledby="feedback-title">
