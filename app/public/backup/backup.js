@@ -13,21 +13,27 @@ const pick = (from, fields) => Object.fromEntries(fields.filter(k => from[k] !==
 /** the fields a note is rebuilt from: links and tags are worked out again on save, `updatedAt` only when it is a time
  * @param {Record<string, any>} n @returns {any} */
 const cleanNote = n => ({ ...pick(n, NOTE_FIELDS), ...(Number.isFinite(n.updatedAt) ? { updatedAt: n.updatedAt } : {}) });
+/** a note read from a file, rebuilt so only known fields of the right type reach the save path
+ * @param {Record<string, any>} n @returns {any} */
+const readNote = n => {
+  const c = cleanNote(n);
+  return { ...c, title: typeof c.title === 'string' ? c.title : '', body: typeof c.body === 'string' ? c.body : '' };
+};
 
 /** @param {{ notes: import('./types').Item[], files?: import('./types').FileRef[], settings?: unknown, space?: { id: string, name: string } | null, now?: Date }} from
  * @returns {import('./types').Backup} */
 export function buildBackup({ notes, files = [], settings = null, space = null, now = new Date() }) {
   return {
     format: FORMAT, version: VERSION, exportedAt: now.toISOString(), space, settings,
-    notes: notes.map(cleanNote), files: files.map(f => pick(f, FILE_FIELDS)),
+    notes: notes.map(n => ({ ...cleanNote(n), ...(Array.isArray(n.tags) ? { tags: n.tags } : {}) })), files: files.map(f => pick(f, FILE_FIELDS)),
   };
 }
 
 /** The object a file held, or an error in plain words. @param {any} data @returns {import('./types').Backup} */
 export function checkBackup(data) {
   if (!data || typeof data !== 'object' || data.format !== FORMAT) throw new Error('That isn’t a backup from this app.');
-  if (data.version > VERSION) throw new Error('That backup is from a newer version of the app. Update first.');
-  return { settings: null, space: null, files: [], ...data, notes: Array.isArray(data.notes) ? data.notes : [], skipped: data.skipped || 0 };
+  if (typeof data.version !== 'number' || data.version > VERSION) throw new Error('That backup is from a newer version of the app. Update first.');
+  return { settings: null, space: null, ...data, files: Array.isArray(data.files) ? data.files : [], notes: Array.isArray(data.notes) ? data.notes : [], skipped: data.skipped || 0 };
 }
 
 /** What a restore would add, now. @param {import('./types').Backup & { skipped?: number }} data
@@ -35,7 +41,7 @@ export function checkBackup(data) {
 export function planRestore(data, have) {
   const here = new Set(have.noteIds), files = new Set(have.fileIds), seen = new Set();
   const usable = data.notes.filter(n => n && typeof n.id === 'string' && n.id && !seen.has(n.id) && seen.add(n.id));
-  const add = usable.filter(n => !here.has(n.id));
+  const add = usable.filter(n => !here.has(n.id)).map(readNote);
   return {
     add, present: usable.length - add.length, filesMissing: (data.files || []).filter(f => !files.has(f.id)).length,
     settings: data.settings != null && (have.settingsWouldChange ? have.settingsWouldChange(data.settings) : true), skipped: (data.skipped || 0) + (data.notes.length - usable.length),

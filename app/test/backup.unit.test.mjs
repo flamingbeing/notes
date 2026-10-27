@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { register } from 'node:module';
-import { buildBackup, packBackup, unpackBackup, backupName, backupToCsv, csvToBackup, looksLikeCsv, backupToXlsx, xlsxToBackup, planRestore, describePlan, restore } from '../public/backup/index.js';
+import { buildBackup, checkBackup, packBackup, unpackBackup, backupName, backupToCsv, csvToBackup, looksLikeCsv, backupToXlsx, xlsxToBackup, planRestore, describePlan, restore } from '../public/backup/index.js';
 
 // the page's import map names xlsx; here the same name points at the vendored file
 register('data:text/javascript,' + encodeURIComponent(`export const resolve = (s, c, next) => s === 'xlsx' ? { url: ${JSON.stringify(new URL('../public/vendor/xlsx/0.20.3/xlsx.mjs', import.meta.url).href)}, shortCircuit: true } : next(s, c);`));
@@ -18,9 +18,15 @@ const backup = buildBackup({ notes, files, settings, space: { id: 'u1', name: ''
 
 test('buildBackup keeps what a note is made from and leaves out what is worked out or internal', () => {
   assert.equal(backup.exportedAt, '2026-10-27T10:00:00.000Z');
-  assert.deepEqual(backup.notes[0], { id: 'a1', path: 'Ideas', title: 'Garden plan', body: notes[0].body, aliases: ['Plot'], updatedAt: 1788000000000 });
+  assert.deepEqual(backup.notes[0], { id: 'a1', path: 'Ideas', title: 'Garden plan', body: notes[0].body, aliases: ['Plot'], updatedAt: 1788000000000, tags: ['garden'] });
   assert.deepEqual(backup.files, [{ id: 'f1', name: 'sprout.png', path: 'Ideas/img', size: 99, type: 'image/png' }]);
   assert.equal(buildBackup({ notes: [{ id: 'c', title: 't', body: '', updatedAt: { seconds: 1 } }] }).notes[0].updatedAt, undefined);
+});
+
+test('a restore rebuilds each note from known fields only and rejects a bad version', () => {
+  const p = planRestore({ ...backup, notes: [{ id: 'z', title: 5, tags: ['x'], serverAt: 1 }] }, { noteIds: [], fileIds: [] });
+  assert.deepEqual(p.add, [{ id: 'z', title: '', body: '' }]);
+  assert.throws(() => checkBackup({ format: 'notes-backup', notes: [] }));
 });
 
 test('gzip: round trip, plain JSON read too, and a wrong file says so', async () => {

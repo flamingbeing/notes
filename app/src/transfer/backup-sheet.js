@@ -73,7 +73,7 @@ export function backupSheet(app, toast, canWrite) {
       });
       const text = `Restored ${added} notes` + (refused ? `; ${refused} could not be saved` : '');
       toast(text); reset(); msg.textContent = text;
-    }).finally(() => { go.hidden = !data; });
+    });
   });
 
   return { reset };

@@ -41,5 +41,6 @@ export async function xlsxToBackup(bytes) {
   let book;
   try { book = X.read(bytes, { type: 'array' }); } catch { throw new Error('That file can’t be opened (not an Excel file).'); }
   const sheet = book.Sheets[book.SheetNames[0]];
+  if (!sheet) return null;
   return rowsToBackup(join(X.utils.sheet_to_json(sheet, { header: 1, defval: '' })));
 }
