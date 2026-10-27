@@ -1,15 +1,16 @@
-// The notes list (#list-view): every note in the person's vault, a search box (@core/search over title, body and tags,
-// with tag: and path: operators), a filter by tag or folder, a new note by title, and today's daily note. A note opens
-// in the note sheet (note-sheet.js); the quick switcher and command palette (picker.js) reach notes and actions from
-// the keyboard. A save the server refused waits in the kit's refused list.
+// The notes list (#list-view): every note in the person's vault under a slim bar (the space, Today, + for a new note)
+// and a search box (@core/search over title, body and tags, with tag: and path: operators). The drawer (#drawer, the
+// bar's ☰) shows one folder or tag, and holds Go to note and the space's Members and New space. A note opens on its
+// own page (note-page.js); the quick switcher and command palette (picker.js) reach notes and actions from the
+// keyboard. A save the server refused waits in the kit's refused list.
 import { refusedList, toaster, emptyState } from '@core/ui';
 import { createSearch } from '@core/search';
 import { COLL } from '../cloud.js';
 import { isoDay } from '../notes/model.js';
-import { $, input, sectionScreen } from '../dom.js';
-import { noteSheet } from './note-sheet.js';
+import { $, input, dialog, sectionScreen } from '../shell/dom.js';
+import { notePage } from './note-page.js';
 import { picker } from './picker.js';
-import { transferSheet } from '../transfer-sheet.js';
+import { transferSheet } from '../transfer/transfer-sheet.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -45,20 +46,49 @@ export function listScreen(app) {
     search.feed(stale);
     for (const i of stale) known.set(i.id, textOf(i));
   };
-  const filter = () => /** @type {HTMLSelectElement} */ ($('filter'));
-  // the filter's choices: every tag (#tag) and folder (path/) in the vault
-  const fillFilter = () => {
-    const sel = filter(), was = sel.value;
+  // the drawer's choice: '' (all notes), 'tag:<tag>' or 'path:<folder>'
+  let shown = '';
+  const drawer = dialog('drawer');
+  /** @param {string} value @param {string} label @param {number} count @param {number} [depth] */
+  const choice = (value, label, count, depth = 0) => {
+    const li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.dataset.filter = value;
+    b.textContent = label;
+    const n = document.createElement('span');
+    n.className = 'n'; n.textContent = String(count);
+    b.append(n);
+    if (depth) b.style.setProperty('--depth', String(depth));
+    li.append(b);
+    return li;
+  };
+  // the drawer's folders (a tree, each with how many notes are in it or under it) and tags; a choice gone from the
+  // space (its last note moved or deleted, another space opened) goes back to all notes
+  const fillDrawer = () => {
     const tags = [...new Set(all.flatMap(n => n.tags || []))].sort();
     const folders = [...new Set(all.flatMap(n => (n.path || '').split('/').map((_, i, a) => a.slice(0, i + 1).join('/'))).filter(Boolean))].sort();
-    const opt = (/** @type {string} */ value, /** @type {string} */ label) => Object.assign(document.createElement('option'), { value, textContent: label });
-    sel.replaceChildren(opt('', 'All notes'), ...tags.map(t => opt('tag:' + t, '#' + t)), ...folders.map(f => opt('path:' + f, f + '/')));
-    sel.value = [...sel.options].some(o => o.value === was) ? was : '';
-    sel.hidden = sel.options.length < 2;
+    $('drawer-folders').replaceChildren(...folders.map(f => choice('path:' + f, f.split('/').pop() + '/', all.filter(n => inFolder(n, f)).length, f.split('/').length - 1)));
+    $('drawer-tags').replaceChildren(...tags.map(t => choice('tag:' + t, '#' + t, all.filter(n => hasTag(n, t)).length)));
+    $('drawer-folders-box').hidden = !folders.length;
+    $('drawer-tags-box').hidden = !tags.length;
+    if (shown && !(shown.startsWith('tag:') ? tags.includes(shown.slice(4)) : folders.includes(shown.slice(5)))) shown = '';
+    for (const b of drawer.querySelectorAll('button[data-filter]')) b.setAttribute('aria-current', String(/** @type {HTMLElement} */ (b).dataset.filter === shown));
+    $('filter-chip').hidden = !shown;
+    $('filter-name').textContent = !shown ? '' : shown.startsWith('tag:') ? '#' + shown.slice(4) : shown.slice(5) + '/';
   };
+  /** @param {string} value */
+  const showOnly = value => { shown = value; draw(all, new Set()); };
+  drawer.addEventListener('click', e => {
+    const b = /** @type {HTMLElement} */ (e.target).closest('button');
+    if (!b) return;
+    // every button here leads somewhere else: the drawer closes first (another sheet may open)
+    drawer.close();
+    if (b.dataset.filter !== undefined) showOnly(b.dataset.filter);
+  }, true);
+  $('drawer-open').addEventListener('click', () => drawer.showModal());
+  $('filter-clear').addEventListener('click', () => showOnly(''));
   /** the notes the box and the filter leave in, in the order to show them */
   const visible = () => {
-    const f = filter().value, q = input('q').value.trim();
+    const f = shown, q = input('q').value.trim();
     const kept = !f ? all : all.filter(n => f.startsWith('tag:') ? hasTag(n, f.slice(4)) : inFolder(n, f.slice(5)));
     if (!q) { $('search-msg').textContent = ''; return [...kept].sort((a, b) => titleOf(a).localeCompare(titleOf(b))); }
     const { hits, unknown } = search.search(q, { limit: 1000 });
@@ -67,45 +97,44 @@ export function listScreen(app) {
     return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
   const toast = toaster($('toasts')).show;
-  const sheet = noteSheet(app, toast, () => canWrite);
-  const empty = emptyState($('empty'), { title: 'No notes yet', hint: 'Notes you write show up here.', action: { label: 'Write the first note', onClick: () => input('new-text').focus() } });
+  const page = notePage(app, toast, () => canWrite);
+  // a new note: its page opens empty, in the folder for new notes; the first title or text typed makes it
+  const newNote = () => {
+    for (const d of document.querySelectorAll('dialog[open]')) if (d.id !== 'edit') /** @type {HTMLDialogElement} */ (d).close();
+    void page.draft(String(app.settings.get('newFolder') || ''));
+  };
+  const empty = emptyState($('empty'), { title: 'No notes yet', hint: 'Notes you write show up here.', action: { label: 'Write the first note', onClick: newNote } });
   refusedList($('refused-list'), { sync: app.sync, kind: COLL, text: titleOf });
-  $('add').addEventListener('submit', async e => {
-    e.preventDefault();
-    const title = input('new-text').value.trim();
-    if (!title) return;
-    input('new-text').value = '';
-    await openTitle(title);   // a title is one note: open it rather than make a second
-  });
+  $('new').addEventListener('click', newNote);
   const daily = async () => {
     const { note, refused } = await app.daily(isoDay(), String(app.settings.get('dailyFolder') || ''));
-    if (refused) toast(refused); else void sheet.open(note);
+    if (refused) toast(refused); else void page.open(note);
   };
   $('daily').addEventListener('click', () => void daily());
   /** a note by its title: the one there is, or a new one @param {string} title */
   const openTitle = async title => {
     const have = app.find(title);
-    if (have) { void sheet.open(have); return; }
+    if (have) { void page.open(have); return; }
     const { note, refused } = await app.create({ title });
     toast(refused || 'Added');
-    if (!refused) void sheet.open(note);
+    if (!refused) void page.open(note);
   };
   /** @param {string} key */
   const flip = key => () => app.settings.set(key, !app.settings.get(key));
-  const inNote = () => !!sheet.current();
+  const inNote = () => !!page.current();
   const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
   $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); transfer.open(); });
   const pick = picker({
-    notes: app.notes, recent: sheet.recent, canWrite: () => canWrite,
-    open: note => sheet.open(note), create: openTitle,
+    notes: app.notes, recent: page.recent, canWrite: () => canWrite,
+    open: note => page.open(note), create: openTitle,
     commands: [
       { id: 'go', label: 'Go to note', run: () => pick.switcher() },
-      { id: 'new', label: 'New note', when: () => canWrite, run: () => { for (const d of document.querySelectorAll('dialog[open]')) /** @type {HTMLDialogElement} */ (d).close(); input('new-text').focus(); } },
+      { id: 'new', label: 'New note', when: () => canWrite, run: newNote },
       { id: 'today', label: 'Open today’s note', when: () => canWrite, run: daily },
       { id: 'search', label: 'Search notes', run: () => { for (const d of document.querySelectorAll('dialog[open]')) /** @type {HTMLDialogElement} */ (d).close(); input('q').focus(); } },
-      { id: 'read', label: 'Toggle read view', when: inNote, run: sheet.toggleRead },
-      { id: 'tidy', label: 'Tidy this note’s Markdown', when: () => inNote() && canWrite, run: sheet.tidy },
-      { id: 'delete', label: 'Delete this note', when: () => inNote() && canWrite, run: sheet.remove },
+      { id: 'read', label: 'Toggle read view', when: inNote, run: page.toggleRead },
+      { id: 'tidy', label: 'Tidy this note’s Markdown', when: () => inNote() && canWrite, run: page.tidy },
+      { id: 'delete', label: 'Delete this note', when: () => inNote() && canWrite, run: page.remove },
       { id: 'source', label: 'Toggle source mode (Markdown as written)', run: flip('sourceMode') },
       { id: 'numbers', label: 'Toggle line numbers', run: flip('lineNumbers') },
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
@@ -116,7 +145,6 @@ export function listScreen(app) {
   $('go-to').addEventListener('click', () => pick.switcher());
 
   input('q').addEventListener('input', () => draw(all, new Set()));
-  filter().addEventListener('change', () => draw(all, new Set()));
   // "/" jumps to the box on a computer
   document.addEventListener('keydown', e => {
     const t = /** @type {HTMLElement} */ (e.target);
@@ -124,18 +152,20 @@ export function listScreen(app) {
     e.preventDefault(); input('q').focus();
   });
 
-  const screen = sectionScreen('list-view', s => {
+  const section = sectionScreen('list-view', s => {
+    $('drawer-open').hidden = false;
     const could = canWrite;
     // writing needs an app role that writes and, in a shared space, owner or edit there
     canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
-    $('add').hidden = !canWrite;
+    $('new').hidden = !canWrite;
     $('daily').hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
     if (canWrite !== could) draw(all, new Set());
   });
+  const screen = { ...section, hide() { $('drawer-open').hidden = true; drawer.close(); section.hide(); } };
   /** @param {Note[]} notes @param {Set<string>} changed */
   const draw = (notes, changed) => {
-    all = notes; feed(notes); fillFilter();
+    all = notes; feed(notes); fillDrawer();
     const list = visible();
     $('items').replaceChildren(...list.map(note => {
       const li = document.createElement('li'), b = document.createElement('button');
@@ -145,14 +175,15 @@ export function listScreen(app) {
         p.className = 'path'; p.textContent = ` ${note.path}/`;
         b.append(p);
       }
-      b.addEventListener('click', () => void sheet.open(note));
+      b.addEventListener('click', () => void page.open(note));
       li.classList.toggle('changed', changed.has(note.id));
       li.append(b);
       return li;
     }));
     $('count').textContent = list.length === notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}` : `${list.length} of ${notes.length} notes`;
     empty.show(notes.length === 0 && canWrite);
-    sheet.redraw();
+    page.redraw();
+    page.drawn();
   };
   return {
     ...screen,
@@ -160,6 +191,6 @@ export function listScreen(app) {
     draw,
     toast,
     /** the open space's attachments changed */
-    files: () => sheet.redrawFiles(),
+    files: () => page.redrawFiles(),
   };
 }

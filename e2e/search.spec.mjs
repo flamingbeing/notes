@@ -5,7 +5,7 @@ import { test, expect, signIn, add, uniq } from './fixtures.mjs';
 import AxeBuilder from './axe.mjs';
 
 // the add form clears itself a moment after the note shows; wait for that before the next one
-const addOne = async (page, text) => { await add(page, text); await expect(page.locator('#new-text')).toHaveValue(''); };
+const addOne = async (page, text) => { await add(page, text); await expect(page.locator('.toast', { hasText: 'Added' })).toBeVisible(); };
 const shown = page => page.locator('#items li button').allTextContents();
 
 test('the search box narrows the list, with phrase, leave-out, operators and a hint', async ({ phone }) => {
@@ -47,7 +47,7 @@ test('the search box narrows the list, with phrase, leave-out, operators and a h
 test('"/" focuses the search box; axe passes with a query typed', async ({ phone }) => {
   const a = await phone();
   await signIn(a, 'member');
-  // (the "Added" toast springs in once the form clears: wait for that, so axe's wait for animations covers it)
+  // (the "Added" toast springs in once the note is made: wait for that, so axe's wait for animations covers it)
   await addOne(a, uniq('axe'));
   await a.locator('body').press('/');
   await expect(a.locator('#q')).toBeFocused();

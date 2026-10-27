@@ -41,6 +41,7 @@
 </head>
 <body>
   <header class="bar">
+    <button id="drawer-open" type="button" class="icon" aria-label="Folders and tags" aria-haspopup="dialog" aria-controls="drawer" hidden>☰</button>
     <h1>Notes</h1>
     <span id="sync-chip"></span>
   </header>
@@ -57,32 +58,23 @@
       <p>This app isn't connected to its Firebase project yet (see README, "Fill").</p>
     </section>
     <section id="list-view" hidden>
-      <div class="row" id="space-bar">
+      <div class="row top" id="space-bar">
         <label for="space" class="sr-only">Space</label>
         <select id="space"></select>
-        <button id="space-open" type="button" hidden>Members</button>
-        <button id="space-new" type="button" hidden>New space</button>
+        <button id="daily" type="button" hidden>Today</button>
+        <button id="new" type="button" class="icon" aria-label="New note" hidden>+</button>
       </div>
+      <div id="search" class="row top">
+        <label for="q" class="sr-only">Search</label>
+        <input id="q" type="search" autocomplete="off" placeholder="Search: word, &quot;phrase&quot;, -leave out, tag:work, path:folder">
+      </div>
+      <p id="search-msg" class="small" role="status"></p>
       <div id="refused-list"></div>
       <p id="edit-msg" class="small" role="status"></p>
-      <div id="search">
-        <label for="q">Search</label>
-        <input id="q" type="search" autocomplete="off" placeholder="word, &quot;phrase&quot;, -leave out, tag:work, path:folder">
-        <p id="search-msg" class="small" role="status"></p>
-      </div>
-      <div class="row">
-        <label for="filter" class="sr-only">Show</label>
-        <select id="filter" hidden><option value="">All notes</option></select>
-        <button id="daily" type="button" hidden>Today’s note</button>
-        <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
-      </div>
-      <form id="add" autocomplete="off">
-        <label for="new-text">New note</label>
-        <div class="row">
-          <input id="new-text" name="title" maxlength="200" required placeholder="Title">
-          <button type="submit">Add</button>
-        </div>
-      </form>
+      <p id="filter-chip" class="row small" hidden>
+        <span>Showing <strong id="filter-name"></strong></span>
+        <button id="filter-clear" type="button" class="small">Show all</button>
+      </p>
       <p id="count" class="small" role="status" hidden></p>
       <ul id="items" aria-label="Notes"></ul>
       <div id="empty"></div>
@@ -99,6 +91,28 @@
 
   <div id="toasts"></div>
 
+  <dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
+    <h2 id="drawer-title">Folders and tags</h2>
+    <ul class="nav" aria-label="Show">
+      <li><button type="button" data-filter="">All notes</button></li>
+    </ul>
+    <div id="drawer-folders-box" hidden>
+      <h3>Folders</h3>
+      <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
+    </div>
+    <div id="drawer-tags-box" hidden>
+      <h3>Tags</h3>
+      <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
+    </div>
+    <h3>Go</h3>
+    <div class="row">
+      <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
+      <button id="space-open" type="button" hidden>Members</button>
+      <button id="space-new" type="button" hidden>New space</button>
+    </div>
+    <div class="row"><button id="drawer-close" type="button">Close</button></div>
+  </dialog>
+
   <dialog id="settings" aria-labelledby="settings-title">
     <h2 id="settings-title">Settings</h2>
     <p><label><input type="checkbox" id="opt-bigRows"> Larger list rows (this device)</label></p>
@@ -107,8 +121,10 @@
     <p><label><input type="checkbox" id="opt-sourceMode"> Source mode: show the Markdown as written</label></p>
     <p><label><input type="checkbox" id="opt-lineNumbers"> Line numbers</label></p>
     <p><label><input type="checkbox" id="opt-readableWidth"> Readable line width</label></p>
+    <p><label for="opt-newFolder">Folder for new notes</label>
+      <input id="opt-newFolder" maxlength="200" placeholder="none, such as Inbox" autocomplete="off"></p>
     <p><label for="opt-dailyFolder">Folder for today’s note</label>
-      <input id="opt-dailyFolder" maxlength="200" placeholder="none" autocomplete="off"></p>
+      <input id="opt-dailyFolder" maxlength="200" placeholder="none, such as Daily" autocomplete="off"></p>
     <p id="settings-note" class="small">Sign in to change the options that follow your account.</p>
     <div class="row">
       <button id="settings-export" type="button">Export settings</button>
@@ -119,48 +135,54 @@
     <div class="row"><button id="settings-close" type="button">Close</button></div>
   </dialog>
 
-  <dialog id="edit" aria-labelledby="edit-title">
+  <dialog id="edit" class="page" aria-labelledby="edit-title">
     <form method="dialog" id="edit-form">
-      <h2 id="edit-title">Note</h2>
-      <label for="edit-text">Title</label>
-      <input id="edit-text" maxlength="200" required>
-      <label for="edit-path">Folder</label>
-      <input id="edit-path" maxlength="200" placeholder="none">
+      <div class="row page-bar">
+        <button value="close" formnovalidate><span aria-hidden="true">← </span>Close</button>
+        <h2 id="edit-title" class="sr-only">Note</h2>
+        <span class="grow"></span>
+        <button id="edit-mode" type="button" aria-pressed="false" hidden>Read view</button>
+        <span id="edit-attach-box" hidden>
+          <button id="edit-attach" type="button">Attach…</button>
+          <input id="edit-attach-input" type="file" multiple hidden aria-label="Files to attach">
+        </span>
+        <button id="edit-save" value="save">Save</button>
+      </div>
+      <label for="edit-text" class="sr-only">Title</label>
+      <input id="edit-text" class="title-box" maxlength="200" placeholder="Title" autocomplete="off">
       <div class="row edit-tools">
-        <label for="edit-body" id="edit-body-label">Text</label>
+        <label for="edit-body" id="edit-body-label" class="sr-only">Text</label>
         <div id="edit-fmt" hidden></div>
-        <button id="edit-mode" type="button" class="small" aria-pressed="false" hidden>Read view</button>
       </div>
       <div id="edit-cm" hidden></div>
       <div id="edit-read" class="read-view" hidden></div>
       <textarea id="edit-body" rows="12" spellcheck="true"></textarea>
       <p id="edit-size" class="small" role="status"></p>
       <p id="edit-live" class="small" role="status"></p>
-      <div id="edit-links-box" hidden>
-        <h3>Links</h3>
-        <ul id="edit-links" class="links" aria-label="Links"></ul>
-      </div>
-      <div id="edit-files-box" hidden>
-        <h3>Attachments</h3>
-        <ul id="edit-files" class="files" aria-label="Attachments"></ul>
-      </div>
-      <div id="edit-backlinks-box" hidden>
-        <h3>Linked from</h3>
-        <ul id="edit-backlinks" class="links" aria-label="Linked from"></ul>
-      </div>
-      <div id="edit-attach-box" class="row" hidden>
-        <button id="edit-attach" type="button">Attach files…</button>
-        <input id="edit-attach-input" type="file" multiple hidden aria-label="Files to attach">
-      </div>
-      <div id="edit-move-box" class="row" hidden>
-        <label for="edit-move" class="sr-only">Move to</label>
-        <select id="edit-move"></select>
-        <button id="edit-move-go" type="button">Move</button>
-      </div>
+      <details id="edit-more">
+        <summary>Details <span id="edit-where" class="small"></span></summary>
+        <label for="edit-path">Folder</label>
+        <input id="edit-path" maxlength="200" placeholder="none" autocomplete="off">
+        <div id="edit-links-box" hidden>
+          <h3>Links</h3>
+          <ul id="edit-links" class="links" aria-label="Links"></ul>
+        </div>
+        <div id="edit-backlinks-box" hidden>
+          <h3>Linked from</h3>
+          <ul id="edit-backlinks" class="links" aria-label="Linked from"></ul>
+        </div>
+        <div id="edit-files-box" hidden>
+          <h3>Attachments</h3>
+          <ul id="edit-files" class="files" aria-label="Attachments"></ul>
+        </div>
+        <div id="edit-move-box" class="row" hidden>
+          <label for="edit-move" class="sr-only">Move to</label>
+          <select id="edit-move"></select>
+          <button id="edit-move-go" type="button">Move</button>
+        </div>
+      </details>
       <div class="row">
-        <button id="edit-save" value="save">Save</button>
         <button id="edit-delete" value="delete" type="button" class="danger">Delete</button>
-        <button value="close" formnovalidate>Close</button>
       </div>
     </form>
   </dialog>

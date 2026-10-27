@@ -11,7 +11,7 @@ it. They live in `app/public/` (not `app/src/`) so the Vite check and `tools/sw-
 entries: external, loaded by their import map URL. They move into app-sync (a file move) once a third app uses them.
 
 The sample screen is rebuilt on the kit: one file per screen in `app/src/screens/` (signed out, no access, not set up,
-list, item sheet), each `{ show, hide }` and side-effect-free on import, picked by `app/src/screen-switch.js`.
+list, item sheet), each `{ show, hide }` and side-effect-free on import, picked by `app/src/screen-switch.js` (now `app/src/shell/`).
 `app/src/cloud.js` starts the modules and hands their APIs to `app.js`. A new app keeps the wiring, `cloud.js` and the
 kit, and replaces only its screens.
 

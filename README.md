@@ -110,8 +110,8 @@ app-sync's CI runs these tests that way against each candidate (its consumer tes
 
 ```text
 app/        the app (served at the root of its address): index.html (import map) and
-  src/      config.js, cloud.js (wiring), app.js (shell), screen-switch.js, screens/ (one file per screen), dom.js,
-            roles.js, boot.js, globals.d.ts (types for the check)
+  src/      config.js, cloud.js (wiring), app.js (shell), boot.js, globals.d.ts (types for the check); shell/ (dom.js,
+            screen-switch.js, roles.js), screens/ (one file per screen), editor/, settings/, spaces/, transfer/
   public/   sw.js, app.css, manifest, icons, ui/ (@core/ui), theme/ (@core/theme), vendor/firebase/<version>/: served
             as if beside index.html (the Worker looks here on a miss), as Vite's public/ is
 worker/     the Worker: sites.js, routes.js, headers.js, members.js, claims.js + custom-token.js (app-devkit copies)

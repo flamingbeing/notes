@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { zipSync, unzipSync } from 'fflate';
-import { test, expect, signIn, add, openNote, synced, uniq } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, uniq, drawer, details } from './fixtures.mjs';
 
 const VAULT = path.resolve('e2e/fixtures/vault');
 const PNG = path.join(VAULT, 'Ideas/img/sprout.png');
@@ -42,7 +42,7 @@ test('a note moves with its attachments', async ({ phone }) => {
   const a = await phone();
   await signIn(a, 'member');
   const name = uniq('Space'), t = uniq('carry');
-  await a.click('#space-new');
+  await drawer(a, '#space-new');
   await a.fill('#space-new-name', name);
   await a.click('#space-new-make');
   await expect(a.locator('#space option', { hasText: name })).toHaveCount(1, { timeout: 15_000 });
@@ -55,6 +55,7 @@ test('a note moves with its attachments', async ({ phone }) => {
   await synced(a);
   await expect.poll(() => a.evaluate(() => window.starter.status)).toBe('synced');
   await openNote(a, t);
+  await details(a);
   await a.selectOption('#edit-move', { label: name });
   await a.click('#edit-move-go');
   await a.getByRole('button', { name: 'Move', exact: true }).last().click();

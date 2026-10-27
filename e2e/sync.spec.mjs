@@ -1,6 +1,6 @@
 // Offline saves, two phones, merges and conflict copies, and renames (sign-out and forget: modules.spec.mjs).
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, serverNotes, uniq, APP, fillBody } from './fixtures.mjs';
+import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, serverNotes, uniq, APP, fillBody, details } from './fixtures.mjs';
 
 test('a save made offline is kept on the phone and sent once back online, even after closing the page', async ({ phone }) => {
   const page = await phone();
@@ -98,6 +98,7 @@ test('a rename rewrites the links to the note; a link to no note makes it', asyn
   expect(renamed.data.aliases).toEqual([t + ' target']);
   // a link to a missing note creates it on a click
   await openNote(page, t + ' source');
+  await details(page);
   await page.locator('#edit-links button.missing', { hasText: t + ' new' }).click();
   await expect(page.locator('#edit-text')).toHaveValue(t + ' new');
   await serverHas(t + ' new');

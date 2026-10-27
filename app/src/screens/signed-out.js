@@ -1,6 +1,6 @@
 // The signed-out screen (#signed-out): the kit's sign-in sheet, with "Forget this device".
 import { signInSheet } from '@core/ui';
-import { $, sectionScreen } from '../dom.js';
+import { $, sectionScreen } from '../shell/dom.js';
 
 /**
  * @param {import('../cloud.js').Started} app
