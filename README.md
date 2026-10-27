@@ -20,8 +20,8 @@ never put patient details in it. Made from [app-starter](https://github.com/flam
   overridable state words `LABELS`, sign-in sheet, conflict sheet, update prompt, refused list) and `@core/theme`
   (custom properties; this device's theme, dark style incl. OLED, look from 8 presets, accent, ground and layout;
   palettes worked out from one accent with a contrast floor, applied from `src/boot.js` before the first paint; the
-  app's default colour is `APP.accent` in `src/config.js`, `fill.mjs --accent`), v0 in `app/public/ui/` and `app/public/theme/`, each its
-  own import map entry. The screens are one file each in `app/src/screens/`; a new app replaces only those.
+  app's default colour is `APP.accent` in `src/config.js`, `fill.mjs --accent`), served by [app-ui](https://github.com/flamingbeing/app-ui) at an exact version, each its
+  own import map entry ([decision 0015](docs/decisions/0015-ui-kit-served-from-app-ui.md)). The screens are one file each in `app/src/screens/`; a new app replaces only those.
 - **Files** ([decision 0009](docs/decisions/0009-files-through-the-worker.md)): `@core/files` v0 in `app/public/files/`
   (own import map entry): `add` keeps a photo or file on the device at once (resized, with a thumbnail; date taken
   read first when `exif` is on), saves its record through sync and uploads it through the Worker's `/api/files/`
