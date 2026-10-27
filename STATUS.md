@@ -15,8 +15,13 @@
   full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
   by feature under `app/src/`.
 
+- MCP connector (`mcp/`, decision 0016): 8 tools, `.mcpb` build and workflow, 31 offline tests. Live check pending the
+  Desktop OAuth client.
+
 ## Waiting on the owner
 
+- A Desktop-app OAuth client for the connector (mcp/README.md, "One-time owner setup"), its id and secret into
+  `mcp/config.mjs`.
 - The live smoke test after deploy needs the owner's sign-in click.
 - Settings on each device: "Folder for new notes" = `Inbox`, "Folder for today's notes" = `Daily`.
 
@@ -26,6 +31,7 @@
 
 ## Decisions (dated)
 
+- 2026-10-27: the MCP connector signs in as the user and gets roles from `/api/claims` (0016).
 - 2026-10-27: a note is a full-screen page at `#/note/<id>`; folders and tags in a drawer; + is a draft (0014).
 - 2026-10-26: shared space docs are written only by the Worker; invites by Google email (decision 0010).
 - 2026-10-26: the editor is vendored CodeMirror 6, marked and DOMPurify, loaded on first note open (0011).

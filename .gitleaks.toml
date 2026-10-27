@@ -4,5 +4,5 @@
 useDefault = true
 
 [allowlist]
-description = "Firebase web config, vendored Firebase hashes"
-paths = ['''app/(src/)?config\.js''', '''tools/firebase\.lock\.json''']
+description = "Firebase web config, the MCP Desktop OAuth client (public by Google's definition for installed apps), vendored Firebase hashes"
+paths = ['''app/(src/)?config\.js''', '''mcp/config\.mjs''', '''tools/firebase\.lock\.json''']
