@@ -112,3 +112,46 @@ test('login: loopback redirect, PKCE, Google and Firebase stubbed', async () => 
   await assert.rejects(() => login({ clientId: 'CID', clientSecret: 'S', apiKey: 'KEY', fetch: stub, tokenFile: file, log: () => {},
     open: redirectTo(() => ({ code: 'CODE', state: 'forged' })) }), /state mismatch/);
 });
+
+// ---- sign-in by code ----
+import { loginWithCode } from '../lib/auth.mjs';
+import { encodeCode, decodeCode } from '../../app/src/mcp/code.js';
+
+test('code: round trip, and what is not a code is refused', () => {
+  const code = encodeCode({ projectId: 'proj-1', refreshToken: 'R-é/+=' });
+  assert.match(code, /^nmcp1\.[A-Za-z0-9_-]+$/);
+  assert.deepEqual(decodeCode(`  ${code}\n`), { projectId: 'proj-1', refreshToken: 'R-é/+=' });
+  assert.throws(() => decodeCode('R1'), /not a Notes code/);
+  assert.throws(() => decodeCode('nmcp1.'), /damaged/);
+  assert.throws(() => decodeCode(code.slice(0, 12)), /damaged/);
+  assert.throws(() => decodeCode(`nmcp1.${Buffer.from('{"p":"x"}').toString('base64url')}`), /damaged/);
+});
+
+test('code login: one refresh proves it, then only refresh token + email are kept', async () => {
+  const f = path.join(dir, 'code', 'token.json');
+  const calls = [];
+  const fetch = async (url, init) => { calls.push({ url, init }); return ok({ id_token: jwt({ user_id: 'U1', email: 'Me@Example.com' }), refresh_token: 'R2', expires_in: '3600' }); };
+  const code = encodeCode({ projectId: 'proj-1', refreshToken: 'R1' });
+  assert.deepEqual(await loginWithCode({ code, apiKey: 'KEY', projectId: 'proj-1', fetch, tokenFile: f }), { email: 'me@example.com' });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].url, 'https://securetoken.googleapis.com/v1/token?key=KEY');
+  assert.equal(new URLSearchParams(calls[0].init.body).get('refresh_token'), 'R1');
+  assert.deepEqual(JSON.parse(fs.readFileSync(f, 'utf8')), { refreshToken: 'R2', email: 'me@example.com' });
+  if (process.platform !== 'win32') assert.equal(fs.statSync(f).mode & 0o777, 0o600);
+  // and a session made from that file refreshes with the rotated token
+  const s = makeSession({ fetch: async () => ok({ id_token: jwt({ user_id: 'U1', g: { _: 'member' } }), refresh_token: 'R2', expires_in: '3600' }), apiKey: 'KEY', appUrl: 'https://notes.example', tokenFile: f });
+  assert.equal(await s.uid(), 'U1');
+});
+
+test('code login: revoked code, bad code, wrong project, no email: refused and nothing saved', async () => {
+  const f = path.join(dir, 'code-bad', 'token.json');
+  const code = encodeCode({ projectId: 'proj-1', refreshToken: 'R1' });
+  const never = async () => { throw new Error('no network call expected'); };
+  await assert.rejects(() => loginWithCode({ code, apiKey: 'KEY', projectId: 'proj-1', fetch: async () => fail(400, 'TOKEN_EXPIRED'), tokenFile: f }), NotSignedInError);
+  await assert.rejects(() => loginWithCode({ code, apiKey: 'KEY', projectId: 'proj-1', fetch: async () => fail(400, 'INVALID_REFRESH_TOKEN'), tokenFile: f }), /no longer works/);
+  await assert.rejects(() => loginWithCode({ code: 'junk', apiKey: 'KEY', projectId: 'proj-1', fetch: never, tokenFile: f }), /not a Notes code/);
+  await assert.rejects(() => loginWithCode({ code, apiKey: 'KEY', projectId: 'other', fetch: never, tokenFile: f }), /another app \(proj-1\)/);
+  await assert.rejects(() => loginWithCode({ code, apiKey: 'KEY', projectId: 'proj-1', fetch: async () => ok({ id_token: jwt({ user_id: 'U1' }), expires_in: '3600' }), tokenFile: f }), /no email/);
+  await assert.rejects(() => loginWithCode({ code, apiKey: 'KEY', projectId: 'proj-1', fetch: async () => fail(500, 'x'), tokenFile: f }), /Token refresh failed \(500\)/);
+  assert.equal(readToken(f), null);
+});

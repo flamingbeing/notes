@@ -13,6 +13,7 @@ import { picker } from './picker.js';
 import { transferSheet } from '../transfer/transfer-sheet.js';
 import { backupSheet } from '../transfer/backup-sheet.js';
 import { driveSheet } from '../drive/drive-sheet.js';
+import { mcpSheet } from '../mcp/mcp-sheet.js';
 import { binSheet } from '../bin/bin-sheet.js';
 import { bulkSheet } from '../bulk/bulk-sheet.js';
 import { shareSheet } from '../share/share-sheet.js';
@@ -134,7 +135,9 @@ export function listScreen(app) {
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
   const drive = driveSheet(app, msg => toast(msg), () => openSpace);
   $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); drive.open(); });
-  // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn)
+  const mcp = mcpSheet(app, msg => toast(msg));
+  $('open-mcp').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); mcp.open(); });
+  // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn, mcpOn)
   const on = (/** @type {string} */ key) => !!app.settings.get(key);
   /** @type {string | undefined} */ let role;
   const bin = binSheet(app, msg => toast(msg), () => canWrite);
@@ -148,6 +151,7 @@ export function listScreen(app) {
   let selecting = false;
   const modules = () => {
     $('open-bin').hidden = !on('binScreen');
+    $('open-mcp').hidden = !on('mcpOn');
     $('open-feedback').hidden = !on('feedbackOn') || !(role === 'admin' || role === 'member');
     $('select').hidden = !on('bulkEdit') || !canWrite;
     if ($('select').hidden && selecting) setSelecting(false);

@@ -53,6 +53,8 @@ const SHELL = [
   'src/editor/syntax.js',
   'src/feedback/feedback-sheet.js',
   'src/feedback/feedback.js',
+  'src/mcp/code.js',
+  'src/mcp/mcp-sheet.js',
   'src/notes/attach.js',
   'src/notes/links.js',
   'src/notes/merge3.js',

@@ -18,13 +18,12 @@
 - Backup and spreadsheets (decision 0017): More → Import or export → Backup: `.json.gz`, CSV, Excel; restore only adds.
 - Google Drive copy (decision 0017): Settings → Google Drive; tested against a fake Drive, live check pending.
 - Data modules (decision 0018): Bin screen, bulk edit, share-in, feedback inbox, sync forget, paste cleaner recipe; each off until a device turns it on in Settings.
-- MCP connector (`mcp/`, decision 0016): 8 tools, `.mcpb` build and workflow, 31 offline tests. Live check pending the
-  Desktop OAuth client.
+- MCP connector (`mcp/`, decisions 0016, 0019): 8 tools, `.mcpb` build and workflow, offline tests. Sign-in by code:
+  Settings → Advanced → Connect MCP (off by default); Disconnect ends all the account's sign-ins. Live check pending.
 
 ## Waiting on the owner
 
-- A Desktop-app OAuth client for the connector (mcp/README.md, "One-time owner setup"), its id and secret into
-  `mcp/config.mjs`.
+- Live check of Connect MCP: Settings → Connect MCP, paste the code into Claude Desktop.
 - The live smoke test after deploy needs the owner's sign-in click.
 - Settings on each device: "Folder for new notes" = `Inbox`, "Folder for today's notes" = `Daily`.
 
@@ -34,6 +33,7 @@
 
 ## Decisions (dated)
 
+- 2026-10-27: MCP sign-in by code from Settings (0019); the Google client is optional.
 - 2026-10-27: the MCP connector signs in as the user and gets roles from `/api/claims` (0016).
 - 2026-10-27: a note is a full-screen page at `#/note/<id>`; folders and tags in a drawer; + is a draft (0014).
 - 2026-10-26: shared space docs are written only by the Worker; invites by Google email (decision 0010).
