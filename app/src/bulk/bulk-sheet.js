@@ -25,6 +25,12 @@ export function bulkSheet(app, toast) {
     for (const { note, patch } of edits) if (await app.edit(note, patch)) refused++;
     return refused ? `${refused} could not be saved` : '';
   };
+  /** @param {Note[]} list -> '' or how many could not be deleted */
+  const removeAll = async list => {
+    let refused = 0;
+    for (const n of list) { try { await app.remove(n); } catch { refused++; } }
+    return refused ? `${refused} could not be deleted` : '';
+  };
   const fill = () => {
     $('bulk-title').textContent = `${notes.length} ${notes.length === 1 ? 'note' : 'notes'} picked`;
     /** @type {HTMLButtonElement} */ ($('bulk-merge')).disabled = notes.length < 2;
@@ -37,13 +43,11 @@ export function bulkSheet(app, toast) {
     if (!m) return 'Pick two or more notes to merge.';
     const { refused } = await app.create(m.create);
     if (refused) return refused;
-    for (const n of m.remove) await app.remove(n);
-    return '';
+    return removeAll(m.remove);
   }));
   $('bulk-delete').addEventListener('click', () => void run(async () => {
     if (!await confirmModal(`Delete ${notes.length} notes? They go to the bin.`, { title: 'Delete notes', danger: true, yes: 'Delete' })) return 'Not deleted';
-    for (const n of notes) await app.remove(n);
-    return '';
+    return removeAll(notes);
   }));
   $('bulk-close').addEventListener('click', () => sheet.close());
   return {

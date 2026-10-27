@@ -32,18 +32,22 @@ export function shareSheet(app, toast, open) {
   const attachAll = async note => { for (const f of held?.files || []) await app.attach(note, f, f.name); };
   const finish = (/** @type {import('../cloud.js').Note} */ note, why = '') => { sheet.close(); held = null; toast(why || 'Added'); if (!why) open(note); };
 
-  $('share-new').addEventListener('click', async () => {
-    if (!held) return;
-    const { note, refused } = await app.create({ title: held.title, body: held.body, path: String(app.settings.get('newFolder') || '') });
-    if (!refused) await attachAll(note);
-    finish(note, refused);
+  /** one run at a time (the buttons are off meanwhile); a failure keeps the sheet open
+   * @param {() => Promise<{ note: import('../cloud.js').Note, refused: string }>} job */
+  const run = async job => {
+    const buttons = sheet.querySelectorAll('button');
+    buttons.forEach(b => { b.disabled = true; });
+    try { const { note, refused } = await job(); if (!refused) await attachAll(note); finish(note, refused); }
+    catch (e) { toast(/** @type {Error} */ (e).message); }
+    finally { buttons.forEach(b => { b.disabled = false; }); /** @type {HTMLButtonElement} */ ($('share-add')).disabled = !pick.options.length; }
+  };
+  $('share-new').addEventListener('click', () => {
+    const h = held;
+    if (h) void run(() => app.create({ title: h.title, body: h.body, path: String(app.settings.get('newFolder') || '') }));
   });
-  $('share-add').addEventListener('click', async () => {
-    const note = app.notes().find(n => n.id === pick.value);
-    if (!held || !note) return;
-    const refused = await app.edit(note, { body: appendShare(note.body, held.body) });
-    if (!refused) await attachAll(note);
-    finish(note, refused);
+  $('share-add').addEventListener('click', () => {
+    const note = app.notes().find(n => n.id === pick.value), h = held;
+    if (h && note) void run(async () => ({ note, refused: await app.edit(note, { body: appendShare(note.body, h.body) }) }));
   });
   $('share-cancel').addEventListener('click', () => { held = null; sheet.close(); });
 
@@ -54,9 +58,9 @@ export function shareSheet(app, toast, open) {
       if (!url.searchParams.has('share')) return;
       url.searchParams.delete('share');
       history.replaceState(null, '', url);
+      if (!app.settings.get('shareIn')) { toast('Receiving shares is off. Turn it on in Settings.'); return; }
       const got = await takeShare().catch(() => null);
       if (!got) return;
-      if (!app.settings.get('shareIn')) { toast('Receiving shares is off. Turn it on in Settings.'); return; }
       const parsed = parseShare(got.fields);
       held = { ...parsed, files: got.files };
       $('share-text').textContent = [parsed.title, parsed.body, got.files.length ? `${got.files.length} file(s)` : ''].filter(Boolean).join('\n\n');

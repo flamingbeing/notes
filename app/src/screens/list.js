@@ -148,7 +148,7 @@ export function listScreen(app) {
   let selecting = false;
   const modules = () => {
     $('open-bin').hidden = !on('binScreen');
-    $('open-feedback').hidden = !on('feedbackOn');
+    $('open-feedback').hidden = !on('feedbackOn') || !(role === 'admin' || role === 'member');
     $('select').hidden = !on('bulkEdit') || !canWrite;
     if ($('select').hidden && selecting) setSelecting(false);
   };
@@ -235,10 +235,10 @@ export function listScreen(app) {
     }));
     $('count').textContent = list.length === notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}` : `${list.length} of ${notes.length} notes`;
     empty.show(notes.length === 0 && canWrite);
-    if (!swept && notes.length && canWrite) {   // once per page: a share that opened it, and the bin's 30-day purge
+    if (!swept && canWrite) {   // once per page: a share that opened it (an empty space too), and the bin's 30-day purge
       swept = true;
       void share.check();
-      if (on('binScreen')) void bin.sweep();
+      void bin.sweep();
     }
     page.redraw();
     page.drawn();

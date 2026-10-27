@@ -498,9 +498,13 @@ export async function start({ canReload = null }) {
       async restore(entry) {
         const note = noteOf(entry, COLL);
         if (!note) return 'That note can’t be restored.';
+        if (notes.some(n => n.id === note.id)) {   // already back (restored elsewhere): drop the stale entry, never overwrite
+          await this.purge([entry]).catch(() => {});
+          return 'That note is already back.';
+        }
         const why = await put(/** @type {Note} */ (note), null);
-        if (!why) await this.purge([entry]).catch(() => {});
-        return why;
+        if (why) return why;
+        return await this.purge([entry]).then(() => '', () => 'Restored, but its bin entry could not be removed.');
       },
       /** @param {Record<string, any>[]} entries */
       async purge(entries) {

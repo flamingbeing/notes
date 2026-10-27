@@ -184,6 +184,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'POST' || !url.pathname.endsWith('/share-in')) return;
   e.respondWith((async () => {
+    try {
     const form = await e.request.formData();
     const cache = await caches.open('share-in');
     const fields = {};
@@ -191,9 +192,10 @@ self.addEventListener('fetch', e => {
     await cache.put('/share-in/data', new Response(JSON.stringify(fields), { headers: { 'content-type': 'application/json' } }));
     let i = 0;
     for (const f of form.getAll('files')) {
-      if (typeof f === 'string') continue;
+      if (typeof f === 'string' || f.size > 25e6) continue;   // a very large file is left out, the text still arrives
       await cache.put(`/share-in/file-${i++}`, new Response(f, { headers: { 'content-type': f.type, 'x-name': encodeURIComponent(f.name) } }));
     }
+    } catch { /* a share that can't be kept still opens the app */ }
     return Response.redirect(new URL('./?share=1', url), 303);
   })());
 });

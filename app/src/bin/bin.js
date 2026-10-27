@@ -6,7 +6,10 @@ const DAY = 864e5;
 /** @param {number} deletedAt @param {number} [now] */
 export const daysLeft = (deletedAt, now = Date.now()) => Math.max(0, Math.ceil((deletedAt + BIN_DAYS * DAY - now) / DAY));
 /** @param {{ deletedAt?: unknown }} entry @param {number} [now] */
-export const isExpired = (entry, now = Date.now()) => !(Number(entry.deletedAt) > now - BIN_DAYS * DAY);
+export const isExpired = (entry, now = Date.now()) => {
+  const at = Number(entry.deletedAt);
+  return Number.isFinite(at) && at > 0 && at <= now && at < now - BIN_DAYS * DAY;   // no date, or one in the future: kept, never purged
+};
 /** @param {{ deletedAt: number }} entry @param {number} [now] */
 export function binLabel(entry, now = Date.now()) {
   const ago = Math.max(0, Math.floor((now - entry.deletedAt) / DAY)), left = daysLeft(entry.deletedAt, now);
@@ -24,5 +27,5 @@ export function noteOf(entry, coll) {
  * @param {{ id: string, kind?: unknown, deletedAt: number, data?: any }[]} entries @param {string} coll @param {number} [now] */
 export function sortBin(entries, coll, now = Date.now()) {
   const live = entries.filter(e => !isExpired(e, now));
-  return { show: live.filter(e => noteOf(e, coll)).sort((a, b) => b.deletedAt - a.deletedAt), purge: entries.filter(e => isExpired(e, now)) };
+  return { show: live.filter(e => noteOf(e, coll)).sort((a, b) => (Number(b.deletedAt) || 0) - (Number(a.deletedAt) || 0)), purge: entries.filter(e => isExpired(e, now)) };
 }

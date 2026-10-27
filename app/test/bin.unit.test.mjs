@@ -10,7 +10,7 @@ test('30 days: days left and expiry', () => {
   assert.equal(daysLeft(now - 29.5 * DAY, now), 1);
   assert.equal(isExpired(entry('a', 29), now), false);
   assert.equal(isExpired(entry('a', 31), now), true);
-  assert.equal(isExpired({}, now), true);
+  assert.equal(isExpired({}, now), false);
 });
 test('label', () => {
   assert.equal(binLabel(entry('a', 0), now), 'deleted today · 30 days left');
@@ -26,4 +26,12 @@ test('sortBin: newest first, files hidden, expired to purge', () => {
   const r = sortBin([entry('old', 5), entry('new', 1), entry('gone', 40), entry('f', 2, { kind: 'files' })], 'notes', now);
   assert.deepEqual(r.show.map(e => e.data.id), ['new', 'old']);
   assert.deepEqual(r.purge.map(e => e.data.id), ['gone']);
+});
+
+test('an entry with no date, or one in the future, is never purged', () => {
+  const now = Date.UTC(2026, 0, 1);
+  assert.equal(isExpired({}, now), false);
+  assert.equal(isExpired({ deletedAt: 0 }, now), false);
+  assert.equal(isExpired({ deletedAt: now + 1e9 }, now), false);
+  assert.equal(isExpired({ deletedAt: now - 31 * 864e5 }, now), true);
 });
