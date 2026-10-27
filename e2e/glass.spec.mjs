@@ -2,7 +2,7 @@
 // the modules run), solid where the device asks for less transparency or more contrast, axe on glass, the screen
 // switch as a view transition. Screenshots of the sample in light, dark, OLED and Solid go to test-results/ for the PR.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, openSettings, APP } from './fixtures.mjs';
 
 /** @param {import('@playwright/test').Page} page @param {string} sel @param {string} prop */
 const style = (page, sel, prop) => page.locator(sel).first().evaluate((e, p) => getComputedStyle(e).getPropertyValue(p), prop);
@@ -18,17 +18,19 @@ const surface = page => page.evaluate(() => {
 
 test('glass by default; Solid in the switch takes it off, kept on reload and before the modules run', async ({ phone }) => {
   const page = await phone();
-  await page.goto(APP);
+  await signIn(page);
   const root = page.locator('html');
   await expect(root).toHaveClass(/\bglass\b/);
-  expect(await style(page, '.bar', 'backdrop-filter')).toContain('blur');
-  expect(await style(page, '.bar', 'background-color')).toMatch(/color\(srgb .* \/ 0\.\d+\)|rgba\(/);   // see-through
+  expect(await style(page, '.ui-tabbar', 'backdrop-filter')).toContain('blur');
+  expect(await style(page, '.ui-tabbar', 'background-color')).toMatch(/color\(srgb .* \/ 0\.\d+\)|rgba\(/);   // see-through
 
+  await openSettings(page);
   await page.getByLabel('Bars and sheets').selectOption('solid');
   await expect(root).not.toHaveClass(/\bglass\b/);
-  expect(await style(page, '.bar', 'backdrop-filter')).toBe('none');
+  expect(await style(page, '.ui-tabbar', 'backdrop-filter')).toBe('none');
   await page.reload();
   await expect(root).not.toHaveClass(/\bglass\b/);
+  await openSettings(page);
   await expect(page.getByLabel('Bars and sheets')).toHaveValue('solid');
 
   // (early.js takes the class off before any module runs: shown with the theme modules kept from loading)
@@ -37,7 +39,7 @@ test('glass by default; Solid in the switch takes it off, kept on reload and bef
   await expect(root).not.toHaveClass(/\bglass\b/);
   await page.unroute('**/theme/index.js');
   await page.goto(APP);
-
+  await openSettings(page);
   await page.getByLabel('Bars and sheets').selectOption('glass');
   await expect(root).toHaveClass(/\bglass\b/);
 });
@@ -46,10 +48,10 @@ test('glass by default; Solid in the switch takes it off, kept on reload and bef
 test('asked for more contrast: solid card colour, no blur', async ({ phone }) => {
   const page = await phone();
   await page.emulateMedia({ contrast: 'more' });
-  await page.goto(APP);
+  await signIn(page);
   await expect(page.locator('html')).toHaveClass(/\bglass\b/);
-  expect(await style(page, '.bar', 'backdrop-filter')).toBe('none');
-  expect(await style(page, '.bar', 'background-color')).toBe(await surface(page));
+  expect(await style(page, '.ui-tabbar', 'backdrop-filter')).toBe('none');
+  expect(await style(page, '.ui-tabbar', 'background-color')).toBe(await surface(page));
 });
 
 // (the springs finished, so axe and the screenshots see the parts at rest, not mid fade-in)
@@ -62,16 +64,20 @@ const MODES = [
   ['solid', { theme: 'light', dark: 'dark', material: 'solid' }],
 ];
 
-test('the sample in light, dark, OLED and Solid: axe on the bar, a toast and a sheet; screenshots kept', async ({ phone }, info) => {
+test('the sample in light, dark, OLED and Solid: axe on the tab bar, a toast and a sheet; screenshots kept', async ({ phone }, info) => {
   const page = await phone();
   await signIn(page, 'member');
   for (let i = 1; i <= 14; i++) await page.evaluate(t => window.starter.add(t), `Sample note ${i}`);
   // (other tests add to the same list in parallel: wait for this test's last note, not a total)
-  await expect(page.getByRole('button', { name: 'Sample note 14', exact: true })).toBeVisible();
+  await expect(page.locator('#items .ui-row', { hasText: /^Sample note 14$/ })).toBeVisible();
   for (const [name, pick] of MODES) {
+    await page.evaluate(() => scrollTo(0, 0));   // (the tab bar folds away when scrolled)
+    await openSettings(page);
     await page.getByLabel('Theme').selectOption(pick.theme);
     await page.getByLabel('Dark style').selectOption(pick.dark);
     await page.getByLabel('Bars and sheets').selectOption(pick.material);
+    await page.click('#settings-close');
+    await expect(page.locator('#settings')).toBeHidden();
     // (dismiss the last mode's toast first: its 4 s timer would otherwise end mid-check and move this one under axe)
     await page.evaluate(() => document.querySelectorAll('.toast button').forEach(b => /** @type {HTMLElement} */ (b).click()));
     await expect(page.locator('.toast')).toHaveCount(0);

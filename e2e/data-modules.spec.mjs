@@ -29,18 +29,18 @@ test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it
   expect(await add(a, z, 'three')).toBe('');
   await turnOn(a, 'bulkEdit', 'binScreen');
   await a.click('#select');
-  for (const t of [x, y]) await a.locator('#items button', { hasText: t }).click();
+  for (const t of [x, y]) await a.locator('#items .ui-row', { hasText: t }).click();
   await a.click('#bulk-edit');
   await a.fill('#bulk-tag', 'picked');
   await a.click('#bulk-tag-go');
   await expect(a.locator('.toast', { hasText: 'Done' })).toBeVisible();
   await a.click('#select');   // the bulk run ended select mode; this starts it again
-  for (const t of [x, y]) await a.locator('#items button', { hasText: t }).click();
+  for (const t of [x, y]) await a.locator('#items .ui-row', { hasText: t }).click();
   await a.click('#bulk-edit');
   await a.fill('#bulk-merge-title', `${x} merged`);
   await a.click('#bulk-merge');
-  await expect(a.locator('#items button', { hasText: `${x} merged` })).toBeVisible();
-  await expect(a.locator('#items button', { hasText: new RegExp(`^${y}$`) })).toHaveCount(0);
+  await expect(a.locator('#items .ui-row', { hasText: `${x} merged` })).toBeVisible();
+  await expect(a.locator('#items .ui-row', { hasText: new RegExp(`^${y}$`) })).toHaveCount(0);
   await synced(a);
   // the merged originals are in the bin; bring one back
   await a.click('#open-settings');
@@ -48,8 +48,8 @@ test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it
   await expect(a.locator('#bin-items li', { hasText: y })).toBeVisible();
   await a.locator('#bin-items li', { hasText: y }).getByRole('button', { name: 'Restore' }).click();
   await a.click('#bin-close');
-  await expect(a.locator('#items button', { hasText: new RegExp(`^${y}$`) })).toBeVisible();
-  await expect(a.locator('#items button', { hasText: z })).toBeVisible();
+  await expect(a.locator('#items .ui-row', { hasText: new RegExp(`^${y}$`) })).toBeVisible();
+  await expect(a.locator('#items .ui-row', { hasText: z })).toBeVisible();
 });
 
 test('feedback: a member sends, an admin reads and marks it done', async ({ phone }) => {

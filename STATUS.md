@@ -20,6 +20,10 @@
 - Data modules (decision 0018): Bin screen, bulk edit, share-in, feedback inbox, sync forget, paste cleaner recipe; each off until a device turns it on in Settings.
 - MCP connector (`mcp/`, decisions 0016, 0019): 8 tools, `.mcpb` build and workflow, offline tests. Sign-in by code:
   Settings → Advanced → Connect MCP (off by default); Disconnect ends all the account's sign-ins. Live check pending.
+- On the app-ui kit (N1): the kit's adaptive shell and parts (docs/ui-kit.md in app-ui): a phone gets the bar, tab bar
+  and Folders sheet; from 600 px a side bar, the list and the open note beside it (the note page is not modal there).
+  Looks and density in Settings (default look A); Settings is a sheet, a side panel from 840 px, so the theme switch
+  and Sign out are reached after sign-in. Notes data and sync unchanged.
 
 ## Waiting on the owner
 

@@ -265,7 +265,7 @@ export function listScreen(app, kit) {
       main.className = 'ui-row-main'; main.append(name);
       if (path) {
         const sub = document.createElement('span');
-        sub.className = 'ui-row-sub'; sub.textContent = `${path}/`;
+        sub.className = 'ui-row-sub'; sub.textContent = ` ${path}/`;
         main.append(sub);
       }
       li.replaceChildren(main);

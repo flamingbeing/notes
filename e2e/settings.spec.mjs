@@ -37,6 +37,7 @@ test('the device value survives sign-out and a reload', async ({ phone }) => {
   await open(a);
   await a.check('#opt-bigRows');
   await a.click('#settings-close');
+  await open(a);
   await a.click('#sign-out');
   await expect(a.locator('#signed-out')).toBeVisible();
   await a.reload();
@@ -52,7 +53,7 @@ test('a settings file: exported, imported on another account, bad keys dropped',
   await synced(a);
   await open(a);
   await a.check('#opt-itemCount');
-  const [download] = await Promise.all([a.waitForEvent('download'), a.click('#settings-export')]);
+  const [download] = await Promise.all([a.waitForEvent('download'), a.getByRole('button', { name: 'Export', exact: true }).click()]);
   const file = JSON.parse(await (await import('node:fs/promises')).readFile(await download.path(), 'utf8'));
   expect(file.kind).toBe('core-settings');
   expect(file.settings).toEqual({ itemCount: true });             // the device option stays behind
@@ -62,12 +63,12 @@ test('a settings file: exported, imported on another account, bad keys dropped',
   await synced(b);
   await open(b);
   const bad = { ...file, settings: { ...file.settings, bigRows: true, nope: 1 } };
-  await b.setInputFiles('#settings-import', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(bad)) });
-  await expect(b.locator('#settings-msg')).toContainText('Imported: 1 changed, 2 skipped');
+  await b.setInputFiles('#settings input[type=file]', { name: 'settings.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(bad)) });
+  await expect(b.locator('#settings .ui-settings-status')).toContainText('Imported: 1 change, 2 left out');
   await expect(b.locator('#opt-itemCount')).toBeChecked();
   await expect(b.locator('#opt-bigRows')).not.toBeChecked();
-  await b.setInputFiles('#settings-import', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('not json') });
-  await expect(b.locator('#settings-msg')).toContainText('not JSON');
+  await b.setInputFiles('#settings input[type=file]', { name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('not json') });
+  await expect(b.locator('#settings .ui-settings-status')).toContainText('not JSON');
   await expect(b.locator('#opt-itemCount')).toBeChecked();
 });
 

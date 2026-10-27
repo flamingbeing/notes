@@ -86,6 +86,11 @@ export async function add(page, title) {
   await page.locator('#edit button[value=close]').click();
   await expect(page.locator('#items')).toContainText(title);
 }
+// The Settings sheet opened (it holds the theme switch, the options and Sign out; its button shows once signed in)
+export async function openSettings(page) {
+  await page.click('#open-settings');
+  await expect(page.locator('#settings')).toBeVisible();
+}
 // The drawer (the bar's ☰) opened, and something in it clicked
 export async function drawer(page, selector) {
   await page.click('#drawer-open');
@@ -105,7 +110,7 @@ export const fillBody = (page, text) => page.locator('#edit-body').evaluate((el,
   a.value = t; a.dispatchEvent(new Event('input'));
 }, text);
 // Open a note from the list (its button's name starts with the title; a folder follows it)
-export const openNote = (page, title) => page.locator('#items li button', { hasText: title }).first().click();
+export const openNote = (page, title) => page.locator('#items .ui-row', { hasText: title }).first().click();
 export const synced = page => expect.poll(() => page.evaluate(() => window.starter.status), { timeout: 15_000 }).toBe('synced');
 // Every note on the server, in every vault and space: [{ path, data }] (db.list leaves document paths out)
 export async function serverNotes() {

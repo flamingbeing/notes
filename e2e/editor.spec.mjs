@@ -2,7 +2,7 @@
 // [[ offers notes, pasted HTML becomes Markdown, saves happen by themselves, the read view is cleaned, and the quick
 // switcher and command palette reach notes. Made-up notes only.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer , openSettings } from './fixtures.mjs';
 
 const VENDOR = /\/vendor\/(codemirror|marked|dompurify)\//;
 const content = page => page.locator('#edit-cm .cm-content');
@@ -149,8 +149,11 @@ for (const [theme, dark] of [['light', ''], ['dark', ''], ['dark', 'oled']]) {
   test(`the editor, read view and switcher pass axe: ${theme}${dark ? ' ' + dark : ''}`, async ({ phone }) => {
     const page = await phone();
     await signIn(page, 'member');
+    await openSettings(page);
     await page.getByLabel('Theme').selectOption(theme);
     if (dark) await page.getByLabel('Dark style').selectOption(dark);
+    await page.click('#settings-close');
+    await expect(page.locator('#settings')).toBeHidden();
     const t = uniq('axe');
     await add(page, t);
     await openNote(page, t);
