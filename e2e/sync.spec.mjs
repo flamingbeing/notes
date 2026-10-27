@@ -94,8 +94,8 @@ test('a rename rewrites the links to the note; a link to no note makes it', asyn
   await page.fill('#edit-text', t + ' renamed');
   await page.click('#edit-save');
   await serverHas(`See [[${t} renamed]] and [[${t} renamed|it]]`, { body: true });
-  const renamed = (await serverNotes()).find(n => n.data.title === t + ' renamed');
-  expect(renamed.data.aliases).toEqual([t + ' target']);
+  // the renamed note and the rewritten source reach the server as separate writes, in either order
+  await expect.poll(async () => (await serverNotes()).find(n => n.data.title === t + ' renamed')?.data.aliases).toEqual([t + ' target']);
   // a link to a missing note creates it on a click
   await openNote(page, t + ' source');
   await details(page);
