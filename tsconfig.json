@@ -19,11 +19,12 @@
       "@core/files": ["./app/public/files/index.js"],
       "@core/settings": ["./node_modules/app-ui/settings/index.js"],
       "@core/search": ["./app/public/search/index.js"],
+      "@core/drive": ["./app/public/drive/index.js"],
       "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
       "app-ui/*": ["./node_modules/app-ui/*"],
       "@vendor/codemirror": ["./tools/codemirror-entry.js"],
       "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
     }
   },
-  "include": ["app/src/**/*.js", "app/src/**/*.d.ts", "app/public/files/*", "app/public/search/*.js", "app/public/search/*.d.ts", "e2e/fixtures/outside-package/src/*.js"]
+  "include": ["app/src/**/*.js", "app/src/**/*.d.ts", "app/public/files/*", "app/public/search/*.js", "app/public/search/*.d.ts", "app/public/drive/*.js", "e2e/fixtures/outside-package/src/*.js"]
 }

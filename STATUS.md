@@ -15,6 +15,7 @@
   full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
   by feature under `app/src/`.
 
+- Google Drive copy (decision 0017): Settings → Google Drive; tested against a fake Drive, live check pending.
 - MCP connector (`mcp/`, decision 0016): 8 tools, `.mcpb` build and workflow, 31 offline tests. Live check pending the
   Desktop OAuth client.
 
