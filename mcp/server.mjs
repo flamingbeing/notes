@@ -98,7 +98,7 @@ async function main(cmd) {
     if (google && !isConfigured()) { log('No Google client is set in config.mjs: use the code from the app instead (node server.mjs login).'); process.exit(1); }
     const code = google ? '' : await askCode();
     if (!google) {
-      if (!code) { log('No code given.'); process.exit(1); }
+      if (!code) { log('No code given.'); process.stdin.pause(); process.exitCode = 1; return; }
       const { email } = await loginWithCode({ code, apiKey: API_KEY, projectId: PROJECT_ID });
       log(`Signed in as ${email}. Token saved to ${defaultTokenFile()} (only on this computer).`);
       log('Restart Claude Desktop or Claude Code if it was already running.');
@@ -121,4 +121,5 @@ async function main(cmd) {
   await serve();
 }
 
-main(process.argv[2]).catch(e => { log(`Error: ${e && e.message ? e.message : e}`); process.exit(1); });
+// exitCode, not exit(): exiting while stdin is still closing after the code prompt aborts Node on Windows (libuv async.c assertion).
+main(process.argv[2]).catch(e => { log(`Error: ${e && e.message ? e.message : e}`); process.stdin.pause(); process.exitCode = 1; });
