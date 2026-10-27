@@ -54,6 +54,7 @@ jobs:
       - uses: flamingbeing/app-devkit/setup-node@v1.11.0
       - name: Build the extension
         run: |
+          (cd mcp && npm ci --no-audit --no-fund)   # build-mcpb imports the server, which needs its packages
           node mcp/tools/build-mcpb.mjs "$RUNNER_TEMP/stage"
           npx -y @anthropic-ai/mcpb@2.1.2 pack "$RUNNER_TEMP/stage" "$RUNNER_TEMP/notes.mcpb"
       - name: Publish to the notes-mcp release
