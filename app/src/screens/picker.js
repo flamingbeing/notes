@@ -3,7 +3,7 @@
 // and folder (the notes opened lately first while the box is empty) and offers to make a note of what was typed; the
 // palette finds commands by name. Arrow keys move, Enter picks, Escape closes.
 import { createSearch } from '@core/search';
-import { $, input, dialog } from '../dom.js';
+import { $, input, dialog } from '../shell/dom.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 /** @typedef {{ id: string, label: string, hint?: string, run: () => unknown }} Item */

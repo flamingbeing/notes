@@ -1,7 +1,9 @@
 /* The screens' layout; colours, type and the kit parts' look come from theme/theme.css and ui/ui.css. */
 body { margin: 0 auto; max-width: 40rem; padding: 0 var(--pad) 2rem; }
-.bar { display: flex; align-items: center; justify-content: space-between; gap: var(--pad); }
+.bar { display: flex; align-items: center; gap: var(--pad); }
+.bar h1 { margin-inline-end: auto; }
 h1 { font-size: 1.4rem; }
+button.icon { min-width: 2.75rem; font-size: 1.2rem; line-height: 1; }
 input { padding: .5rem; flex: 1; min-width: 10rem; }
 #items { list-style: none; padding: 0; }
 #items li button { width: 100%; text-align: left; margin: .25rem 0; }
@@ -32,8 +34,16 @@ footer { margin-top: 2rem; }
 
 /* the note editor (src/editor/): CodeMirror's own classes, coloured from the theme. Readable line width (the default)
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
-#edit { max-width: 44rem; }
-#edit.wide { max-width: none; }
+#edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
+  box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--bg); }
+#edit.page::backdrop { background: var(--bg); }
+#edit-form { max-width: 44rem; margin: 0 auto; }
+#edit.wide #edit-form { max-width: none; }
+.page-bar { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: .5rem 0; align-items: center; }
+.page-bar .grow { flex: 1; }
+#edit .title-box { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; border-color: transparent; background: transparent; padding-inline: 0; margin-bottom: .5rem; }
+#edit details { margin: 1rem 0; }
+#edit summary { cursor: pointer; padding: .35rem 0; }
 .edit-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
 .edit-tools label { margin-inline-end: auto; }
 .fmt-bar { display: flex; flex-wrap: wrap; gap: .25rem; }
@@ -79,6 +89,17 @@ footer { margin-top: 2rem; }
 #settings h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
 /* shared spaces: the switcher, and the people in the members sheet */
 #space-bar select { flex: 1; min-width: 8rem; }
+.top { flex-wrap: nowrap; }
+#search input { min-width: 0; }
+#filter-chip { align-items: center; gap: .5rem; }
+
+/* the drawer (☰): one folder or tag at a time, a folder's own folders indented under it */
+#drawer.drawer { margin: 0 auto 0 0; height: 100%; max-height: none; width: min(20rem, 85vw); border-radius: 0; box-sizing: border-box; overflow-y: auto; }
+.nav { list-style: none; padding: 0; margin: 0; }
+.nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
+.nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
+.nav .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
+#drawer h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
 .people { list-style: none; padding: 0; }
 .people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
 .people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }

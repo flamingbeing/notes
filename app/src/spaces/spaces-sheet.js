@@ -3,15 +3,15 @@
 // invites not yet taken up, invite by email, rename, leave, delete. Only the owner sees the controls that change the
 // space (the Worker checks again); every change comes back through the live list of spaces (spaces.js), which redraws.
 import { confirmModal } from '@core/ui';
-import { $, input, dialog } from './dom.js';
+import { $, input, dialog } from '../shell/dom.js';
 
-/** @typedef {import('./cloud.js').State} State */
+/** @typedef {import('../cloud.js').State} State */
 /** @typedef {import('./spaces.js').Space} Space */
 
 const ROLE_WORDS = /** @type {Record<string, string>} */ ({ owner: 'owner', edit: 'can edit', view: 'can view' });
 const opt = (/** @type {string} */ value, /** @type {string} */ label) => Object.assign(document.createElement('option'), { value, textContent: label });
 
-/** @param {import('./cloud.js').Started} app @param {(message: string) => unknown} toast */
+/** @param {import('../cloud.js').Started} app @param {(message: string) => unknown} toast */
 export function spacesSheet(app, toast) {
   const sheet = dialog('space-sheet'), make = dialog('space-new-sheet');
   const pick = /** @type {HTMLSelectElement} */ ($('space'));

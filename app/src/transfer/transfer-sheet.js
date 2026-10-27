@@ -1,8 +1,8 @@
 // Import and export (#transfer): an Obsidian vault (a folder or a zip) into the open space, with a dry-run line first
 // (what would be added, what skipped and why); the open space out as a zip. The planning is vault.js (pure); the zip
 // library (fflate) loads only when a zip is read or made. Import never overwrites (vault.js skips what is there).
-import { $, input, dialog } from './dom.js';
-import { planImport, summary, exportFiles } from './notes/vault.js';
+import { $, input, dialog } from '../shell/dom.js';
+import { planImport, summary, exportFiles } from '../notes/vault.js';
 
 const MAX_ZIP_BYTES = 300_000_000;
 const TYPES = /** @type {Record<string, string>} */ ({
@@ -13,7 +13,7 @@ const typeOf = (/** @type {string} */ name) => TYPES[name.split('.').pop()?.toLo
 
 /** @typedef {{ path: string, size: number, read: () => Promise<Uint8Array> }} Item */
 
-/** @param {import('./cloud.js').Started} app @param {(message: string) => unknown} toast @param {() => boolean} canWrite */
+/** @param {import('../cloud.js').Started} app @param {(message: string) => unknown} toast @param {() => boolean} canWrite */
 export function transferSheet(app, toast, canWrite) {
   const sheet = dialog('transfer');
   const msg = $('transfer-msg'), plan = $('transfer-plan'), skipped = $('transfer-skipped'), go = $('transfer-go');

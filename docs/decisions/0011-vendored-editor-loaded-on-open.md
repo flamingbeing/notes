@@ -7,7 +7,7 @@ view is marked plus DOMPurify. All three are vendored into `app/public/vendor/` 
 exact versions `package.json` pins, and the page reaches them through its import map (`@vendor/codemirror`, `marked`,
 `dompurify`), the same pattern as vendored Firebase (decision 0007).
 
-- **Loaded on open:** `note-sheet.js` imports `app/src/editor/` the first time a note opens; the list screen loads
+- **Loaded on open:** `note-sheet.js` (now `screens/note-page.js`) imports `app/src/editor/` the first time a note opens; the list screen loads
   none of it (the Vite check asserts the entry's static graph has no editor libraries and a lazy chunk does).
 - **The textarea stays the source of truth:** CodeMirror mirrors into `#edit-body`, and the plain textarea shows if
   the editor fails to load, so a note can always be edited and saved.

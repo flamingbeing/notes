@@ -3,13 +3,13 @@
 import { viewSwitch } from '@core/theme';
 
 /**
- * @param {Record<import('./cloud.js').Phase, import('./dom.js').Screen>} screens
- * @returns {(s: import('./cloud.js').State) => void} show the screen for s.phase
+ * @param {Record<import('../cloud.js').Phase, import('./dom.js').Screen>} screens
+ * @returns {(s: import('../cloud.js').State) => void} show the screen for s.phase
  */
 export function screenSwitch(screens) {
   /** @type {string | null} */
   let shown = null;
-  /** @type {import('./cloud.js').State} */
+  /** @type {import('../cloud.js').State} */
   let latest;
   // (draws the latest state: a transition runs its change a moment later, after any state that came in meanwhile)
   const draw = () => {

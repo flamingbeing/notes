@@ -2,7 +2,7 @@
 // [[ offers notes, pasted HTML becomes Markdown, saves happen by themselves, the read view is cleaned, and the quick
 // switcher and command palette reach notes. Made-up notes only.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer } from './fixtures.mjs';
 
 const VENDOR = /\/vendor\/(codemirror|marked|dompurify)\//;
 const content = page => page.locator('#edit-cm .cm-content');
@@ -119,7 +119,7 @@ test('the quick switcher opens a note; the palette runs a command', async ({ pho
   const a = uniq('Alpha note'), b = uniq('Bravo note');
   for (const title of [a, b]) expect(await page.evaluate(t => window.starter.add(t, 'made-up'), title)).toBe('');
   await expect(page.locator('#items')).toContainText(b);
-  await page.click('#go-to');
+  await drawer(page, '#go-to');
   await expect(page.locator('#picker')).toBeVisible();
   await page.fill('#picker-q', b.slice(0, 9));
   await expect(page.locator('#picker-list [role=option]').first()).toContainText(b);

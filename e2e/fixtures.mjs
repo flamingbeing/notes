@@ -77,13 +77,26 @@ export async function signInAgain(page, email) {
   await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
 }
 
-// A new note by its title: the note sheet opens on it; Close closes it again.
+// A new note by its title: + opens an empty note page with the title box ready; Close makes it and closes the page.
 export async function add(page, title) {
-  await page.fill('#new-text', title);
-  await page.click('#add button[type=submit]');
+  await page.click('#new');
   await expect(page.locator('#edit')).toBeVisible();
+  await expect(page.locator('#edit-text')).toBeFocused();
+  await page.fill('#edit-text', title);
   await page.locator('#edit button[value=close]').click();
   await expect(page.locator('#items')).toContainText(title);
+}
+// The drawer (the bar's ☰) opened, and something in it clicked
+export async function drawer(page, selector) {
+  await page.click('#drawer-open');
+  await page.click(selector);
+}
+// One folder ('path:<folder>') or tag ('tag:<tag>') picked in the drawer; '' shows all notes
+export const showOnly = (page, value) => drawer(page, `#drawer button[data-filter="${value}"]`);
+// The open note's Details (folder, links, files, Move) unfolded (they stay as last left on this device)
+export async function details(page) {
+  const more = page.locator('#edit-more');
+  if (!await more.evaluate(d => /** @type {HTMLDetailsElement} */ (d).open)) await more.locator('summary').click();
 }
 // A note's whole text set at once, as if typed (the editor, once loaded, hides the textarea it writes into; an input
 // event on the textarea brings the editor along)

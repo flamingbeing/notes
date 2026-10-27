@@ -1,11 +1,11 @@
 // Shared spaces with two or three made-up accounts: invite (in the app now, or at a first sign-in), roles (a viewer
 // only reads), taking someone out (the space's notes leave their device), moving a note, and [[Space/Note]] links.
 // (Reads by someone not in a space are refused by the rules: app/test/rules.test.mjs.)
-import { test, expect, signIn, add, openNote, synced, serverHas, notePathOf, uniq, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, serverHas, notePathOf, uniq, APP, drawer, details } from './fixtures.mjs';
 
 // a new space by name; the owner opens it from the switcher
 async function newSpace(page, name) {
-  await page.click('#space-new');
+  await drawer(page, '#space-new');
   await page.fill('#space-new-name', name);
   await page.click('#space-new-make');
   await expect(page.locator('#space-new-sheet')).toBeHidden();
@@ -14,7 +14,7 @@ async function newSpace(page, name) {
 const open = async (page, label) => {
   await expect(page.locator('#space option', { hasText: label })).toHaveCount(1, { timeout: 15_000 });
   await page.selectOption('#space', { label });
-  await expect(page.locator('#space-open')).toBeVisible();
+  await expect(page.locator('#space-open')).toHaveJSProperty('hidden', false);
 };
 // this text anywhere in the page's IndexedDB (the app's copy of its notes, its outbox, Firestore's cache)
 const onDevice = (page, text) => page.evaluate(async text => {
@@ -28,7 +28,7 @@ const onDevice = (page, text) => page.evaluate(async text => {
   return false;
 }, text);
 async function invite(page, email, role) {
-  if (!await page.locator('#space-sheet').isVisible()) await page.click('#space-open');
+  if (!await page.locator('#space-sheet').isVisible()) await drawer(page, '#space-open');
   await page.fill('#invite-email', email);
   await page.selectOption('#invite-role', role);
   await page.click('#space-invite button[type=submit]');
@@ -55,12 +55,12 @@ test('an invited member sees the space and edits in it; a viewer only reads; som
   // b (can edit): opens it, sees the note, adds one that a sees
   await open(b, name);
   await expect(b.locator('#items')).toContainText(t, { timeout: 15_000 });
-  await expect(b.locator('#add')).toBeVisible();
+  await expect(b.locator('#new')).toBeVisible();
   const t2 = uniq('from-b');
   await add(b, t2);
   await expect(a.locator('#items')).toContainText(t2, { timeout: 15_000 });
   // b sees the people but none of the owner's controls
-  await b.click('#space-open');
+  await drawer(b, '#space-open');
   await expect(b.locator('#space-invite')).toBeHidden();
   await expect(b.locator('#space-delete')).toBeHidden();
   await expect(b.locator('#space-leave')).toBeVisible();
@@ -69,7 +69,7 @@ test('an invited member sees the space and edits in it; a viewer only reads; som
   // v (can view): reads, can't write
   await open(v, `${name} (view only)`);
   await expect(v.locator('#items')).toContainText(t, { timeout: 15_000 });
-  await expect(v.locator('#add')).toBeHidden();
+  await expect(v.locator('#new')).toBeHidden();
   await openNote(v, t);
   await expect(v.locator('#edit-body')).toHaveJSProperty('readOnly', true);
   await expect(v.locator('#edit-save')).toBeHidden();
@@ -95,7 +95,7 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   await expect(b.locator('#items')).toContainText(t, { timeout: 15_000 });
   await expect.poll(() => onDevice(b, t)).toBe(true);
 
-  await a.click('#space-open');
+  await drawer(a, '#space-open');
   await a.locator('#space-people li', { hasText: bob.email }).getByRole('button', { name: 'Remove' }).click();
   await a.getByRole('button', { name: 'Remove', exact: true }).last().click();   // the confirm
   await expect(a.locator('#space-people')).not.toContainText(bob.email, { timeout: 15_000 });
@@ -114,7 +114,7 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   await invite(a, bob.email, 'view');
   await a.click('#space-close');
   await open(b, `${name} (view only)`);
-  await b.click('#space-open');
+  await drawer(b, '#space-open');
   await b.click('#space-leave');
   await b.getByRole('button', { name: 'Leave', exact: true }).last().click();
   await expect(b.locator('#space')).toBeHidden({ timeout: 15_000 });
@@ -171,13 +171,14 @@ test('a note moves from the vault to a space in one go; a [[Space/Note]] link op
   await invite(a, bob.email, 'edit');
   await a.click('#space-close');
   await a.selectOption('#space', { label: 'My notes' });
-  await expect(a.locator('#space-open')).toBeHidden();
+  await expect(a.locator('#space-open')).toHaveJSProperty('hidden', true);
   await add(a, t);
   expect(await a.evaluate(([h, n, x]) => window.starter.add(h, `see [[${n}/${x}]]`), [home, name, t])).toBe('');
   await synced(a);
   const before = await notePathOf(t);
 
   await openNote(a, t);
+  await details(a);
   await a.selectOption('#edit-move', { label: name });
   await a.click('#edit-move-go');
   await a.getByRole('button', { name: 'Move', exact: true }).last().click();   // the confirm
@@ -190,6 +191,7 @@ test('a note moves from the vault to a space in one go; a [[Space/Note]] link op
   // the link in a's vault note opens the space, then the note
   await a.selectOption('#space', { label: 'My notes' });
   await openNote(a, home);
+  await details(a);
   await a.locator('#edit-links button', { hasText: `${name}/${t}` }).click();
   await expect(a.locator('#edit-text')).toHaveValue(t, { timeout: 15_000 });
   await expect(a.locator('#space')).toHaveValue(/^s-/);

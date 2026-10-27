@@ -1,6 +1,6 @@
 // Sign-in, roles from the role doc, and the notes list: add, edit, delete to the bin; filter by tag and folder; today's note.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody, showOnly, details } from './fixtures.mjs';
 
 test('signed out: the sign-in screen, accessible', async ({ phone }) => {
   const page = await phone();
@@ -27,6 +27,7 @@ test('a member adds, edits and deletes; the delete lands in the bin', async ({ p
 
   await openNote(page, t);
   await fillBody(page, 'Some text #idea');
+  await details(page);
   await page.fill('#edit-path', 'work/ideas');
   expect(await AxeBuilder(page)).toEqual([]);
   await page.click('#edit-save');
@@ -44,7 +45,7 @@ test('a member adds, edits and deletes; the delete lands in the bin', async ({ p
   await expect.poll(async () => (await serverNotes()).some(n => n.data.title === t)).toBe(false);
 });
 
-test('the filter shows one tag or folder; search knows tag: and path:', async ({ phone }) => {
+test('the drawer shows one tag or folder; search knows tag: and path:', async ({ phone }) => {
   const page = await phone();
   await signIn(page, 'member');
   const t = uniq('f');
@@ -52,23 +53,87 @@ test('the filter shows one tag or folder; search knows tag: and path:', async ({
     expect(await page.evaluate(([title, body]) => window.starter.add(title, body), [title, body])).toBe('');
     if (path) {
       await openNote(page, title);
+      await details(page);
       await page.fill('#edit-path', path);
       await page.click('#edit-save');
     }
   }
   await expect(page.locator('#items li')).toHaveCount(3);
   const shown = () => page.locator('#items li button').allTextContents();
-  await page.selectOption('#filter', 'tag:red');
+  await showOnly(page, 'tag:red');
+  await expect(page.locator('#filter-name')).toHaveText('#red');
   await expect.poll(async () => (await shown()).map(x => x.split(' ').slice(1, 2)[0]).sort()).toEqual(['one', 'three']);
-  await page.selectOption('#filter', 'path:a');
+  await showOnly(page, 'path:a');
   await expect.poll(async () => (await shown()).length).toBe(2);
-  await page.selectOption('#filter', 'path:a/b');
+  await showOnly(page, 'path:a/b');
   await expect.poll(async () => (await shown()).length).toBe(1);
-  await page.selectOption('#filter', '');
+  await page.click('#filter-clear');
+  await expect(page.locator('#filter-chip')).toBeHidden();
   await page.fill('#q', 'tag:blue');
   await expect.poll(async () => (await shown()).length).toBe(1);
   await page.fill('#q', 'path:c');
   await expect.poll(shown).toEqual([`${t} three c/`]);
+});
+
+test('a new note: + opens an empty page in the folder for new notes; nothing typed leaves nothing behind', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  await page.click('#open-settings');
+  await page.fill('#opt-newFolder', 'Inbox/');
+  await page.locator('#opt-newFolder').press('Tab');
+  await expect(page.locator('#opt-newFolder')).toHaveValue('Inbox');
+  await page.click('#settings-close');
+
+  await page.click('#new');
+  await expect(page.locator('#edit-text')).toBeFocused();
+  await page.locator('#edit button[value=close]').click();
+  await expect(page.locator('#edit')).toBeHidden();
+  await synced(page);
+  await expect(page.locator('#items li')).toHaveCount(0);
+
+  // text but no title: "Untitled", in Inbox
+  await page.click('#new');
+  await fillBody(page, 'just a thought');
+  await page.locator('#edit button[value=close]').click();
+  await expect(page.locator('#items li', { hasText: 'Untitled' })).toContainText('Inbox/');
+  await serverHas('just a thought', { body: true });
+  await page.click('#new');
+  await fillBody(page, 'another');
+  await page.locator('#edit button[value=close]').click();
+  await expect(page.locator('#items li', { hasText: 'Untitled 2' })).toHaveCount(1);
+});
+
+test('each note opened is a step back: Back goes to the note before, then the list; a reload opens the note again', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('step');
+  expect(await page.evaluate(t => window.starter.add(t + ' to', 'the end'), t)).toBe('');
+  expect(await page.evaluate(t => window.starter.add(t + ' from', `see [[${t} to]]`), t)).toBe('');
+  await openNote(page, t + ' from');
+  await expect(page).toHaveURL(/#\/note\//);
+  await details(page);
+  await expect(page.locator('#edit-where')).toContainText('1 link');
+  await page.locator('#edit-links button', { hasText: t + ' to' }).click();
+  await expect(page.locator('#edit-text')).toHaveValue(t + ' to');
+  await page.reload();
+  await expect(page.locator('#edit-text')).toHaveValue(t + ' to');
+  await page.goBack();
+  await expect(page.locator('#edit')).toBeHidden();
+  await expect(page).not.toHaveURL(/#/);
+
+  await openNote(page, t + ' from');
+  await page.locator('#edit-links button', { hasText: t + ' to' }).click();
+  await expect(page.locator('#edit-text')).toHaveValue(t + ' to');
+  await page.goBack();
+  await expect(page.locator('#edit-text')).toHaveValue(t + ' from');
+  await page.goBack();
+  await expect(page.locator('#edit')).toBeHidden();
+  // Close goes back to the list in the history too
+  await openNote(page, t + ' from');
+  await page.locator('#edit-links button', { hasText: t + ' to' }).click();
+  await page.locator('#edit button[value=close]').click();
+  await expect(page.locator('#edit')).toBeHidden();
+  await expect(page).not.toHaveURL(/#/);
 });
 
 test('today’s note: one per date, the same note on two phones', async ({ phone }) => {
@@ -92,7 +157,7 @@ test('a viewer reads but cannot add or edit', async ({ phone }) => {
   const { uid } = await signIn(page, 'viewer');
   await db.put(`spaces/${uid}/notes/${t}`, { title: t, body: 'read me', updatedAt: Date.now() });
   await expect(page.locator('#items')).toContainText(t);
-  await expect(page.locator('#add')).toBeHidden();
+  await expect(page.locator('#new')).toBeHidden();
   await expect(page.locator('#daily')).toBeHidden();
   await openNote(page, t);
   await expect(page.locator('#edit-body')).toHaveValue('read me');
@@ -103,9 +168,9 @@ test('a viewer reads but cannot add or edit', async ({ phone }) => {
 test('a role change reaches the page by itself (role doc v ahead of the token)', async ({ phone }) => {
   const page = await phone();
   const { uid } = await signIn(page, 'viewer');
-  await expect(page.locator('#add')).toBeHidden();
+  await expect(page.locator('#new')).toBeHidden();
   await db.put(`members/${uid}`, { role: 'member', v: 2 });
-  await expect(page.locator('#add')).toBeVisible();
+  await expect(page.locator('#new')).toBeVisible();
   await db.del(`members/${uid}`);
   await expect(page.locator('#no-access')).toBeVisible({ timeout: 15_000 });
 });
@@ -153,10 +218,10 @@ test('a role change during a token refresh still reaches the page', async ({ pho
   for (let v = 2; v < 10; v += 2) {
     await refresh();
     await db.put(`members/${uid}`, { role: 'member', v });
-    await expect(page.locator('#add')).toBeVisible();
+    await expect(page.locator('#new')).toBeVisible();
     await refresh();
     await db.put(`members/${uid}`, { role: 'viewer', v: v + 1 });
-    await expect(page.locator('#add')).toBeHidden();
+    await expect(page.locator('#new')).toBeHidden();
   }
 });
 

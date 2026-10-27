@@ -37,13 +37,13 @@ import { files } from '@core/files';
 import { settings } from '@core/settings';
 import * as register from 'app-update/register.js';
 import { firebaseConfig, APP } from './config.js';
-import { emulator, configured, roleOf, needsClaims } from './roles.js';
-import { OPTIONS, SETTINGS_COLL } from './options.js';
+import { emulator, configured, roleOf, needsClaims } from './shell/roles.js';
+import { OPTIONS, SETTINGS_COLL } from './settings/options.js';
 import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote } from './notes/model.js';
 import { renamePlan, linkIndex } from './notes/links.js';
-import { spacesOf, spacesApi, cachedSpaces } from './spaces.js';
+import { spacesOf, spacesApi, cachedSpaces } from './spaces/spaces.js';
 
-export { usingEmulator } from './roles.js';
+export { usingEmulator } from './shell/roles.js';
 export const COLL = 'notes';
 /** what the page says when the server refused a save at once (its copy waits in the refused list) */
 export const REFUSED = 'The server refused that. A copy is kept in the refused list.';
@@ -53,7 +53,7 @@ export const FILES = 'files';
 /** @typedef {import('@core/files').FileRecord & { item?: string, path?: string, _deleted?: boolean }} Attachment */
 /** @typedef {{ uid: string, email: string, name: string }} User */
 /** @typedef {'not-set-up' | 'signed-out' | 'no-access' | 'ready'} Phase */
-/** @typedef {import('./spaces.js').Space} Space */
+/** @typedef {import('./spaces/spaces.js').Space} Space */
 /** @typedef {{ id: string, name: string, role: 'owner' | 'edit' | 'view' }} OpenSpace  the vault: id = uid, name '', role owner */
 /** @typedef {{ phase: Phase, user?: User, role?: string, space?: OpenSpace, spaces?: Space[] }} State */
 

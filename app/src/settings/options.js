@@ -2,7 +2,10 @@
 // New options are off. A new app replaces these with its own.
 export const SETTINGS_COLL = 'settings';
 
-/** @type {Record<string, import('../public/settings/types').OptionSpec>} */
+/** a folder as typed -> as kept: no slashes at the ends, at most 200 characters @param {unknown} v */
+function folder(v) { return String(v ?? '').trim().replace(/^\/+|\/+$/g, '').slice(0, 200); }
+
+/** @type {Record<string, import('../../public/settings/types').OptionSpec>} */
 export const OPTIONS = {
   // this device only: a phone and a computer can differ
   bigRows: { scope: 'device', default: false },
@@ -12,9 +15,11 @@ export const OPTIONS = {
   sourceMode: { scope: 'device', default: false },
   lineNumbers: { scope: 'device', default: false },
   readableWidth: { scope: 'device', default: true },
-  // where today's note goes (a folder; none: the top)
-  dailyFolder: { scope: 'device', default: '', clean: v => String(v ?? '').trim().replace(/^\/+|\/+$/g, '').slice(0, 200) },
+  // where today's note and a new note go (a folder, such as Daily and Inbox; none: the top)
+  dailyFolder: { scope: 'device', default: '', clean: folder },
+  newFolder: { scope: 'device', default: '', clean: folder },
 };
 
-/** The options the Settings sheet has a switch for (index.html: #opt-<name>); dailyFolder is a text box. */
+/** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */
 export const SWITCHES = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'boolean');
+export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string');

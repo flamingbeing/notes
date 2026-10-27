@@ -3,14 +3,14 @@
 import { syncChip, updatePrompt, plural } from '@core/ui';
 import { themeSwitch } from '@core/theme';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
-import { $ } from './dom.js';
-import { screenSwitch } from './screen-switch.js';
+import { $ } from './shell/dom.js';
+import { screenSwitch } from './shell/screen-switch.js';
 import { signedOutScreen } from './screens/signed-out.js';
 import { noAccessScreen } from './screens/no-access.js';
 import { notSetUpScreen } from './screens/not-set-up.js';
 import { listScreen } from './screens/list.js';
-import { settingsSheet } from './settings-sheet.js';
-import { spacesSheet } from './spaces-sheet.js';
+import { settingsSheet } from './settings/settings-sheet.js';
+import { spacesSheet } from './spaces/spaces-sheet.js';
 
 const typing = () => document.activeElement?.tagName === 'INPUT' && !!(/** @type {HTMLInputElement} */ (document.activeElement).value);
 const sheetOpen = () => !!document.querySelector('dialog[open]');

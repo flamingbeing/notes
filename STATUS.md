@@ -11,10 +11,14 @@
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
   never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
   export, import back, clean up, as the test user (app-devkit 1.10.3 sends the Referer the web key needs).
+- Reorganised for daily use (decision 0014): slim top bar + list, folders and tags in a drawer, a note is a
+  full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
+  by feature under `app/src/`.
 
 ## Waiting on the owner
 
 - The live smoke test after deploy needs the owner's sign-in click.
+- Settings on each device: "Folder for new notes" = `Inbox`, "Folder for today's notes" = `Daily`.
 
 ## Next
 
@@ -22,6 +26,7 @@
 
 ## Decisions (dated)
 
+- 2026-10-27: a note is a full-screen page at `#/note/<id>`; folders and tags in a drawer; + is a draft (0014).
 - 2026-10-26: shared space docs are written only by the Worker; invites by Google email (decision 0010).
 - 2026-10-26: the editor is vendored CodeMirror 6, marked and DOMPurify, loaded on first note open (0011).
 - 2026-10-26: attachments are file records named by `![[name]]`; import never overwrites; moves keep files (0012).

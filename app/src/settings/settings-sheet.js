@@ -2,10 +2,10 @@
 // editor's options apply in note-sheet.js), a box for the daily note's folder, and the
 // settings file (export, import). A switch for an account option waits for sign-in.
 import { toaster } from '@core/ui';
-import { $, input, dialog } from './dom.js';
-import { SWITCHES } from './options.js';
+import { $, input, dialog } from '../shell/dom.js';
+import { SWITCHES, TEXTS } from './options.js';
 
-/** @param {{ settings: import('../public/settings/types').SettingsApi }} app  @param {() => boolean} signedIn */
+/** @param {{ settings: import('../../public/settings/types').SettingsApi }} app  @param {() => boolean} signedIn */
 export function settingsSheet(app, signedIn) {
   const { settings } = app;
   const sheet = dialog('settings');
@@ -25,7 +25,7 @@ export function settingsSheet(app, signedIn) {
       const box = input(`opt-${key}`);
       box.checked = !!settings.get(key);
     }
-    input('opt-dailyFolder').value = String(settings.get('dailyFolder') || '');
+    for (const key of TEXTS) input(`opt-${key}`).value = String(settings.get(key) || '');
     input('opt-itemCount').disabled = !signedIn();
     $('settings-note').hidden = signedIn();
   };
@@ -35,11 +35,13 @@ export function settingsSheet(app, signedIn) {
       catch (err) { msg.textContent = /** @type {Error} */ (err).message; draw(); }
     });
   }
-  input('opt-dailyFolder').addEventListener('change', async e => {
-    try { await settings.set('dailyFolder', /** @type {HTMLInputElement} */ (e.target).value); msg.textContent = ''; }
-    catch (err) { msg.textContent = /** @type {Error} */ (err).message; }
-    draw();
-  });
+  for (const key of TEXTS) {
+    input(`opt-${key}`).addEventListener('change', async e => {
+      try { await settings.set(key, /** @type {HTMLInputElement} */ (e.target).value); msg.textContent = ''; }
+      catch (err) { msg.textContent = /** @type {Error} */ (err).message; }
+      draw();
+    });
+  }
   settings.watch(null, () => { if (sheet.open) draw(); });
 
   $('open-settings').addEventListener('click', () => { msg.textContent = ''; draw(); sheet.showModal(); });
