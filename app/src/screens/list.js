@@ -13,6 +13,10 @@ import { picker } from './picker.js';
 import { transferSheet } from '../transfer/transfer-sheet.js';
 import { backupSheet } from '../transfer/backup-sheet.js';
 import { driveSheet } from '../drive/drive-sheet.js';
+import { binSheet } from '../bin/bin-sheet.js';
+import { bulkSheet } from '../bulk/bulk-sheet.js';
+import { shareSheet } from '../share/share-sheet.js';
+import { feedbackSheet } from '../feedback/feedback-sheet.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -130,6 +134,39 @@ export function listScreen(app) {
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
   const drive = driveSheet(app, msg => toast(msg), () => openSpace);
   $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); drive.open(); });
+  // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn)
+  const on = (/** @type {string} */ key) => !!app.settings.get(key);
+  /** @type {string | undefined} */ let role;
+  const bin = binSheet(app, msg => toast(msg), () => canWrite);
+  const bulk = bulkSheet(app, msg => toast(msg));
+  const share = shareSheet(app, msg => toast(msg), note => void page.open(note));
+  const feedback = feedbackSheet(app, msg => toast(msg), () => role === 'admin');
+  const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings')).close();
+  $('open-bin').addEventListener('click', () => { closeSettings(); bin.open(); });
+  $('open-feedback').addEventListener('click', () => { closeSettings(); feedback.open(); });
+  /** @type {Set<string>} */ const picked = new Set();
+  let selecting = false;
+  const modules = () => {
+    $('open-bin').hidden = !on('binScreen');
+    $('open-feedback').hidden = !on('feedbackOn');
+    $('select').hidden = !on('bulkEdit') || !canWrite;
+    if ($('select').hidden && selecting) setSelecting(false);
+  };
+  /** @param {boolean} v */
+  const setSelecting = v => {
+    selecting = v; picked.clear();
+    $('select').setAttribute('aria-pressed', String(v)); $('select').textContent = v ? 'Cancel' : 'Select';
+    $('bulk-bar').hidden = !v; countPicked(); draw(all, new Set());
+  };
+  const countPicked = () => {
+    $('bulk-count').textContent = `${picked.size} picked`;
+    /** @type {HTMLButtonElement} */ ($('bulk-edit')).disabled = !picked.size;
+  };
+  $('select').addEventListener('click', () => setSelecting(!selecting));
+  $('bulk-all').addEventListener('click', () => { for (const n of visible()) picked.add(n.id); countPicked(); draw(all, new Set()); });
+  $('bulk-edit').addEventListener('click', () => bulk.open(all.filter(n => picked.has(n.id)), () => setSelecting(false)));
+  app.settings.watch(null, modules);
+  let swept = false;
   const pick = picker({
     notes: app.notes, recent: page.recent, canWrite: () => canWrite,
     open: note => page.open(note), create: openTitle,
@@ -165,6 +202,8 @@ export function listScreen(app) {
     openSpace = s.space;
     // writing needs an app role that writes and, in a shared space, owner or edit there
     canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
+    role = s.role;
+    modules();
     $('new').hidden = !canWrite;
     $('daily').hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
@@ -183,13 +222,24 @@ export function listScreen(app) {
         p.className = 'path'; p.textContent = ` ${note.path}/`;
         b.append(p);
       }
-      b.addEventListener('click', () => void page.open(note));
+      if (selecting) b.setAttribute('aria-pressed', String(picked.has(note.id)));
+      b.addEventListener('click', () => {
+        if (!selecting) { void page.open(note); return; }
+        if (!picked.delete(note.id)) picked.add(note.id);
+        b.setAttribute('aria-pressed', String(picked.has(note.id))); li.classList.toggle('picked', picked.has(note.id)); countPicked();
+      });
+      li.classList.toggle('picked', selecting && picked.has(note.id));
       li.classList.toggle('changed', changed.has(note.id));
       li.append(b);
       return li;
     }));
     $('count').textContent = list.length === notes.length ? `${notes.length} ${notes.length === 1 ? 'note' : 'notes'}` : `${list.length} of ${notes.length} notes`;
     empty.show(notes.length === 0 && canWrite);
+    if (!swept && notes.length && canWrite) {   // once per page: a share that opened it, and the bin's 30-day purge
+      swept = true;
+      void share.check();
+      if (on('binScreen')) void bin.sweep();
+    }
     page.redraw();
     page.drawn();
   };

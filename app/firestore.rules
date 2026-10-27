@@ -156,6 +156,21 @@ service cloud.firestore {
       allow read: if mayRead(s);
       allow create, update: if mayWrite(s) && stamped()
         && request.resource.data.keys().hasOnly(['id', 'kind', 'data', 'deletedAt', 'updatedAt', 'serverAt']);
+      // restored or purged (the bin screen); the 30-day purge too
+      allow delete: if mayWrite(s);
+    }
+
+    // Feedback to the owner: anyone with a role writes one, only admins read, mark done or delete them.
+    match /feedback/{fid} {
+      allow create: if can('_', ['admin', 'member']) && fid == request.resource.data.id
+        && request.resource.data.keys().hasOnly(['id', 'text', 'uid', 'by', 'at', 'done'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000
+        && request.resource.data.by is string && request.resource.data.by.size() <= 200
+        && request.resource.data.at is number && request.resource.data.done == false;
+      allow read, delete: if can('_', ['admin']);
+      allow update: if can('_', ['admin']) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['done'])
+        && request.resource.data.done is bool;
     }
   }
 }

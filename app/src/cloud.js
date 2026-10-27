@@ -40,6 +40,8 @@ import { firebaseConfig, APP } from './config.js';
 import { emulator, configured, roleOf, needsClaims } from './shell/roles.js';
 import { OPTIONS, SETTINGS_COLL } from './settings/options.js';
 import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote } from './notes/model.js';
+import { forgetDrive } from '@core/drive';
+import { noteOf } from './bin/bin.js';
 import { renamePlan, linkIndex } from './notes/links.js';
 import { spacesOf, spacesApi, cachedSpaces } from './spaces/spaces.js';
 
@@ -111,6 +113,7 @@ const keepOpen = (uid, s) => { try { if (s === uid) localStorage.removeItem(OPEN
 // this device's own lists (switch of account, or "Forget this device")
 const forgetLists = async () => {
   try { for (const k of Object.keys(localStorage)) if (/^notes:(spaces|open):/.test(k)) localStorage.removeItem(k); } catch { /* storage off */ }
+  await forgetDrive();
 };
 /**
  * @typedef {object} Hooks
@@ -482,6 +485,48 @@ export async function start({ canReload = null }) {
       try { await api.move(space, note.id, to); } catch (e) { return /** @type {Error} */ (e).message; }
       await app.sync.hub.drop(space, COLL, [note.id]);
       return '';
+    },
+    // The bin: the notes deleted in the last 30 days (a delete writes the entry, onCommit). list -> entries (with docId);
+    // restore -> '' or why not (the note comes back with its own id; its entry goes); purge deletes entries for good
+    bin: {
+      /** @returns {Promise<{ docId: string, id: string, kind?: unknown, deletedAt: number, data?: any }[]>} */
+      async list() {
+        const { F, db } = await sdk();
+        return (await F.getDocs(F.collection(db, 'spaces', space, 'bin'))).docs.map(/** @param {any} d */ d => ({ ...d.data(), docId: d.id }));
+      },
+      /** @param {Record<string, any>} entry */
+      async restore(entry) {
+        const note = noteOf(entry, COLL);
+        if (!note) return 'That note can’t be restored.';
+        const why = await put(/** @type {Note} */ (note), null);
+        if (!why) await this.purge([entry]).catch(() => {});
+        return why;
+      },
+      /** @param {Record<string, any>[]} entries */
+      async purge(entries) {
+        const { F, db } = await sdk();
+        await Promise.all(entries.map(e => F.deleteDoc(F.doc(db, 'spaces', space, 'bin', e.docId))));
+      },
+    },
+    // Feedback: messages to the owner in feedback/{id} (any role writes one; admins list and mark them), not synced
+    feedback: {
+      /** @param {string} text */
+      async send(text) {
+        const { F, db } = await sdk(), user = app.auth.user();
+        if (!user) throw new Error('Sign in first.');
+        const fid = id();
+        await F.setDoc(F.doc(db, 'feedback', fid), { id: fid, text, uid: user.uid, by: user.email || '', at: Date.now(), done: false });
+      },
+      /** @returns {Promise<{ id: string, text: string, by: string, at: number, done: boolean }[]>} */
+      async list() {
+        const { F, db } = await sdk();
+        return (await F.getDocs(F.collection(db, 'feedback'))).docs.map(/** @param {any} d */ d => /** @type {{ id: string, text: string, by: string, at: number, done: boolean }} */ (d.data())).sort((/** @type {{ at: number }} */ a, /** @type {{ at: number }} */ b) => b.at - a.at);
+      },
+      /** @param {string} fid @param {boolean} done */
+      async setDone(fid, done) {
+        const { F, db } = await sdk();
+        await F.updateDoc(F.doc(db, 'feedback', fid), { done });
+      },
     },
     // admins: set someone's app role, or remove them (they lose access at once; their sessions end). -> '' or the reason
     members: {

@@ -1,0 +1,17 @@
+{
+  "module": "bin",
+  "about": "Bin screen: the notes deleted in the last 30 days, Restore and Delete forever, the 30-day purge. The delete already writes the note's last version to the bin (cloud.js onCommit); local here until a second kind of app wants it (pantry and hand are likely).",
+  "files": [
+    { "from": "app/src/bin/bin.js" },
+    { "from": "app/src/bin/bin-sheet.js" },
+    { "from": "app/test/bin.unit.test.mjs" }
+  ],
+  "options": { "binScreen": { "scope": "device", "default": false } },
+  "html": "the #bin dialog and #open-bin (Settings) in app/index.html; the switch #opt-binScreen",
+  "rules": "match /spaces/{s}/bin/{id}: allow delete: if mayWrite(s) (restore and purge)",
+  "needs": [
+    "cloud.js: an app.bin = { list, restore, purge } over the bin collection (copy it from notes), and noteOf's collection name",
+    "the app's rules: the delete line above, with a rules-test case"
+  ],
+  "docs": "Settings → Bin. Entries older than 30 days are purged when the list first draws and when the bin opens."
+}

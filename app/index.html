@@ -65,8 +65,14 @@
         <label for="space" class="sr-only">Space</label>
         <select id="space"></select>
         <button id="daily" type="button" hidden>Today</button>
+        <button id="select" type="button" hidden aria-pressed="false">Select</button>
         <button id="new" type="button" class="icon" aria-label="New note" hidden>+</button>
       </div>
+      <p id="bulk-bar" class="row small" hidden>
+        <span id="bulk-count">0 picked</span>
+        <button id="bulk-all" type="button" class="small">All shown</button>
+        <button id="bulk-edit" type="button" class="small" disabled>Change…</button>
+      </p>
       <div id="search" class="row top">
         <label for="q" class="sr-only">Search</label>
         <input id="q" type="search" autocomplete="off" placeholder="Search: word, &quot;phrase&quot;, -leave out, tag:work, path:folder">
@@ -120,6 +126,11 @@
     <h2 id="settings-title">Settings</h2>
     <p><label><input type="checkbox" id="opt-bigRows"> Larger list rows (this device)</label></p>
     <p><label><input type="checkbox" id="opt-itemCount"> Show how many items there are (every device)</label></p>
+    <h3>More (this device, each off until you turn it on)</h3>
+    <p><label><input type="checkbox" id="opt-binScreen"> Bin: bring back deleted notes</label></p>
+    <p><label><input type="checkbox" id="opt-bulkEdit"> Select many notes and change them together</label></p>
+    <p><label><input type="checkbox" id="opt-shareIn"> Receive shares from other apps (Android)</label></p>
+    <p><label><input type="checkbox" id="opt-feedbackOn"> Send feedback</label></p>
     <h3>Editor (this device)</h3>
     <p><label><input type="checkbox" id="opt-sourceMode"> Source mode: show the Markdown as written</label></p>
     <p><label><input type="checkbox" id="opt-lineNumbers"> Line numbers</label></p>
@@ -136,6 +147,7 @@
     <p id="settings-msg" class="small" role="status"></p>
     <div class="row"><button id="open-transfer" type="button">Import or export notes</button></div>
     <div class="row"><button id="open-drive" type="button">Google Drive</button></div>
+    <div class="row"><button id="open-bin" type="button" hidden>Bin</button><button id="open-feedback" type="button" hidden>Send feedback</button></div>
     <div class="row"><button id="settings-close" type="button">Close</button></div>
   </dialog>
 
@@ -218,6 +230,40 @@
     <div class="row"><button id="backup-go" type="button" hidden>Restore</button></div>
     <p id="backup-msg" class="small" role="status"></p>
     <div class="row"><button id="transfer-close" type="button">Close</button></div>
+  </dialog>
+
+  <dialog id="bin" aria-labelledby="bin-title">
+    <h2 id="bin-title">Bin</h2>
+    <ul id="bin-items" aria-label="Deleted notes"></ul>
+    <p id="bin-msg" class="small" role="status"></p>
+    <div class="row"><button id="bin-close" type="button">Close</button></div>
+  </dialog>
+
+  <dialog id="bulk" aria-labelledby="bulk-title">
+    <h2 id="bulk-title">Notes picked</h2>
+    <p><label for="bulk-tag">Add the tag</label> <input id="bulk-tag" maxlength="60" placeholder="work" autocomplete="off"> <button id="bulk-tag-go" type="button">Add tag</button></p>
+    <p><label for="bulk-folder">Move to the folder</label> <input id="bulk-folder" maxlength="200" placeholder="Inbox" autocomplete="off"> <button id="bulk-move-go" type="button">Move</button></p>
+    <p><label for="bulk-merge-title">Merge into one note called</label> <input id="bulk-merge-title" maxlength="200" placeholder="optional" autocomplete="off"> <button id="bulk-merge" type="button">Merge</button></p>
+    <p class="small">The merged notes’ originals go to the bin.</p>
+    <div class="row"><button id="bulk-delete" type="button">Delete them</button><button id="bulk-close" type="button">Close</button></div>
+  </dialog>
+
+  <dialog id="share" aria-labelledby="share-title">
+    <h2 id="share-title">Shared to Notes</h2>
+    <pre id="share-text" class="small"></pre>
+    <div class="row"><button id="share-new" type="button">Add as a new note</button></div>
+    <div class="row"><label for="share-note" class="sr-only">Note</label><select id="share-note"></select><button id="share-add" type="button">Add to this note</button></div>
+    <div class="row"><button id="share-cancel" type="button">Cancel</button></div>
+  </dialog>
+
+  <dialog id="feedback" aria-labelledby="feedback-title">
+    <h2 id="feedback-title">Feedback</h2>
+    <p><label for="feedback-text" class="small">Private to the owner</label></p>
+    <textarea id="feedback-text" rows="4" maxlength="2000"></textarea>
+    <div class="row"><button id="feedback-send" type="button">Send</button></div>
+    <div id="feedback-inbox" hidden><h3>Inbox</h3><ul id="feedback-items"></ul></div>
+    <p id="feedback-msg" class="small" role="status"></p>
+    <div class="row"><button id="feedback-close" type="button">Close</button></div>
   </dialog>
 
   <dialog id="drive" aria-labelledby="drive-title">

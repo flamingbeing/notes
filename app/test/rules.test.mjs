@@ -194,3 +194,31 @@ test('bin entries: writers stamp them in their vault; viewers only read; nobody 
   assert.equal((await as('admin').get('spaces/u-member/bin/notes:a')).ok, false, 'not someone else’s bin');
   assert.equal((await as('member').set('spaces/u-member/bin/notes:b', entry)).ok, false, 'unstamped');
 });
+
+test('bin entries can be deleted (restore, purge) by writers of that space, not viewers or others', async () => {
+  await emu.clear();
+  const entry = { id: 'a', kind: 'notes', data: { title: 'ok' }, deletedAt: 2, updatedAt: 2 };
+  await emu.seed('spaces/u-member/bin/notes:a', { ...entry, serverAt: 1 });
+  await emu.seed('spaces/u-viewer/bin/notes:a', { ...entry, serverAt: 1 });
+  assert.equal((await as('viewer').delete('spaces/u-viewer/bin/notes:a')).ok, false, 'a viewer');
+  assert.equal((await as('admin').delete('spaces/u-member/bin/notes:a')).ok, false, 'not someone else’s bin');
+  assert.equal((await as('member').delete('spaces/u-member/bin/notes:a')).ok, true);
+});
+
+test('feedback: members write their own message; only admins read, mark done, delete', async () => {
+  await emu.clear();
+  const msg = (uid, extra = {}) => ({ id: 'f1', text: 'Nice', uid, by: 'me@example.test', at: 5, done: false, ...extra });
+  assert.equal((await as('member').set('feedback/f1', msg('u-member'))).ok, true, 'member sends');
+  assert.equal((await as('viewer').set('feedback/f2', msg('u-viewer', { id: 'f2' }))).ok, false, 'a viewer cannot');
+  assert.equal((await as('member').set('feedback/f3', msg('u-member', { id: 'f3', uid: 'u-other' }))).ok, false, 'under someone else’s uid');
+  assert.equal((await as('member').set('feedback/f4', msg('u-member', { id: 'f4', text: '' }))).ok, false, 'empty');
+  assert.equal((await as('member').set('feedback/f5', msg('u-member', { id: 'f5', text: 'x'.repeat(2001) }))).ok, false, 'too long');
+  assert.equal((await as('member').set('feedback/f6', msg('u-member', { id: 'f6', done: true }))).ok, false, 'born done');
+  assert.equal((await as('member').set('feedback/f7', msg('u-member', { id: 'f7', extra: 1 }))).ok, false, 'a field not listed');
+  assert.equal((await as('member').get('feedback/f1')).ok, false, 'members do not read');
+  assert.equal((await as('admin').get('feedback/f1')).ok, true);
+  assert.equal((await as('admin').update('feedback/f1', msg('u-member', { done: true }))).ok, true, 'mark done (the kit writes the whole document; the app’s updateDoc sends only done)');
+  assert.equal((await as('admin').update('feedback/f1', msg('u-member', { text: 'changed' }))).ok, false, 'text stays');
+  assert.equal((await as('member').update('feedback/f1', msg('u-member', { done: true }))).ok, false);
+  assert.equal((await as('admin').delete('feedback/f1')).ok, true);
+});

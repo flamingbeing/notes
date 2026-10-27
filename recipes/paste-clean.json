@@ -1,0 +1,10 @@
+{
+  "module": "paste-clean",
+  "about": "Paste cleaner: rich text from web pages, Word, Docs and OneNote becomes light Markdown in the editor (its own HTML walker, no library). Already built into notes' editor; this records it as a recipe.",
+  "files": [
+    { "from": "app/src/notes/paste-clean.js" },
+    { "from": "app/test/paste-clean.unit.test.mjs" }
+  ],
+  "needs": ["editor/index.js: the paste handler that calls the cleaner (see notes)"],
+  "docs": "Paste into a note. Shift+paste keeps plain text."
+}

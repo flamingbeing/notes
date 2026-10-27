@@ -1,0 +1,17 @@
+{
+  "module": "share-in",
+  "about": "Android share target: text, links and files shared to the installed app arrive in a chooser (a new note, or added to a note). The service worker keeps the share in a cache; the page reads it once.",
+  "files": [
+    { "from": "app/src/share/share-in.js" },
+    { "from": "app/src/share/share-sheet.js" },
+    { "from": "app/test/share-feedback.unit.test.mjs" }
+  ],
+  "options": { "shareIn": { "scope": "device", "default": false } },
+  "html": "the #share dialog and the switch #opt-shareIn",
+  "needs": [
+    "app/public/manifest.webmanifest: share_target (POST ./share-in, multipart, title/text/url/files)",
+    "app/public/sw.js: the POST ./share-in fetch handler that fills the 'share-in' cache and redirects to ./?share=1; bump VERSION, then node tools/sw-files.mjs app",
+    "screens/list.js: shareSheet(...).check() once the notes are drawn"
+  ],
+  "docs": "Works in the installed app on Android only. A share while the option is off says so and keeps nothing."
+}
