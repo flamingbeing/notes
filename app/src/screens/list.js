@@ -1,9 +1,10 @@
-// The notes list (#list-view): every note in the person's vault under a slim bar (the space, Today, + for a new note)
-// and a search box (@core/search over title, body and tags, with tag: and path: operators). The drawer (#drawer, the
-// bar's ☰) shows one folder or tag, and holds Go to note and the space's Members and New space. A note opens on its
-// own page (note-page.js); the quick switcher and command palette (picker.js) reach notes and actions from the
-// keyboard. A save the server refused waits in the kit's refused list.
-import { refusedList, toaster, emptyState } from '@core/ui';
+// The notes list (#list-view, the kit's adaptive shell): every note in the person's vault in the list pane, with a search
+// box (@core/search over title, body and tags, with tag: and path: operators). Folders and tags are the side bar's
+// (tablet and laptop) and, on a phone, the Folders sheet's (#drawer): one folder or tag at a time. A note opens on its
+// own page (note-page.js): full screen on a phone, beside the list from 600 px. Hold or right-click a row for its menu;
+// Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
+// notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
+import { refusedList, toaster, emptyState, adaptiveShell } from '@core/ui';
 import { createSearch } from '@core/search';
 import { COLL } from '../cloud.js';
 import { isoDay } from '../notes/model.js';
@@ -33,7 +34,7 @@ export const hasTag = (n, t) => (n.tags || []).some(x => low(x) === bare(t) || l
 export const inFolder = (n, f) => low(n.path) === bare(f) || low(n.path).startsWith(bare(f) + '/');
 
 /** @param {import('../cloud.js').Started} app */
-export function listScreen(app) {
+export function listScreen(app, kit) {
   let canWrite = false;
   // search over the notes: kept current from each draw (only notes whose text changed are fed)
   const search = createSearch({
@@ -56,17 +57,19 @@ export function listScreen(app) {
   // the drawer's choice: '' (all notes), 'tag:<tag>' or 'path:<folder>'
   let shown = '';
   const drawer = dialog('drawer');
-  /** @param {string} value @param {string} label @param {number} count @param {number} [depth] */
-  const choice = (value, label, count, depth = 0) => {
+  const side = $('list-view').querySelector('.ui-sidebar');
+  /** @param {string} value @param {string} label @param {number} count @param {number} [depth] @param {boolean} [inSide]  the side bar's button, not the sheet's list item */
+  const choice = (value, label, count, depth = 0, inSide = false) => {
     const li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.dataset.filter = value;
+    if (inSide) b.className = 'ui-side-link';
     b.textContent = label;
     const n = document.createElement('span');
     n.className = 'n'; n.textContent = String(count);
     b.append(n);
     if (depth) b.style.setProperty('--depth', String(depth));
     li.append(b);
-    return li;
+    return inSide ? b : li;
   };
   // the drawer's folders (a tree, each with how many notes are in it or under it) and tags; a choice gone from the
   // space (its last note moved or deleted, another space opened) goes back to all notes
