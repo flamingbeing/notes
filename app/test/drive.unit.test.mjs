@@ -280,3 +280,12 @@ test('runSync: Drive asking to slow down stops the run and keeps what was done',
   const r2 = await runSync({ notes: many(40), space: 'Home', scope: 's', remote: driveRemote({ token: async () => 'good', fetch: drive.fetch }), store, merge: merge3 });
   assert.equal(r.written + r2.written, 40);
 });
+
+test('runSync: one failed ledger save does not stop the later saves', async () => {
+  const drive = fakeDrive(), real = memoryStore();
+  let first = true;
+  const store = { ...real, set: async (k, v) => { if (k.startsWith('ledger:') && first) { first = false; throw new Error('quota'); } return real.set(k, v); } };
+  const r = await runSync({ notes: many(8), space: 'Home', scope: 's', remote: driveRemote({ token: async () => 'good', fetch: drive.fetch }), store, merge: merge3 });
+  assert.equal(r.failed.length, 1);
+  assert.ok(Object.keys(await real.get('ledger:s')).length >= 7, 'the later saves went through');
+});

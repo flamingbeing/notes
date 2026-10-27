@@ -38,7 +38,8 @@ export const driveQuery = (name, { folder = false, parent = '' } = {}) =>
  *   token: the access token now; forget: drops a refused token so the next call asks again
  */
 export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) => fetch(...a) }) {
-  /** "Notes/Space" -> id (as a promise: notes synced side by side share one lookup), for this visit @type {Map<string, Promise<string>>} */
+  /** "Notes/Space" -> id (as a promise: notes synced side by side share one lookup; a lookup that may not make the folder
+   *  is not shared with one that must), for this visit @type {Map<string, { p: Promise<string | null>, make: boolean }>} */
   const folderIds = new Map();
   /** folder ids already checked this visit for being in the bin @type {Map<string, Promise<boolean>>} */
   const checked = new Map();
@@ -86,8 +87,8 @@ export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) 
   };
   /** the app's own top folder: the newest one that is not inside another of the app's folders @param {string} name */
   const rootFolder = name => {
-    const inside = new Set([...(index?.folders.values() || [])].map(f => f.id));
-    return [...(index?.folders.values() || [])].find(f => f.name === name && !(f.parents || []).some(p => inside.has(p)));
+    const all = [...(index?.folders.values() || [])], inside = new Set(all.map(f => f.id));
+    return all.find(f => f.name === name && !(f.parents || []).some(p => inside.has(p)));
   };
   /** the folder for a path, one level at a time from the app's own folder; made when asked to
    *  @param {string[]} dirs @param {boolean} make @returns {Promise<string | null>} */
@@ -95,13 +96,14 @@ export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) 
     let parent = '', key = '';
     for (const name of [FOLDER, ...dirs]) {
       key += (key ? '/' : '') + name;
-      let p = folderIds.get(key);
-      if (!p) {
-        const from = parent;
-        p = level(from, name, make).then(id => { if (!id) folderIds.delete(key); return /** @type {string} */ (id); }, e => { folderIds.delete(key); throw e; });
-        folderIds.set(key, p);
+      let entry = folderIds.get(key);
+      if (!entry || (make && !entry.make)) {
+        const mine = entry = { make, p: level(parent, name, make) };
+        const drop = () => { if (folderIds.get(key) === mine) folderIds.delete(key); };
+        mine.p.then(id => { if (!id) drop(); }, drop);
+        folderIds.set(key, mine);
       }
-      const id = await p;
+      const id = await entry.p;
       if (!id) return null;
       parent = id;
     }
@@ -139,7 +141,7 @@ export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) 
   return {
     /** list everything the app made in Drive (drive.file shows only that), newest first, in one paged call */
     async prime() {
-      const all = await findAll('trashed = false', `${LIST_FIELDS}`, 100000);
+      const all = await findAll('trashed = false', LIST_FIELDS, 100000);
       const next = { files: new Map(), folders: new Map() };
       for (const f of all) {
         const set = f.mimeType === FOLDER_TYPE ? next.folders : next.files;
@@ -149,7 +151,7 @@ export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) 
       index = next;
     },
     /** drop the list at the end of a run: it would be stale at the next one */
-    release() { index = null; checked.clear(); gone.clear(); moved.clear(); },
+    release() { index = null; folderIds.clear(); checked.clear(); gone.clear(); moved.clear(); },
     /** @param {string} path @returns {Promise<{ id: string, rev: string } | null | undefined>} */
     async stat(path) {
       if (!index) return undefined;
@@ -179,14 +181,17 @@ export function driveRemote({ token, forget = () => {}, fetch: doFetch = (...a) 
       }
       let parent = /** @type {string} */ (await folder(dirs, true));
       if (!(await stillThere(parent)) && !gone.has(parent)) {
-        gone.add(parent); folderIds.clear(); checked.clear(); index?.folders.clear();
+        gone.add(parent); folderIds.clear(); checked.clear();
+        if (index) for (const [k, f] of index.folders) if (f.id === parent) index.folders.delete(k);
       }
       if (gone.has(parent)) {
         parent = /** @type {string} */ (await folder(dirs, true));
       }
       // made by another device meanwhile: searched for only without the list (the list was taken a moment ago)
       if (!index && (await findAll(driveQuery(name, { parent }))).length) throw conflict();
-      return { rev: rev(await upload(DRIVE_UP, 'POST', { name, parents: [parent], mimeType: 'text/markdown' }, text)) };
+      const made = await upload(DRIVE_UP, 'POST', { name, parents: [parent], mimeType: 'text/markdown' }, text);
+      index?.files.set(slot(parent, name), { ...made, name, parents: [parent] });
+      return { rev: rev(made) };
     },
   };
 }

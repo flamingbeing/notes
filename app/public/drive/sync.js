@@ -40,7 +40,7 @@ export async function runSync({ notes, space, scope, remote, store, merge, onPro
 
   // ledger saves one after another: each writes the whole ledger as it is then
   let saving = Promise.resolve();
-  const save = () => (saving = saving.then(() => store.set(ledgerKey, ledger)));
+  const save = () => (saving = saving.catch(() => {}).then(() => store.set(ledgerKey, ledger)));
   const queue = [...todo];
   const worker = async () => {
     for (let note; !halted && (note = queue.shift());) {
@@ -62,7 +62,7 @@ export async function runSync({ notes, space, scope, remote, store, merge, onPro
   };
   try { await Promise.all(Array.from({ length: Math.min(SIDE_BY_SIDE, todo.length) }, worker)); }
   finally { remote.release?.(); }
-  await saving;
+  await saving.catch(() => {});
   return out;
 }
 
@@ -82,7 +82,7 @@ async function syncOne({ note, path, remote, store, merge, last, scope }) {
   const inner = note.body;
   const base = /** @type {string | undefined} */ (await store.get(baseKey));
   // Nobody touched the file since this device wrote it (same version in Drive's list, and the text this device wrote is
-  // kept): plan from that text and skip the download. The write still checks the version, and if it moved, reads again.
+  // kept): plan from that text and skip the download. A write checks the version first, and if it moved, reads again (a note that needs no write is left as it is).
   const seen = /** @type {string | undefined} */ (last?.rev ? await store.get(fileKey) : undefined);
   const hit = seen !== undefined && last?.rev ? await remote.stat?.(path) : undefined;
   let was = hit && hit.rev === last?.rev ? { text: /** @type {string} */ (seen), rev: hit.rev, id: hit.id } : undefined;
