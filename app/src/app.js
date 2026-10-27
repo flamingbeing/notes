@@ -12,7 +12,7 @@ import { settingsSheet } from './settings/settings-sheet.js';
 import { spacesSheet } from './spaces/spaces-sheet.js';
 
 const typing = () => document.activeElement?.tagName === 'INPUT' && !!(/** @type {HTMLInputElement} */ (document.activeElement).value);
-const sheetOpen = () => !!document.querySelector('dialog[open]');
+const sheetOpen = () => !!document.querySelector('dialog:modal');
 
 // app-update (the update module): a new version installs in the background; the reload waits while someone types, a
 // sheet is open or saves are unsent. (Off in the emulator tests unless ?sw is given.)

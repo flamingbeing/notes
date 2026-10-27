@@ -191,7 +191,8 @@ export function listScreen(app, kit) {
     const row = /** @type {HTMLElement} */ (e.target), { action } = /** @type {CustomEvent} */ (e).detail;
     const note = all.find(n => n.id === row.dataset.id);
     if (!note) return;
-    if (action === 'select') items.dispatchEvent(new CustomEvent('ui-edit', { detail: { row } }));
+    if (action === 'open') void page.open(note);
+    else if (action === 'select') items.dispatchEvent(new CustomEvent('ui-edit', { detail: { row } }));
     else if (action === 'delete' && canWrite && await confirmModal('Delete this note? It goes to the bin.', { title: 'Delete note', danger: true, yes: 'Delete' })) {
       await app.remove(note);
       toast('Deleted');
