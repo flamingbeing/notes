@@ -59,8 +59,8 @@ never put patient details in it. Made from [app-starter](https://github.com/flam
 3. `npm ci`, then the tests (README, "Tests"); all green before the first change.
 4. Replace the sample screen (`app/src/app.js`, `app/index.html`) with the app. Keep the wiring in `app/src/cloud.js`
    (one `createApp`, every save through the sync module) and the rules that bite in `AGENTS.md`.
-5. Before the first deploy, make the files bucket once: `npx wrangler r2 bucket create <name>-files` (the deploy fails
-   without it). An app with no files drops `@core/files` from `cloud.js` and the import map, and the `r2_buckets` line.
+5. An app with photos or files runs `node tools/add.mjs files`, then makes the bucket once before the first deploy:
+   `npx wrangler r2 bucket create <name>-files` (the recipe prints this as a NEEDS-YOU line; the deploy fails without it).
 6. After adding or removing a file the page loads: `node tools/sw-files.mjs app` (CI fails until the list is current).
 
 ## Fill (make it a new app)
@@ -141,6 +141,33 @@ fixture entries in `tsconfig.json`.
 4. **Offline:** `node tools/sw-files.mjs app` lists the file in `sw.js`'s SHELL (CI runs its `--check`).
 5. **Vite:** add `resolve.alias: { <name>: '<the vendored file>' }` to `vite.config.mjs` (an npm dependency of the same
    version works too); `tools/vite-outside-package.mjs` shows the build keeps it out of pages that do not import it.
+
+## Modules
+
+Optional parts come in and go out with one command each, so an app carries only what it uses:
+
+```bash
+node tools/add.mjs search                          # the template's recipe at the commit this app was made from
+node tools/add.mjs <owner/repo>@<tag|sha>:recipes/<module>.json   # a recipe from another repo (where the module was born)
+node tools/add.mjs --remove search                 # takes it out again; a file the app changed is kept and listed
+```
+
+The template ships two recipes: `files` (`@core/files`, the Worker route, rules and R2 binding; needs the bucket made
+once) and `search` (`@core/search`, operators `field:`, `"phrase"`, `-leave-out`, `OR`, with `insertOperator` and
+`usesOperators` for a "?" list). A recipe (`recipes/search.json`; its fields are listed at the top of `tools/add.mjs`) names the module's
+import map entries, vendored folders, files, tsconfig `paths` and `include`, Vite source alias, CSS custom
+properties, owner steps (printed as NEEDS-YOU lines) and notes. The glue goes into `app/src/modules.js`: one import and
+one slot per module (search fills the list's `listFilter` slot; `#list-tools` holds its box). Every edit is idempotent;
+re-adding from a newer source merges three-way into files the app changed. Afterwards `sw.js`'s list and the import
+map's CSP hash are regenerated, and `.starter.json` `"modules"` records where each module came from. CI's `full` and
+`full-vite` jobs add both recipes to a scratch copy and run the whole suite on it; the lean app is tested on its own.
+
+## Update from the template
+
+`node tools/update-from-starter.mjs --dry-run`, then without `--dry-run`: a three-way merge per file from the template
+commit in `.starter.json` (the app's values swapped in first; generated files regenerated), never a history rewrite.
+`--sync <x.y.z>` bumps app-sync alone; `--behind <n>` fails when the app is more than n commits behind. Details and
+the rest of the list: the app-starter new-app checklist, "Staying current with the template".
 
 ## Move an app onto 1.0
 
