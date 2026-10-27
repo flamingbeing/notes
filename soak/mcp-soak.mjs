@@ -7,6 +7,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 const root = path.resolve(import.meta.dirname, '..');
 const args = process.argv.slice(2);
 const rounds = Number(args.find(a => /^\d+$/.test(a)) || 5);
@@ -26,7 +27,7 @@ if (!fs.existsSync(path.join(root, 'mcp', 'node_modules'))) step('npm ci mcp', '
 for (let i = 1; i <= rounds; i++) {
   let all = true;
   for (const skew of [0, 3600e3, -3600e3, 25 * 3600e3]) {
-    all = step(`r${i} mcp tests skew=${skew / 3600e3}h`, process.execPath, ['--import', path.join(root, 'soak', 'skew.mjs'), '--test', ...fs.readdirSync(path.join(root, 'mcp', 'test')).filter(f => f.endsWith('.test.mjs')).map(f => path.join(root, 'mcp', 'test', f))], { SOAK_SKEW_MS: String(skew) }) && all;
+    all = step(`r${i} mcp tests skew=${skew / 3600e3}h`, process.execPath, ['--import', pathToFileURL(path.join(root, 'soak', 'skew.mjs')).href, '--test', ...fs.readdirSync(path.join(root, 'mcp', 'test')).filter(f => f.endsWith('.test.mjs')).map(f => path.join(root, 'mcp', 'test', f))], { SOAK_SKEW_MS: String(skew) }) && all;
   }
   if (!args.includes('--no-emulator')) all = step(`r${i} auth emulator`, 'npx', ['-y', 'firebase-tools@15.33.0', 'emulators:exec', '--only', 'auth', '--project', 'demo-notes', `node soak/mcp-emulator.mjs`], { SOAK_N: '20' }) && all;
   if (!args.includes('--no-real')) all = step(`r${i} real bogus refresh`, process.execPath, ['soak/mcp-real.mjs']) && all;
