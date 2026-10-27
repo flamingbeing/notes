@@ -173,3 +173,119 @@ test('paths: a new note with the same title does not take an existing note’s f
   assert.equal(next.get('zzz111'), 'S/Todo.md');
   assert.equal(next.get('aaa111'), 'S/Todo (aaa111).md');
 });
+
+// ---- speed: one list, no download when nothing moved in Drive, four notes at a time ----
+
+/** a fetch that counts what a run asks of Drive */
+const counting = drive => {
+  const seen = { lists: 0, downloads: 0, searches: 0, open: 0, mostOpen: 0 };
+  const fetch = async (url, init) => {
+    const u = new URL(String(url)), q = u.searchParams.get('q') || '';
+    if (u.pathname === '/drive/v3/files' && (init?.method || 'GET') === 'GET') { seen.lists++; if (q !== 'trashed = false') seen.searches++; }
+    if (u.searchParams.get('alt') === 'media') seen.downloads++;
+    seen.mostOpen = Math.max(seen.mostOpen, ++seen.open);
+    await new Promise(r => setTimeout(r, 1));   // so that notes side by side overlap
+    try { return await drive.fetch(url, init); } finally { seen.open--; }
+  };
+  return { seen, fetch };
+};
+const many = (n, tail = '') => Array.from({ length: n }, (_, i) => note(`n${i}`, `Note ${i}`, `text ${i}${tail}`, i % 2 ? 'Inbox' : ''));
+
+test('runSync: files are looked up from one list, not a search per note', async () => {
+  const drive = fakeDrive(), { seen, fetch } = counting(drive);
+  const remote = driveRemote({ token: async () => 'good', fetch });
+  const r = await runSync({ notes: many(40), space: 'Home', scope: 's', remote, store: memoryStore(), merge: merge3 });
+  assert.equal(r.written, 40);
+  assert.deepEqual([seen.lists, seen.searches, seen.downloads], [1, 0, 0]);
+  assert.ok(drive.calls.length <= 40 + 1 + 3 + 3, `calls: ${drive.calls.length}`);   // uploads + the list + a few folders and checks
+  assert.equal(drive.files.size, 40 + 3, 'Notes, Notes/Home, Notes/Home/Inbox and 40 files, no duplicate folders');
+  // a second device (no memory) finds the files from the list too and does not make duplicates
+  drive.calls.length = 0;
+  const other = driveRemote({ token: async () => 'good', fetch: drive.fetch });
+  const r2 = await runSync({ notes: many(40), space: 'Home', scope: 't', remote: other, store: memoryStore(), merge: merge3 });
+  assert.deepEqual([r2.written, r2.same, r2.failed.length], [0, 40, 0]);
+  assert.equal(drive.files.size, 43);
+});
+
+test('runSync: a note nobody touched in Drive is written without being downloaded; one that changed is read and merged', async () => {
+  const drive = fakeDrive(), { seen, fetch } = counting(drive);
+  const remote = driveRemote({ token: async () => 'good', fetch });
+  const store = memoryStore();
+  const run = notes => runSync({ notes, space: 'Home', scope: 's', remote, store, merge: merge3 });
+  await run([note('a', 'A', 'one\ntwo'), note('b', 'B', 'x\ny')]);
+  Object.assign(seen, { lists: 0, downloads: 0 });
+  drive.edit('B.md', drive.textOf('B.md').replace('y', 'y (Drive)'));
+  const r = await run([note('a', 'A', 'one\ntwo\nthree'), note('b', 'B', 'x0\nx\ny')]);
+  assert.deepEqual([r.written, r.merged, r.conflicts, r.failed.length], [2, 1, 0, 0]);
+  assert.equal(seen.downloads, 1, 'only B (edited in Drive) was downloaded');
+  assert.ok(extractBlock(drive.textOf('A.md')).inner.endsWith('three'));
+  assert.ok(extractBlock(drive.textOf('B.md')).inner.includes('y (Drive)') && drive.textOf('B.md').includes('x0'));
+  // the fast path keeps the person's text around the block
+  drive.edit('A.md', `# mine\n\n${drive.textOf('A.md')}\nbelow\n`);
+  await run([note('a', 'A', 'one\ntwo\nthree')]);   // same text: nothing to do
+  Object.assign(seen, { downloads: 0 });
+  await run([note('a', 'A', 'one\ntwo\nthree\nfour')]);
+  assert.equal(seen.downloads, 1, 'A changed in Drive after the last sync: read');
+  Object.assign(seen, { downloads: 0 });
+  await run([note('a', 'A', 'five')]);
+  assert.equal(seen.downloads, 0);
+  assert.ok(drive.textOf('A.md').startsWith('# mine') && drive.textOf('A.md').endsWith('below\n') && drive.textOf('A.md').includes('five'));
+});
+
+test('runSync: a file changed between the version check and the write falls back to read and merge', async () => {
+  const drive = fakeDrive();
+  const remote = driveRemote({ token: async () => 'good', fetch: drive.fetch });
+  const store = memoryStore();
+  await runSync({ notes: [note('a1', 'Doc', 'one')], space: 'Home', scope: 's', remote, store, merge: merge3 });
+  const real = remote.write;
+  let raced = false;
+  const racing = { ...remote, stat: remote.stat, prime: remote.prime, read: remote.read, release: remote.release,
+    write: async (...a) => { if (!raced) { raced = true; drive.edit('Doc.md', drive.textOf('Doc.md') + '\nadded elsewhere\n'); } return real(...a); } };
+  const r = await runSync({ notes: [note('a1', 'Doc', 'one\ntwo')], space: 'Home', scope: 's', remote: racing, store, merge: merge3 });
+  assert.equal(r.failed.length, 0);
+  assert.ok(raced && drive.textOf('Doc.md').includes('added elsewhere') && drive.textOf('Doc.md').includes('two'));
+});
+
+test('runSync: four notes at a time, the memory complete and the progress counted', async () => {
+  const drive = fakeDrive(), { seen, fetch } = counting(drive);
+  const remote = driveRemote({ token: async () => 'good', fetch });
+  const store = memoryStore();
+  const steps = [];
+  const r = await runSync({ notes: many(25), space: 'Home', scope: 's', remote, store, merge: merge3, onProgress: (d, of) => steps.push([d, of]) });
+  assert.equal(r.written, 25);
+  assert.ok(seen.mostOpen > 1 && seen.mostOpen <= 4, `most at once: ${seen.mostOpen}`);
+  assert.deepEqual(steps[0], [0, 25]);
+  assert.deepEqual(steps.at(-1), [25, 25]);
+  assert.deepEqual(steps.map(s => s[0]), Array.from({ length: 26 }, (_, i) => i));
+  assert.equal(Object.keys(await store.get('ledger:s')).length, 25, 'every note in the ledger');
+  const again = await runSync({ notes: many(25), space: 'Home', scope: 's', remote, store, merge: merge3 });
+  assert.deepEqual([again.written, again.same], [0, 0]);
+});
+
+test('runSync: Drive asking to slow down stops the run and keeps what was done', async () => {
+  const drive = fakeDrive();
+  let uploads = 0;
+  const fetch = async (url, init) => {
+    if (init?.method === 'POST' && String(url).includes('/upload/') && ++uploads > 6) return new Response('{"error":{"message":"rate"}}', { status: 429 });
+    return drive.fetch(url, init);
+  };
+  const remote = driveRemote({ token: async () => 'good', fetch });
+  const store = memoryStore();
+  const r = await runSync({ notes: many(40), space: 'Home', scope: 's', remote, store, merge: merge3 });
+  assert.match(r.stopped, /slow down/);
+  assert.ok(r.written >= 6 && r.written < 40, `written: ${r.written}`);
+  assert.ok(uploads < 6 + 4 + 4, `started after the limit: ${uploads}`);
+  assert.equal(Object.keys(await store.get('ledger:s')).length, r.written);
+  // the next tap carries on with the rest
+  const r2 = await runSync({ notes: many(40), space: 'Home', scope: 's', remote: driveRemote({ token: async () => 'good', fetch: drive.fetch }), store, merge: merge3 });
+  assert.equal(r.written + r2.written, 40);
+});
+
+test('runSync: one failed ledger save does not stop the later saves', async () => {
+  const drive = fakeDrive(), real = memoryStore();
+  let first = true;
+  const store = { ...real, set: async (k, v) => { if (k.startsWith('ledger:') && first) { first = false; throw new Error('quota'); } return real.set(k, v); } };
+  const r = await runSync({ notes: many(8), space: 'Home', scope: 's', remote: driveRemote({ token: async () => 'good', fetch: drive.fetch }), store, merge: merge3 });
+  assert.equal(r.failed.length, 1);
+  assert.ok(Object.keys(await real.get('ledger:s')).length >= 7, 'the later saves went through');
+});

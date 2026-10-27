@@ -9,7 +9,7 @@ export function fakeDrive() {
   const calls = [];
   let n = 0;
   const md5 = f => crypto.createHash('md5').update(f.text + '\0' + f.rev).digest('hex');
-  const view = f => ({ id: f.id, name: f.name, md5Checksum: md5(f), headRevisionId: String(f.rev), trashed: f.trashed });
+  const view = f => ({ id: f.id, name: f.name, mimeType: f.mimeType, parents: f.parents, md5Checksum: md5(f), headRevisionId: String(f.rev), trashed: f.trashed });
   const add = (name, mimeType, parents, text = '') => {
     const f = { id: `f${++n}`, name, mimeType, parents, text, trashed: false, rev: 1 };
     files.set(f.id, f);
@@ -19,6 +19,7 @@ export function fakeDrive() {
   const matches = (f, q) => {
     const name = /name = '((?:[^'\\]|\\.)*)'/.exec(q)?.[1].replace(/\\(.)/g, '$1');
     const parent = /'([^']+)' in parents/.exec(q)?.[1];
+    if (name === undefined) return !f.trashed;   // the whole list: trashed = false
     return f.name === name && !f.trashed && (!q.includes('google-apps.folder') || f.mimeType === 'application/vnd.google-apps.folder')
       && (!parent || f.parents.includes(parent));
   };
