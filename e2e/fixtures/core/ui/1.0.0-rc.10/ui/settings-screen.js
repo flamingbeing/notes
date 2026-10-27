@@ -6,10 +6,11 @@
 import { el, button, plural } from './dom.js';
 
 /**
- * @typedef {{ key: string, label: string, sub?: string, choices?: [unknown, string][], min?: number, max?: number,
- *   step?: number }} SettingRow  choices: [value, word] pairs (a picker); a boolean default is a switch; a number one a
- *   number field (min, max, step)
- * @typedef {{ title: string, rows?: SettingRow[], mount?: (host: HTMLElement) => (() => void) | void }} SettingSection
+ * @typedef {{ key: string, label: string, sub?: string, more?: string, choices?: [unknown, string][], min?: number,
+ *   max?: number, step?: number }} SettingRow  sub: one line of help; more: the rest, behind an ⓘ button; choices:
+ *   [value, word] pairs (a picker); a boolean default is a switch; a number one a number field (min, max, step)
+ * @typedef {{ title: string, rows?: SettingRow[], reset?: boolean, mount?: (host: HTMLElement) => (() => void) | void }} SettingSection
+ *   reset: adds "Reset this page", which puts this section's rows back to their defaults and offers Undo
  */
 
 /** @type {Readonly<Record<string, string>>} */
@@ -26,6 +27,10 @@ export const SETTINGS_WORDS = Object.freeze({
   imported: 'Imported',
   nothing: 'Nothing to change',
   left: 'left out',
+  moreInfo: 'More about this setting',
+  resetPage: 'Reset this page',
+  resetDone: 'Back to the defaults',
+  undo: 'Undo',
 });
 
 /**
@@ -44,7 +49,7 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
   const stops = [];
   let n = 0;
   const id = () => `ui-set-${++n}`;
-  const say = (/** @type {string} */ text, bad = false) => { status.textContent = text; status.classList.toggle('error', bad); };
+  const say = (/** @type {string} */ text, bad = false) => { status.replaceChildren(text); status.classList.toggle('error', bad); };
 
   /** @param {string} title @param {HTMLElement} body */
   function group(title, body) {
@@ -53,12 +58,23 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
     box.append(s);
     return s;
   }
-  /** @param {string} label @param {string | undefined} sub @param {HTMLElement} control */
-  function row(label, sub, control) {
+  /** @param {string} label @param {string | undefined} sub @param {HTMLElement} control @param {string} [more] */
+  function row(label, sub, control, more) {
     control.id ||= id();
     const main = el('label', { class: 'ui-row-main', for: control.id }, label);
     if (sub) main.append(el('span', { class: 'ui-row-sub' }, sub));
-    return el('li', { class: 'ui-row ui-setting' }, main, control);
+    const li = el('li', { class: 'ui-row ui-setting' }, main, control);
+    if (more) {
+      const detail = el('p', { class: 'ui-row-more small', id: id(), hidden: '' }, more);
+      const info = el('button', { type: 'button', class: 'ui-info', 'aria-label': `${words.moreInfo}: ${label}`, 'aria-expanded': 'false', 'aria-controls': detail.id }, 'ⓘ');
+      info.addEventListener('click', () => {
+        detail.hidden = !detail.hidden;
+        info.setAttribute('aria-expanded', String(!detail.hidden));
+      });
+      li.insertBefore(info, control);
+      li.append(detail);
+    }
+    return li;
   }
   /** a save; refused (a value its clean refuses, an account option while signed out): the control shows the value in force again
    * @param {string} key @param {unknown} value */
@@ -90,6 +106,28 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
     return { node: sw, show, now };
   }
 
+  /** "Reset this page": forgets the saved values of these options (back to the profile's or the default), then offers
+   * Undo, which saves the values they had. No "Are you sure?" (the kit's rule).
+   * @param {string[]} keys */
+  function resetRow(keys) {
+    const link = button(words.resetPage, async () => {
+      const before = keys.map(k => /** @type {const} */ ([k, settings.get(k)]));
+      const results = await Promise.allSettled(keys.map(k => settings.set(k, null)));
+      const failed = results.find(r => r.status === 'rejected');
+      const undo = button(words.undo, async () => {
+        const back = await Promise.allSettled(before.map(([k, v]) => settings.set(k, v)));
+        const bad = back.find(r => r.status === 'rejected');
+        if (bad) say(bad.reason instanceof Error ? bad.reason.message : String(bad.reason), true); else say('');
+      }, { class: 'ui-undo' });
+      // the offer goes with the next change to any option (a stale Undo would overwrite it)
+      const gone = settings.watch(null, () => { gone(); if (status.contains(undo)) say(''); });
+      if (failed) say(failed.reason instanceof Error ? failed.reason.message : String(failed.reason), true);
+      else { status.classList.remove('error'); status.replaceChildren(words.resetDone); }
+      status.append(' ', undo);
+    }, { class: 'ui-reset small' });
+    return el('p', { class: 'ui-settings-part' }, link);
+  }
+
   // the profile picker, when the app has profiles
   const profiles = settings.profiles();
   /** @type {(() => void) | null} */
@@ -116,10 +154,11 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
       const c = control(r);
       c.show(c.now);
       shows.set(r.key, c.show);
-      list.append(row(r.label, r.sub, c.node));
+      list.append(row(r.label, r.sub, c.node, r.more));
     }
     const g = group(s.title, list);
     if (!s.rows?.length) list.remove();
+    if (s.reset && s.rows?.length) g.append(resetRow(s.rows.map(r => r.key)));
     if (s.mount) {
       const part = el('div', { class: 'ui-settings-part' });
       g.append(part);
