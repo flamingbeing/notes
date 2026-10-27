@@ -33,7 +33,7 @@ The code is your Notes sign-in's refresh token with the project id; it is shown 
 
 ## Install
 
-**Claude Desktop (easiest):** download **[notes.mcpb](https://github.com/flamingbeing/notes/releases/download/notes-mcp/notes.mcpb)**, open it (or drag it onto Settings → Extensions) and Install. The first time you ask about your notes a browser window opens to sign in with Google; once the page says you are signed in, ask again. To update, download and open the file again (the `notes-mcp` release is rebuilt by `.github/workflows/notes-mcpb.yml`).
+**Claude Desktop (easiest):** download **[notes.mcpb](https://github.com/flamingbeing/notes/releases/download/notes-mcp/notes.mcpb)**, open it (or drag it onto Settings → Extensions) and Install. Then sign in once from a clone (below): `node server.mjs login` and paste the code from Notes (Settings → Advanced → Connect MCP). The extension reads the same token file, so restart Claude Desktop and ask about your notes. (With a Google client in `config.mjs`, a browser sign-in opens instead.) To update, download and open the file again (the `notes-mcp` release is rebuilt by `.github/workflows/notes-mcpb.yml`).
 
 **Claude Code or Codex CLI:** [Node.js](https://nodejs.org) 20.19 or later and git. Once:
 

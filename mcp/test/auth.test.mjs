@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { readToken, writeToken, deleteToken, makeSession, refreshIdToken, requestClaims, pkce, authUrl, login, NotSignedInError, NoAccessError } from '../lib/auth.mjs';
+import { readToken, writeToken, deleteToken, makeSession, refreshIdToken, requestClaims, pkce, authUrl, login, NotSignedInError, NoAccessError, KEY_REFERER } from '../lib/auth.mjs';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'notes-mcp-test-'));
 const file = path.join(dir, 'sub', 'token.json');
@@ -27,6 +27,9 @@ test('refresh token exchange', async () => {
   assert.deepEqual(await refreshIdToken({ fetch, apiKey: 'KEY', refreshToken: 'R1' }), { idToken: 'ID', refreshToken: 'R2', expiresIn: 3600 });
   assert.equal(calls[0].url, 'https://securetoken.googleapis.com/v1/token?key=KEY');
   assert.equal(new URLSearchParams(calls[0].init.body).get('grant_type'), 'refresh_token');
+  // the API key is limited to the app's site: without a referer Google answers 403
+  assert.equal(calls[0].init.headers.Referer, KEY_REFERER);
+  assert.match(KEY_REFERER, /^https:\/\/[^/]+\/$/);
 });
 
 test('session: caches, rotates the refresh token, forces, and asks /api/claims when the token has no role', async () => {

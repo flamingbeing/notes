@@ -9,6 +9,11 @@ import http from 'node:http';
 import crypto from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { decodeCode } from '../../app/src/mcp/code.js';
+import { APP } from '../../app/src/config.js';
+
+// The app's Firebase API key only accepts requests from the app's own site, so calls with the key name it as the referer
+// (Node sends none, which Google answers with 403 "Requests from referer <empty> are blocked").
+export const KEY_REFERER = `https://${APP.host}/`;
 
 export class NotSignedInError extends Error {}
 // signed in, but the app has no role for this account: signing in again would not help
@@ -41,6 +46,7 @@ export function deleteToken(file = defaultTokenFile()) {
 // ---- Firebase token refresh ----
 
 async function postJson(fetch, url, init, what) {
+  if (/[?&]key=/.test(url)) init = { ...init, headers: { ...(init.headers || {}), Referer: KEY_REFERER } };
   const res = await fetch(url, init);
   const body = await res.json().catch(() => ({}));
   if (!res.ok) {
