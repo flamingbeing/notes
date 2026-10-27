@@ -22,6 +22,21 @@ async function routeSync(context, served) {
   });
 }
 
+// The page loads its modules live from core.anawj.com (the import map). One failed fetch there (a 5xx, a reset) leaves the
+// app unbooted, which the tests see as #signed-out staying hidden (3 of 68 phone tests on notes#33, nothing in the code
+// changed). So a failed fetch is tried again; after that the page's own request goes out as it would have.
+async function routeCoreRetry(context) {
+  await context.route(/^https:\/\/core\.anawj\.com\//, async route => {
+    for (let i = 0; i < 3; i++) {
+      let response = null;
+      try { response = await route.fetch({ timeout: 8_000 }); } catch { /* retry */ }
+      if (response && response.status() < 500) return route.fulfill({ response }).catch(() => {});   // closed page: nothing to serve
+      await new Promise(r => setTimeout(r, 300 * (i + 1)));
+    }
+    await route.continue().catch(() => {});
+  });
+}
+
 export const test = base.extend({
   // a new phone: its own browser context; CSP reports collected for the check after the test
   phone: async ({ browser }, use) => {
@@ -33,7 +48,8 @@ export const test = base.extend({
         addEventListener('securitypolicyviolation', e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
       });
       const served = { n: 0, built: 0 };
-      if (SYNC_DIR) await routeSync(context, served);
+      await routeCoreRetry(context);
+      if (SYNC_DIR) await routeSync(context, served);   // registered later: wins over the retry route
       // APP_DIR (a Vite build, e2e/serve.mjs): count the built bundle's loads, so the run proves it tested dist/
       if (process.env.APP_DIR) context.on('request', r => { if (/\/app\/assets\/[^/]+\.js$/.test(r.url())) served.built++; });
       const page = await context.newPage();
