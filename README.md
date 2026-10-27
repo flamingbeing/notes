@@ -48,6 +48,10 @@ never put patient details in it. Made from [app-starter](https://github.com/flam
   other actions pinned by SHA, `permissions: contents: read` by default, gitleaks, grouped Dependabot, `ubuntu-24.04`.
 - **Decisions** in [docs/decisions/](docs/decisions/), numbered; a reversed one is marked superseded, never deleted.
 
+- **MCP connector** (`mcp/`, [decision 0016](docs/decisions/0016-mcp-connector-signs-in-as-the-user.md)): lets Claude
+  Desktop or Claude Code list, search, read, create, append to, overwrite and delete (to the bin) your own notes,
+  signed in as you under the same rules. See [mcp/README.md](mcp/README.md).
+
 ## Start an app
 
 1. On GitHub, "Use this template" (never a fork), then clone the new repo.

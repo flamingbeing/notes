@@ -1,4 +1,4 @@
-# 0016: Drive copy through the existing Google sign-in
+# 0017: Drive copy through the existing Google sign-in
 
 **Decision.** Notes to Google Drive asks the `drive.file` permission by popup from the Firebase Google sign-in
 (`reauthenticateWithPopup` with the scope added, the same account only) and calls the Drive REST API with `fetch`. No
