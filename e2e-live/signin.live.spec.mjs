@@ -31,7 +31,7 @@ async function openDetails(page) {
 // Removes every smoke note in the list (its files first, then the note itself, to the bin).
 /** @param {import('@playwright/test').Page} page */
 async function removeSmokeNotes(page) {
-  const left = page.locator('#items li button', { hasText: PREFIX });
+  const left = page.locator('#items .ui-row', { hasText: PREFIX });
   for (let n = await left.count(); n > 0; n = await left.count()) {
     await left.first().click();
     await expect(page.locator('#edit')).toBeVisible();
@@ -58,8 +58,10 @@ test('the test user signs in on the live site; a note with a picture exports, im
   await expect(page.locator('#signed-out')).toBeVisible();
   await signInViaApi(page, { apiKey: firebaseConfig.apiKey, authDomain: firebaseConfig.authDomain, email, password });
   await page.reload();
-  await expect(page.locator('#who')).toHaveText(email);
   await expect(page.locator('#list-view')).toBeVisible({ timeout: 30_000 });   // a member sees the list
+  await page.click('#open-settings');   // who is signed in sits in the Settings sheet
+  await expect(page.locator('#who')).toHaveText(email);
+  await page.click('#settings-close');
   await expect.poll(() => page.evaluate(() => window.starter.ready), { timeout: 30_000 }).toBe(true);
   await removeSmokeNotes(page);
 
@@ -71,7 +73,7 @@ test('the test user signs in on the live site; a note with a picture exports, im
     await page.fill('#edit-text', title);
     await page.locator('#edit button[value=close]').click();
     await expect(page.locator('#items')).toContainText(title);
-    await page.locator('#items li button', { hasText: title }).first().click();
+    await page.locator('#items .ui-row', { hasText: title }).first().click();
     await expect(page.locator('#edit')).toBeVisible();
     await page.setInputFiles('#edit-attach-input', PNG);
     await expect(page.locator('#edit-files li')).toHaveCount(1);
