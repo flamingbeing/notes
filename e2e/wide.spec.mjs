@@ -28,6 +28,10 @@ test('a laptop gets the side bar and the note beside the list; a phone gets the 
   await openNote(page, b);
   await expect(page.locator('#edit-text')).toHaveValue(b);
 
+  // Esc closes the page though it is not modal
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#edit')).toBeHidden();
+
   // the side bar's search and Settings work without the tab bar
   await page.fill('#q-w', a);
   await expect(page.locator('#items .ui-row', { hasText: b })).toHaveCount(0);

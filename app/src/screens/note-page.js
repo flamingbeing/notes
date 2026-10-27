@@ -296,6 +296,16 @@ export function notePage(app, toast, canWrite, onShow) {
     if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); }
   });
   sheet.addEventListener('cancel', e => { if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); } });
+  // (beside the list the page is not modal, and the browser only closes a modal dialog on Esc)
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !sheet.open || sheet.matches(':modal')) return;
+    // (a box outside the page keeps its own Esc, and a sheet over the page takes it first)
+    if (!sheet.contains(/** @type {Node} */ (e.target)) && /** @type {Element} */ (e.target).closest?.('input, textarea, select')) return;
+    if (document.querySelector('dialog:modal')) return;
+    const cancel = new Event('cancel', { cancelable: true });
+    sheet.dispatchEvent(cancel);
+    if (!cancel.defaultPrevented) sheet.close();
+  });
   sheet.addEventListener('close', async () => {
     const turn = shown;
     stopLive?.(); stopLive = null;
