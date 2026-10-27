@@ -1,4 +1,4 @@
-# 0016: Backup is a module that only adds; spreadsheets carry a Data column; Excel is SheetJS, loaded on demand
+# 0017: Backup is a module that only adds; spreadsheets carry a Data column; Excel is SheetJS, loaded on demand
 
 Status: accepted (2026-10-27)
 

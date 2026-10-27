@@ -31,6 +31,12 @@ Test list (what each part is proved by):
   and name rules (`app/test/vault.unit.test.mjs`, `attach.unit.test.mjs`); the Worker's move with files, unstored or
   missing files, and the race (`worker/test/spaces.test.mjs`); the Vite check keeps fflate lazy and external.
 
+## MCP connector (decision 0016)
+
+`mcp/`: stdio server, tests `cd mcp && npm test`. Auth in `lib/auth.mjs`, Firestore REST in `lib/firestore.mjs`, note
+shapes from `app/src/notes`. Overwrite/delete need `confirm: true`; delete writes the bin entry in the same commit.
+The `.mcpb` is built by `mcp/tools/build-mcpb.mjs` (workflow `notes-mcpb.yml`).
+
 ## Later
 
 - Orphaned attachments (a deleted note's files stay until removed or the space is deleted); embedding another note (`![[note]]`) shows a link, not its text.
@@ -139,7 +145,7 @@ text changed). Nothing is saved, so there is no format to migrate.
   newest first (`newest(record)`, default `updatedAt`).
 - Later: a `toJSON`/`loadJSON` cache of the index (rebuild at start is cheap below ~10k records).
 
-## Backup and spreadsheets (`@core/backup`, decision 0016)
+## Backup and spreadsheets (`@core/backup`, decision 0017)
 
 - `app/public/backup/`: `buildBackup`, `planRestore` / `describePlan` / `restore` (add-only, waits for the server copy),
   `.json.gz` (`gzip.js`), CSV and Excel from shared rows (`rows.js`). Unit tests: `app/test/backup.unit.test.mjs`
