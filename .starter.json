@@ -12,8 +12,8 @@
   "modules": {
     "files": "flamingbeing/app-starter@8315b24:recipes/files.json",
     "search": "flamingbeing/app-starter@8315b24:recipes/search.json",
-    "backup": "recipes/backup.json",
-    "drive": "recipes/drive.json"
+    "backup": "flamingbeing/app-starter@8315b24:recipes/backup.json",
+    "drive": "flamingbeing/app-starter@8315b24:recipes/drive.json"
   },
   "update": {
     "ignore": [
