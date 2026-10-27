@@ -138,3 +138,12 @@ text changed). Nothing is saved, so there is no format to migrate.
   in `unknown` for a "did you mean" line. A query with no words (only filters, phrases or leave-outs) lists matches
   newest first (`newest(record)`, default `updatedAt`).
 - Later: a `toJSON`/`loadJSON` cache of the index (rebuild at start is cheap below ~10k records).
+
+## Google Drive copy (`@core/drive`, decision 0016)
+
+Settings → Google Drive → Allow, then Sync now: one Markdown file per note in `Notes/<space>/<folder>/<title>.md` in the
+person's Drive. Scope `drive.file` only, asked by popup from the Google sign-in; Drive by `fetch`. The app owns the
+`<!-- notes:start -->` block in each file; text around it is kept and edits inside it are merged (3-way, by line) at the
+next sync. Only changed notes are sent; nothing is deleted in Drive. Tests: `app/test/drive.unit.test.mjs` and
+`e2e/drive.spec.mjs` against `app/test/fake-drive.mjs`; the live Drive is checked by hand with the owner's account after a
+change (the Drive API must be enabled for the Firebase project). `recipes/drive.json` lists the files to copy into another app.

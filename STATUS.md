@@ -15,6 +15,8 @@
   full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
   by feature under `app/src/`.
 
+- Google Drive copy (decision 0016): Settings → Google Drive; tested against a fake Drive, live check pending.
+
 ## Waiting on the owner
 
 - The live smoke test after deploy needs the owner's sign-in click.

@@ -18,8 +18,10 @@ export const OPTIONS = {
   // where today's note and a new note go (a folder, such as Daily and Inbox; none: the top)
   dailyFolder: { scope: 'device', default: '', clean: folder },
   newFolder: { scope: 'device', default: '', clean: folder },
+  // Google Drive copy (@core/drive): off until set up from the Drive sheet, never from the settings sheet's switches
+  driveOn: { scope: 'device', default: false },
 };
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */
-export const SWITCHES = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'boolean');
+export const SWITCHES = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'boolean' && k !== 'driveOn');
 export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string');
