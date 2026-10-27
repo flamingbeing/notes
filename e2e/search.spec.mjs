@@ -4,8 +4,19 @@
 import { test, expect, signIn, add, uniq } from './fixtures.mjs';
 import AxeBuilder from './axe.mjs';
 
-// the add form clears itself a moment after the note shows; wait for that before the next one
-const addOne = async (page, text) => { await add(page, text); await expect(page.locator('.toast', { hasText: 'Added' })).toBeVisible(); };
+// the add form clears itself a moment after the note shows; wait for that before the next one. A toast lasts 4 s and an
+// earlier add can still have its own on screen, so wait for a new "Added" toast to be put on the page (watched from before
+// the add) instead of looking for one afterwards, when it may be gone or there may be two.
+const addOne = async (page, text) => {
+  const toasted = page.evaluate(() => new Promise(done => {
+    const watch = new MutationObserver(records => {
+      if (records.some(r => [...r.addedNodes].some(n => n instanceof Element && n.matches('.toast') && /Added/.test(n.textContent || '')))) { watch.disconnect(); done(true); }
+    });
+    watch.observe(document.body, { childList: true, subtree: true });
+  }));
+  await add(page, text);
+  expect(await toasted).toBe(true);
+};
 const shown = page => page.locator('#items li button').allTextContents();
 
 test('the search box narrows the list, with phrase, leave-out, operators and a hint', async ({ phone }) => {
