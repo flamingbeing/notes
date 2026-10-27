@@ -167,7 +167,7 @@ map's CSP hash are regenerated, and `.starter.json` `"modules"` records where ea
 `node tools/update-from-starter.mjs --dry-run`, then without `--dry-run`: a three-way merge per file from the template
 commit in `.starter.json` (the app's values swapped in first; generated files regenerated), never a history rewrite.
 `--sync <x.y.z>` bumps app-sync alone; `--behind <n>` fails when the app is more than n commits behind. Details and
-the rest of the list: [new-app checklist](docs/new-app-checklist.md), "Staying current with the template".
+the rest of the list: the app-starter new-app checklist, "Staying current with the template".
 
 ## Move an app onto 1.0
 
