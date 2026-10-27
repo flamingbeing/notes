@@ -21,6 +21,13 @@ const PREFIX = 'Live smoke';
 const PNG = path.resolve('e2e/fixtures/vault/Ideas/img/sprout.png');   // a made-up picture
 const SPROUT = /!\[\[sprout[^\]]*\]\]/;
 
+// The note page's Details panel, opened
+/** @param {import('@playwright/test').Page} page */
+async function openDetails(page) {
+  const more = page.locator('#edit-more');
+  if (!await more.evaluate(d => /** @type {HTMLDetailsElement} */ (d).open)) await more.locator('summary').click();
+}
+
 // Removes every smoke note in the list (its files first, then the note itself, to the bin).
 /** @param {import('@playwright/test').Page} page */
 async function removeSmokeNotes(page) {
@@ -28,6 +35,7 @@ async function removeSmokeNotes(page) {
   for (let n = await left.count(); n > 0; n = await left.count()) {
     await left.first().click();
     await expect(page.locator('#edit')).toBeVisible();
+    await openDetails(page);   // the attachments sit in the Details panel
     const files = page.locator('#edit-files li');
     for (let f = await files.count(); f > 0; f = await files.count()) {
       await files.first().getByRole('button', { name: 'Remove', exact: true }).click();
@@ -57,8 +65,13 @@ test('the test user signs in on the live site; a note with a picture exports, im
 
   const title = `${PREFIX} ${Date.now().toString(36)}`;
   await test.step('a new note with a picture', async () => {
-    await page.fill('#new-text', title);
-    await page.click('#add button[type=submit]');
+    // + opens a draft; it becomes a note when it is saved (closed with a title), then it is opened again for the picture
+    await page.click('#new');
+    await expect(page.locator('#edit')).toBeVisible();
+    await page.fill('#edit-text', title);
+    await page.locator('#edit button[value=close]').click();
+    await expect(page.locator('#items')).toContainText(title);
+    await page.locator('#items li button', { hasText: title }).first().click();
     await expect(page.locator('#edit')).toBeVisible();
     await page.setInputFiles('#edit-attach-input', PNG);
     await expect(page.locator('#edit-files li')).toHaveCount(1);
