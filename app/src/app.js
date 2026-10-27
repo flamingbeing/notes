@@ -1,9 +1,8 @@
-// The page's shell: the theme, the kit's sync chip and update prompt, the account footer, and the screen switch. The
+// The page's shell: the kit's gestures, sync chip and update prompt, Settings (with the account), and the screen switch. The
 // screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
-import { syncChip, updatePrompt, plural } from '@core/ui';
-import { themeSwitch } from '@core/theme';
+import { syncChip, updatePrompt, plural, startGestures } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
-import { $ } from './shell/dom.js';
+import { $, dialog } from './shell/dom.js';
 import { screenSwitch } from './shell/screen-switch.js';
 import { signedOutScreen } from './screens/signed-out.js';
 import { noAccessScreen } from './screens/no-access.js';
@@ -13,13 +12,14 @@ import { settingsSheet } from './settings/settings-sheet.js';
 import { spacesSheet } from './spaces/spaces-sheet.js';
 
 const typing = () => document.activeElement?.tagName === 'INPUT' && !!(/** @type {HTMLInputElement} */ (document.activeElement).value);
-const sheetOpen = () => !!document.querySelector('dialog[open]');
+const sheetOpen = () => !!document.querySelector('dialog:modal');
 
 // app-update (the update module): a new version installs in the background; the reload waits while someone types, a
 // sheet is open or saves are unsent. (Off in the emulator tests unless ?sw is given.)
 const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchParams(location.search).has('sw'));
 
-themeSwitch($('theme-switch'));
+// the kit's parts that need script: hold menus, sheets, select mode, large title, tab bar (the adaptive shell is the list's)
+const kit = startGestures();
 // for the tests: add(title, body?) -> '' or why the save was refused
 window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files, members: () => app?.members };
 const app = await start({ canReload: withSW ? () => !typing() && !sheetOpen() : null });
@@ -34,11 +34,11 @@ else {
     const state = st.state === 'saving' ? 'pending' : st.state;
     fn(state === 'synced' && st.unsent > 0 ? { state: 'pending', count: st.unsent } : { state, count: st.count });
   });
-  syncChip($('sync-chip'), { sync: /** @type {any} */ ({ status$: chipStatus$ }) });   // (the chip reads only status$)
+  // (the chip reads only status$) in the phone's bar and, where there is no bar, at the foot of the side bar
+  for (const id of ['sync-chip', 'sync-chip-w']) syncChip($(id), { sync: /** @type {any} */ ({ status$: chipStatus$ }) });
   chipStatus$(st => { window.starter.status = st.state; });
-  let signedIn = false;
-  settingsSheet(app, () => signedIn);
-  const list = listScreen(app);
+  settingsSheet(app);
+  const list = listScreen(app, kit);
   const spaces = spacesSheet(app, list.toast);
   const show = screenSwitch({
     'signed-out': signedOutScreen(app, { onForget: ok => { if (ok) $('sign-out-msg').textContent = ''; } }),
@@ -47,6 +47,7 @@ else {
     ready: list,
   });
   $('sign-out').addEventListener('click', async () => {
+    dialog('settings').close();
     const unsent = await app.signOut();
     $('sign-out-msg').textContent = unsent
       ? `Signed out. ${plural(unsent, 'unsent change')} kept on this device; they send when you sign in again.`
@@ -55,9 +56,7 @@ else {
   app.follow({
     onState(s) {
       $('who').textContent = s.user ? s.user.email : '';
-      $('sign-out').hidden = !s.user;
-      $('open-settings').hidden = !s.user;
-      signedIn = !!s.user;
+      for (const id of ['open-settings', 'open-settings-w']) $(id).hidden = !s.user;
       if (s.phase === 'ready') spaces.draw(s);
       if (s.user) $('sign-out-msg').textContent = '';
       show(s);

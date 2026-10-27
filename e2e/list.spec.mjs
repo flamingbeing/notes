@@ -35,7 +35,7 @@ test('a member adds, edits and deletes; the delete lands in the bin', async ({ p
   const saved = (await serverNotes()).find(n => n.data.title === t);
   expect(saved.path).toBe(`spaces/${uid}/notes/${saved.path.split('/').pop()}`);
   expect(saved.data).toMatchObject({ path: 'work/ideas', tags: ['idea'] });
-  await expect(page.locator('#items li', { hasText: t })).toContainText('work/ideas/');
+  await expect(page.locator('#items .ui-row', { hasText: t })).toContainText('work/ideas/');
 
   await openNote(page, t);
   await page.click('#edit-delete');
@@ -58,8 +58,8 @@ test('the drawer shows one tag or folder; search knows tag: and path:', async ({
       await page.click('#edit-save');
     }
   }
-  await expect(page.locator('#items li')).toHaveCount(3);
-  const shown = () => page.locator('#items li button').allTextContents();
+  await expect(page.locator('#items .ui-row')).toHaveCount(3);
+  const shown = () => page.locator('#items .ui-row').allTextContents();
   await showOnly(page, 'tag:red');
   await expect(page.locator('#filter-name')).toHaveText('#red');
   await expect.poll(async () => (await shown()).map(x => x.split(' ').slice(1, 2)[0]).sort()).toEqual(['one', 'three']);
@@ -89,18 +89,18 @@ test('a new note: + opens an empty page in the folder for new notes; nothing typ
   await page.locator('#edit button[value=close]').click();
   await expect(page.locator('#edit')).toBeHidden();
   await synced(page);
-  await expect(page.locator('#items li')).toHaveCount(0);
+  await expect(page.locator('#items .ui-row')).toHaveCount(0);
 
   // text but no title: "Untitled", in Inbox
   await page.click('#new');
   await fillBody(page, 'just a thought');
   await page.locator('#edit button[value=close]').click();
-  await expect(page.locator('#items li', { hasText: 'Untitled' })).toContainText('Inbox/');
+  await expect(page.locator('#items .ui-row', { hasText: 'Untitled' })).toContainText('Inbox/');
   await serverHas('just a thought', { body: true });
   await page.click('#new');
   await fillBody(page, 'another');
   await page.locator('#edit button[value=close]').click();
-  await expect(page.locator('#items li', { hasText: 'Untitled 2' })).toHaveCount(1);
+  await expect(page.locator('#items .ui-row', { hasText: 'Untitled 2' })).toHaveCount(1);
 });
 
 test('each note opened is a step back: Back goes to the note before, then the list; a reload opens the note again', async ({ phone }) => {

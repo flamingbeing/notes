@@ -1,6 +1,6 @@
 // The 1.0 engine features the starter shows: sign-out keeps this device's data, forget wipes it, refused saves wait
 // in a list, the note sheet follows its note live (watchDoc), the list marks what changed, and "Check for updates".
-import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, uniq, db, notePathOf, APP } from './fixtures.mjs';
+import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, uniq, db, notePathOf, APP , openSettings } from './fixtures.mjs';
 
 const kept = page => page.evaluate(async () => {
   let n = 0;
@@ -26,6 +26,7 @@ test('sign-out keeps the phone’s data and unsent saves; the same account carri
   const t = uniq('kept');
   await page.context().setOffline(true);
   await add(page, t);
+  await openSettings(page);
   await page.click('#sign-out');
   await expect(page.locator('#signed-out')).toBeVisible();
   await expect(page.locator('#sign-out-msg')).toContainText('kept on this device');
@@ -43,6 +44,7 @@ test('forget this device: refused while unsent, then wipes the phone', async ({ 
   await synced(page);
   await page.context().setOffline(true);
   await add(page, uniq('unsent'));
+  await openSettings(page);
   await page.click('#sign-out');
   await page.click('#forget');
   await expect(page.locator('#forget-msg')).toContainText('not sent yet');
@@ -74,7 +76,7 @@ test('the note sheet follows its note: a change elsewhere shows, a delete elsewh
   // the watch says what changed: note every note marked so
   await b.evaluate(() => {
     const seen = window.changedSeen = /** @type {string[]} */ ([]);
-    new MutationObserver(() => document.querySelectorAll('#items li.changed').forEach(li => seen.push(li.textContent || '')))
+    new MutationObserver(() => document.querySelectorAll('#items .ui-row.changed').forEach(li => seen.push(li.textContent || '')))
       .observe(document.getElementById('items'), { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
   });
   await add(a, t);

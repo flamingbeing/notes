@@ -1,16 +1,13 @@
 /* The screens' layout; colours, type and the kit parts' look come from theme/theme.css and ui/ui.css. */
-body { margin: 0 auto; max-width: 40rem; padding: 0 var(--pad) 2rem; }
 .bar { display: flex; align-items: center; gap: var(--pad); }
 .bar h1 { margin-inline-end: auto; }
 h1 { font-size: 1.4rem; }
 button.icon { min-width: 2.75rem; font-size: 1.2rem; line-height: 1; }
 input { padding: .5rem; flex: 1; min-width: 10rem; }
-#items { list-style: none; padding: 0; }
-#items li button { width: 100%; text-align: left; margin: .25rem 0; }
 footer { margin-top: 2rem; }
 
 /* a note changed (here or on another device) since the list last showed */
-#items li.changed button { border-inline-start: 3px solid var(--accent); }
+#items .ui-row.changed { box-shadow: inset 3px 0 var(--accent); }
 
 /* a note's folder on the list; its links and backlinks in the sheet (a link to no note yet is dashed) */
 #items .path { opacity: .7; font-size: .85em; }
@@ -27,7 +24,7 @@ footer { margin-top: 2rem; }
 #edit.dropping { outline: 2px dashed currentColor; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the sample options (src/options.js) */
-#items.big li button { padding: 1rem .75rem; font-size: 1.15rem; }
+#items.big .ui-row { padding-block: 1rem; font-size: 1.15rem; }
 #settings label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
 #settings label.file { display: inline-block; padding: .5rem .75rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; }
 #settings label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -37,6 +34,11 @@ footer { margin-top: 2rem; }
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
   box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--bg); }
 #edit.page::backdrop { background: var(--bg); }
+/* from 600 px the page is not modal: it sits over the detail pane, the side bar and the list stay usable */
+@media (min-width: 600px) {
+  #edit.page[open] { position: fixed; inset: 0 0 0 calc(var(--shell-side) + var(--shell-list)); width: auto; height: 100dvh; z-index: 5;
+    border-inline-start: var(--border) solid var(--line); }
+}
 #edit-form { max-width: 44rem; margin: 0 auto; }
 #edit.wide #edit-form { max-width: none; }
 .page-bar { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: .5rem 0; align-items: center; }
@@ -93,18 +95,23 @@ footer { margin-top: 2rem; }
 #search input { min-width: 0; }
 #filter-chip { align-items: center; gap: .5rem; }
 
-/* the drawer (☰): one folder or tag at a time, a folder's own folders indented under it */
-#drawer.drawer { margin: 0 auto 0 0; height: 100%; max-height: none; width: min(20rem, 85vw); border-radius: 0; box-sizing: border-box; overflow-y: auto; }
-.nav { list-style: none; padding: 0; margin: 0; }
-.nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
-.nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
-.nav .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
-#drawer h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+/* the folder and tag lists: in the Folders sheet (phone) and the side bar (tablet, laptop); a folder's own folders indented under it */
+.side-head, #drawer h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+.side-nav, #drawer .nav { display: flex; flex-direction: column; gap: 2px; }
+.ui-side-link { padding-inline-start: calc(var(--pad) + var(--depth, 0) * 1rem); }
+#drawer .nav { list-style: none; padding: 0; margin: 0; }
+#drawer .nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
+#drawer .nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
+.n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
+.side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--pad); }
+.bar-end { display: flex; align-items: center; gap: var(--gap); }
+.space-bar { padding: 0 var(--pad); }
+#plain { max-width: 40rem; margin: 0 auto; padding: 0 var(--pad) 2rem; }
 .people { list-style: none; padding: 0; }
 .people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
 .people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
 
 /* bulk edit: a picked row */
-#items li.picked button { outline: 2px solid currentColor; outline-offset: -2px; }
+#items .ui-row.picked { outline: 2px solid currentColor; outline-offset: -2px; }
 #bin-items li, #feedback-items li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 #share-text { white-space: pre-wrap; max-height: 12rem; overflow: auto; }

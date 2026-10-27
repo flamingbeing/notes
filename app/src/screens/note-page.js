@@ -1,4 +1,4 @@
-// The note page (#edit, a dialog over the whole screen): a note's title and text, and under Details its folder, the
+// The note page (#edit, a dialog: over the whole screen on a phone, beside the list from 600 px): a note's title and text, and under Details its folder, the
 // notes it links to (a missing one is made on a click), the notes linking to it (backlinks), its files and Move. Each
 // note opened is a step in the browser's history (#/note/<id>): Back goes to the note before, then to the list, and a
 // reload opens the note again. A new note (+) opens empty and is made by the first title or text typed (untitled:
@@ -36,8 +36,9 @@ const AUTO = { title: false, say: false };
  * @param {import('../cloud.js').Started} app
  * @param {(message: string) => unknown} toast  a short note (the kit's toaster)
  * @param {() => boolean} canWrite  false: the sheet only shows the note (a viewer)
+ * @param {(note: Note) => void} [onShow]  a note is on the page (the list marks its row)
  */
-export function notePage(app, toast, canWrite) {
+export function notePage(app, toast, canWrite, onShow) {
   const sheet = dialog('edit');
   const { settings } = app;
   /** @type {Note | null} the note as last saved or opened (the base of its next save) */
@@ -295,6 +296,16 @@ export function notePage(app, toast, canWrite) {
     if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); }
   });
   sheet.addEventListener('cancel', e => { if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); } });
+  // (beside the list the page is not modal, and the browser only closes a modal dialog on Esc)
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape' || e.defaultPrevented || !sheet.open || sheet.matches(':modal')) return;
+    // (a box outside the page keeps its own Esc, and a sheet over the page takes it first)
+    if (!sheet.contains(/** @type {Node} */ (e.target)) && /** @type {Element} */ (e.target).closest?.('input, textarea, select')) return;
+    if (document.querySelector('dialog:modal')) return;
+    const cancel = new Event('cancel', { cancelable: true });
+    sheet.dispatchEvent(cancel);
+    if (!cancel.defaultPrevented) sheet.close();
+  });
   sheet.addEventListener('close', async () => {
     const turn = shown;
     stopLive?.(); stopLive = null;
@@ -424,7 +435,9 @@ export function notePage(app, toast, canWrite) {
     redraw();
     redrawFiles();
     setReading(!rw);
-    if (!sheet.open) sheet.showModal();
+    // beside the list (not over it) from 600 px: the list stays in reach, so it is not modal there
+    if (!sheet.open) { if (matchMedia('(min-width: 600px)').matches) sheet.show(); else sheet.showModal(); }
+    onShow?.(note);
     if (drafts.has(note)) input('edit-text').focus();
     void load().then(() => { if (editing?.id === note.id) { ed?.setReadOnly(!canWrite()); ed?.set(area().value); setReading(reading || !canWrite()); } });
   };

@@ -46,8 +46,13 @@ The `.mcpb` is built by `mcp/tools/build-mcpb.mjs` (workflow `notes-mcpb.yml`).
 
 ## Screens and layout (decision 0014)
 
-- List: a slim top bar (space, Today, +, search) and the list. ☰ opens the drawer: All notes, the folder tree and tags
-  with counts (picking one shows only those, with a "Showing … / Show all" chip), Go to, Members, New space.
+- Shell (app-ui kit, `docs/ui-kit.md`): `#list-view` is the kit's `.ui-shell`. A phone gets the large-title bar, the list
+  and a tab bar (Notes, Folders, Settings); Folders opens the sheet with All notes, the folder tree and tags with counts
+  (picking one shows only those, with a "Showing … / Show all" chip), Go to, Members, New space. From 600 px a side bar
+  holds the same choices plus search, the list sits beside it and a note opens in the detail pane (`#edit` is then
+  non-modal, `.show()`, over the pane; a phone still uses `showModal()`). Rows are `.ui-row` with a hold menu
+  (`#row-menu`); Select is the kit's select mode. Look A is the default; look, theme, density and Solid are in Settings
+  (`themeSwitch`), which is a sheet, so Sign out is in it too. e2e: `e2e/wide.spec.mjs` resizes one phone to a laptop.
 - A note opens as a full-screen page (the `#edit` dialog) at `#/note/<id>`; each note opened from a link is one step
   of Back, and Close goes back to the list. Folder, links, backlinks, files and Move sit in a "Details" panel (its
   open state kept on the device). Delete stays outside it.

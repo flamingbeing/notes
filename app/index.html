@@ -39,118 +39,156 @@
   <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/theme/theme.css">
   <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/ui.css">
   <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/theme/glass.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/gestures.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/shell/shell.css">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="src/app.js"></script>
 </head>
 <body>
-  <header class="bar">
-    <button id="drawer-open" type="button" class="icon" aria-label="Folders and tags" aria-haspopup="dialog" aria-controls="drawer" hidden>☰</button>
-    <h1>Notes</h1>
-    <span id="sync-chip"></span>
-  </header>
-  <main>
+  <main id="plain">
     <section id="signed-out" hidden>
+      <h1>Notes</h1>
       <p>Sign in to see the list.</p>
       <div id="sign-in-sheet" class="sheet"></div>
     </section>
     <section id="no-access" hidden>
+      <h1>Notes</h1>
       <p>This account has no access yet. Ask an admin to add it.</p>
       <p class="small">Account id: <code id="uid"></code></p>
     </section>
     <section id="not-set-up" hidden>
+      <h1>Notes</h1>
       <p>This app isn't connected to its Firebase project yet (see README, "Fill").</p>
     </section>
-    <section id="list-view" hidden>
-      <div class="row top" id="space-bar">
-        <label for="space" class="sr-only">Space</label>
-        <select id="space"></select>
-        <button id="daily" type="button" hidden>Today</button>
-        <button id="select" type="button" hidden aria-pressed="false">Select</button>
-        <button id="new" type="button" class="icon" aria-label="New note" hidden>+</button>
-      </div>
-      <p id="bulk-bar" class="row small" hidden>
-        <span id="bulk-count">0 picked</span>
-        <button id="bulk-all" type="button" class="small">All shown</button>
-        <button id="bulk-edit" type="button" class="small" disabled>Change…</button>
-      </p>
-      <div id="search" class="row top">
-        <label for="q" class="sr-only">Search</label>
-        <input id="q" type="search" autocomplete="off" placeholder="Search: word, &quot;phrase&quot;, -leave out, tag:work, path:folder">
-      </div>
-      <p id="search-msg" class="small" role="status"></p>
-      <div id="refused-list"></div>
-      <p id="edit-msg" class="small" role="status"></p>
-      <p id="filter-chip" class="row small" hidden>
-        <span>Showing <strong id="filter-name"></strong></span>
-        <button id="filter-clear" type="button" class="small">Show all</button>
-      </p>
-      <p id="count" class="small" role="status" hidden></p>
-      <ul id="items" aria-label="Notes"></ul>
-      <div id="empty"></div>
-    </section>
-  </main>
-  <footer>
-    <span id="who"></span>
-    <button id="open-settings" type="button" hidden>Settings</button>
-    <button id="sign-out" type="button" hidden>Sign out</button>
-    <p id="sign-out-msg" class="error" role="alert"></p>
     <div id="update-prompt"></div>
-    <div id="theme-switch"></div>
-  </footer>
+    <p id="sign-out-msg" class="error" role="alert"></p>
+  </main>
+
+  <!-- The kit's adaptive shell (@core/ui, docs/ui-kit.md): a phone gets the bar and tab bar and one pane at a time (a note
+       opens full screen); a tablet or laptop gets the side bar, the list, and the note beside it. -->
+  <div id="list-view" class="ui-shell" hidden>
+    <header class="ui-bar">
+      <span data-bar-lead></span>
+      <h2 class="ui-bar-title" aria-hidden="true">Notes</h2>
+      <span class="bar-end">
+        <span id="sync-chip"></span>
+        <button id="daily" type="button" hidden>Today</button>
+        <button id="select" type="button" data-edit-for="#items" hidden>Select</button>
+        <button id="new" type="button" class="ui-primary" hidden>New</button>
+      </span>
+    </header>
+
+    <nav class="ui-sidebar" aria-label="Notes">
+      <p class="ui-sidebar-name">Notes</p>
+      <label class="ui-search"><span class="sr-only">Search</span>
+        <input id="q-w" type="search" autocomplete="off" placeholder="Search" aria-keyshortcuts="Control+K Meta+K"><kbd>Ctrl K</kbd></label>
+      <button type="button" class="ui-side-link" data-filter="" aria-current="page">All notes <span class="n" id="count-side"></span></button>
+      <button type="button" class="ui-side-link" data-go-to aria-keyshortcuts="Control+O Meta+O">Go to note</button>
+      <div id="side-folders-box" hidden>
+        <h3 class="side-head">Folders</h3>
+        <div id="side-folders" class="side-nav"></div>
+      </div>
+      <div id="side-tags-box" hidden>
+        <h3 class="side-head">Tags</h3>
+        <div id="side-tags" class="side-nav"></div>
+      </div>
+      <div class="side-foot">
+        <span id="sync-chip-w"></span>
+        <button type="button" class="ui-side-link" data-space-open hidden>Members</button>
+        <button type="button" class="ui-side-link" data-space-new hidden>New space</button>
+        <button id="open-settings-w" type="button" class="ui-side-link" hidden>Settings</button>
+      </div>
+    </nav>
+
+    <main class="ui-screens ui-panes">
+      <section class="ui-screen ui-pane-list" id="home" aria-labelledby="home-title">
+        <h1 class="ui-large-title" id="home-title">Notes</h1>
+        <div class="ui-pane-head">
+          <h2 class="ui-pane-title">Notes</h2>
+          <button id="daily-w" type="button" hidden>Today</button>
+          <button type="button" data-edit-for="#items" id="select-w" hidden>Select</button>
+          <button id="new-w" type="button" class="ui-primary" hidden>New</button>
+        </div>
+        <div class="ui-action-bar" data-select-toolbar="#items" hidden>
+          <span data-select-count="#items">Select items</span>
+          <button type="button" data-select-all="#items">Select all</button>
+          <button id="bulk-edit" type="button" data-needs="1">Change…</button>
+        </div>
+        <div id="space-bar" class="space-bar">
+          <label for="space" class="sr-only">Space</label>
+          <select id="space"></select>
+        </div>
+        <label class="ui-search ui-phone-search"><span class="sr-only">Search</span>
+          <input id="q" type="search" autocomplete="off" placeholder="Search: word, &quot;phrase&quot;, -leave out, tag:work, path:folder"></label>
+        <p id="search-msg" class="small pad" role="status"></p>
+        <div id="refused-list"></div>
+        <p id="edit-msg" class="small pad" role="status"></p>
+        <p id="filter-chip" class="row small pad" hidden>
+          <span>Showing <strong id="filter-name"></strong></span>
+          <button id="filter-clear" type="button" class="small">Show all</button>
+        </p>
+        <p id="count" class="small pad" role="status" hidden></p>
+        <ul id="items" class="ui-list" data-select aria-label="Notes"></ul>
+        <div id="empty"></div>
+      </section>
+
+      <section class="ui-screen ui-pane-detail" id="detail" aria-labelledby="detail-title" hidden>
+        <div class="ui-detail-one">
+          <h2 class="ui-large-title" id="detail-title">Pick a note</h2>
+          <p class="small">Pick a note from the list, or start a new one.</p>
+        </div>
+        <div class="ui-detail-multi" hidden>
+          <h2 class="ui-large-title" data-multi-count>2 selected</h2>
+          <p class="small" data-multi-names></p>
+        </div>
+      </section>
+    </main>
+
+    <nav class="ui-tabbar" data-minimise aria-label="Sections">
+      <button type="button" class="ui-tab" aria-current="page" id="tab-notes">Notes</button>
+      <button id="drawer-open" type="button" class="ui-tab" aria-haspopup="dialog" aria-controls="drawer">Folders</button>
+      <button id="open-settings" type="button" class="ui-tab" aria-haspopup="dialog" aria-controls="settings" hidden>Settings</button>
+    </nav>
+  </div>
 
   <div id="toasts"></div>
+  <template id="row-menu"></template>
 
-  <dialog id="drawer" class="drawer" aria-labelledby="drawer-title">
-    <h2 id="drawer-title">Folders and tags</h2>
-    <ul class="nav" aria-label="Show">
-      <li><button type="button" data-filter="">All notes</button></li>
-    </ul>
-    <div id="drawer-folders-box" hidden>
-      <h3>Folders</h3>
-      <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
+  <dialog id="drawer" class="ui-sheet" data-detents="medium large" aria-labelledby="drawer-title">
+    <div class="ui-sheet-grabber" aria-label="Expand or collapse"></div>
+    <div class="ui-sheet-head">
+      <h2 id="drawer-title">Folders and tags</h2>
+      <button id="drawer-close" type="button" data-close>Done</button>
     </div>
-    <div id="drawer-tags-box" hidden>
-      <h3>Tags</h3>
-      <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
+    <div class="ui-sheet-body">
+      <ul class="nav" aria-label="Show">
+        <li><button type="button" data-filter="">All notes</button></li>
+      </ul>
+      <div id="drawer-folders-box" hidden>
+        <h3>Folders</h3>
+        <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
+      </div>
+      <div id="drawer-tags-box" hidden>
+        <h3>Tags</h3>
+        <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
+      </div>
+      <h3>Go</h3>
+      <div class="row">
+        <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
+        <button id="space-open" type="button" hidden>Members</button>
+        <button id="space-new" type="button" hidden>New space</button>
+      </div>
     </div>
-    <h3>Go</h3>
-    <div class="row">
-      <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
-      <button id="space-open" type="button" hidden>Members</button>
-      <button id="space-new" type="button" hidden>New space</button>
-    </div>
-    <div class="row"><button id="drawer-close" type="button">Close</button></div>
   </dialog>
 
-  <dialog id="settings" aria-labelledby="settings-title">
-    <h2 id="settings-title">Settings</h2>
-    <p><label><input type="checkbox" id="opt-bigRows"> Larger list rows (this device)</label></p>
-    <p><label><input type="checkbox" id="opt-itemCount"> Show how many items there are (every device)</label></p>
-    <h3>More (this device, each off until you turn it on)</h3>
-    <p><label><input type="checkbox" id="opt-binScreen"> Bin: bring back deleted notes</label></p>
-    <p><label><input type="checkbox" id="opt-bulkEdit"> Select many notes and change them together</label></p>
-    <p><label><input type="checkbox" id="opt-shareIn"> Receive shares from other apps (Android)</label></p>
-    <p><label><input type="checkbox" id="opt-feedbackOn"> Send feedback</label></p>
-    <h3>Advanced (this device, off until you turn it on)</h3>
-    <p><label><input type="checkbox" id="opt-mcpOn"> Connect Claude to my notes (MCP)</label></p>
-    <h3>Editor (this device)</h3>
-    <p><label><input type="checkbox" id="opt-sourceMode"> Source mode: show the Markdown as written</label></p>
-    <p><label><input type="checkbox" id="opt-lineNumbers"> Line numbers</label></p>
-    <p><label><input type="checkbox" id="opt-readableWidth"> Readable line width</label></p>
-    <p><label for="opt-newFolder">Folder for new notes</label>
-      <input id="opt-newFolder" maxlength="200" placeholder="none, such as Inbox" autocomplete="off"></p>
-    <p><label for="opt-dailyFolder">Folder for today’s note</label>
-      <input id="opt-dailyFolder" maxlength="200" placeholder="none, such as Daily" autocomplete="off"></p>
-    <p id="settings-note" class="small">Sign in to change the options that follow your account.</p>
-    <div class="row">
-      <button id="settings-export" type="button">Export settings</button>
-      <label class="file">Import settings <input id="settings-import" type="file" accept="application/json,.json"></label>
+  <!-- Settings (the kit's settingsScreen, filled in settings/settings-sheet.js): a side panel from 840 px -->
+  <dialog id="settings" class="ui-sheet" data-detents="medium large" data-wide="panel" aria-labelledby="settings-title">
+    <div class="ui-sheet-grabber" aria-label="Expand or collapse"></div>
+    <div class="ui-sheet-head">
+      <h2 id="settings-title">Settings</h2>
+      <button id="settings-close" type="button" data-close>Done</button>
     </div>
-    <p id="settings-msg" class="small" role="status"></p>
-    <div class="row"><button id="open-transfer" type="button">Import or export notes</button></div>
-    <div class="row"><button id="open-drive" type="button">Google Drive</button></div>
-    <div class="row"><button id="open-bin" type="button" hidden>Bin</button><button id="open-feedback" type="button" hidden>Send feedback</button><button id="open-mcp" type="button" hidden>Connect MCP</button></div>
-    <div class="row"><button id="settings-close" type="button">Close</button></div>
+    <div class="ui-sheet-body" id="settings-body"></div>
   </dialog>
 
   <dialog id="edit" class="page" aria-labelledby="edit-title">

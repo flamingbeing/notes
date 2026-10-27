@@ -182,6 +182,8 @@ const SHELL = [
   'https://core.anawj.com/ui/1.0.0-rc.10/theme/theme.css',
   'https://core.anawj.com/ui/1.0.0-rc.10/ui/ui.css',
   'https://core.anawj.com/ui/1.0.0-rc.10/theme/glass.css',
+  'https://core.anawj.com/ui/1.0.0-rc.10/ui/gestures.css',
+  'https://core.anawj.com/ui/1.0.0-rc.10/ui/shell/shell.css',
   'https://core.anawj.com/ui/1.0.0-rc.10/theme/early.js',
 ];
 const MANIFEST = {};

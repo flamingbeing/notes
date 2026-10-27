@@ -17,7 +17,7 @@ const addOne = async (page, text) => {
   await add(page, text);
   expect(await toasted).toBe(true);
 };
-const shown = page => page.locator('#items li button').allTextContents();
+const shown = page => page.locator('#items .ui-row').allTextContents();
 
 test('the search box narrows the list, with phrase, leave-out, operators and a hint', async ({ phone }) => {
   const a = await phone();
