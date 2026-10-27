@@ -1,4 +1,4 @@
-// Connect MCP (#mcp): a one-time code that lets Claude Desktop / Claude Code (the server in mcp/) sign in as this person
+// Connect MCP (#mcp): a code that lets Claude Desktop / Claude Code (the server in mcp/) sign in as this person
 // without a Google client. The code is this sign-in's Firebase refresh token with the project id (code.js), shown on a
 // tap, copied by hand or by the Copy button, wiped when the sheet closes, and never stored. Disconnect asks the Worker to
 // end every sign-in of the account (Firebase cannot end one), then signs this device out. Off until a device turns on
@@ -10,7 +10,7 @@ import { encodeCode } from './code.js';
 /** @param {import('../cloud.js').Started} app @param {(message: string) => unknown} toast */
 export function mcpSheet(app, toast) {
   const sheet = dialog('mcp');
-  const msg = $('mcp-msg'), show = $('mcp-show'), copy = $('mcp-copy'), box = /** @type {HTMLTextAreaElement} */ ($('mcp-code')), off = $('mcp-off');
+  const msg = $('mcp-msg'), show = $('mcp-show'), copy = $('mcp-copy'), box = /** @type {HTMLTextAreaElement} */ ($('mcp-code')), off = /** @type {HTMLButtonElement} */ ($('mcp-off'));
   let confirming = false;
 
   const clear = () => { box.value = ''; box.hidden = copy.hidden = true; show.hidden = false; confirming = false; off.textContent = 'Disconnect MCP'; };
@@ -34,7 +34,7 @@ export function mcpSheet(app, toast) {
       confirming = true; off.textContent = 'Tap again: disconnect and sign out everywhere';
       return;
     }
-    msg.textContent = '';
+    msg.textContent = ''; off.disabled = true;
     try {
       const { auth } = await sdk();
       const token = await auth.currentUser?.getIdToken();
@@ -45,10 +45,10 @@ export function mcpSheet(app, toast) {
       confirming = false; off.textContent = 'Disconnect MCP';
       msg.textContent = e instanceof TypeError ? 'Offline: try again.' : /** @type {Error} */ (e).message;
       return;
-    }
+    } finally { off.disabled = false; }
     clear(); sheet.close();
     $('sign-out').click();
-    toast('Disconnected. Every sign-in of this account has ended.');
+    toast('Disconnected. The code no longer works; sign in again here.');
   });
 
   $('mcp-close').addEventListener('click', () => sheet.close());

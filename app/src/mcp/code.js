@@ -1,6 +1,6 @@
 // The sign-in code Settings shows for the Notes MCP server: "nmcp1." + base64url of { p: project id, r: Firebase refresh
 // token }. The server (mcp/) reads it with decodeCode; the project id lets it refuse a code from another app.
-// Pure, no browser or Node APIs beyond btoa/atob-free base64url, so both sides share it.
+// Pure (btoa, atob, TextEncoder: in browsers and Node 20+), so both sides share it. Spaces and line breaks in a pasted code are ignored.
 const PREFIX = 'nmcp1.';
 
 /** @param {string} s */
@@ -21,7 +21,7 @@ export const encodeCode = ({ projectId, refreshToken }) => PREFIX + toB64url(JSO
 
 /** @param {string} code -> { projectId, refreshToken }; throws Error('...') when it is not a code from Notes */
 export function decodeCode(code) {
-  const text = String(code || '').trim();
+  const text = String(code || '').replace(/\s+/g, '');
   if (!text.startsWith(PREFIX)) throw new Error('That is not a Notes code (it starts with "nmcp1."). Copy it again from Settings → Connect MCP.');
   let o;
   try { o = JSON.parse(fromB64url(text.slice(PREFIX.length))); } catch { o = null; }

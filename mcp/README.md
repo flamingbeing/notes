@@ -26,10 +26,10 @@ Adding (`create_note`, `append_to_note`) saves at once. Overwriting and deleting
 ## Sign in with a code (no setup needed)
 
 1. In the Notes app: Settings → turn on **Connect Claude to my notes (MCP)** (under Advanced, off until you do, per device), then **Connect MCP → Show code**.
-2. Claude Desktop (the `.mcpb`): ask Claude about your notes; it tells you to run the login command below. Claude Code: run `node server.mjs login` yourself. Paste the code when asked (or `node server.mjs login <code>`).
+2. Claude Desktop (the `.mcpb`): ask Claude about your notes; it tells you to run the login command below. Claude Code: run `node server.mjs login` yourself. Paste the code at the prompt (it is not shown; piping it in works too). It is never taken from the command line, which would leave it in `ps` and your shell history.
 3. Restart Claude Desktop or Claude Code if it was already running.
 
-The code is your Notes sign-in's refresh token with the project id; it is shown only on that tap and never stored by the app. `login` checks it with one refresh, then keeps the refresh token and your email in `~/.config/notes-mcp/token.json` (mode 0600, no keychain needed). **Disconnect MCP** in the app ends every sign-in of your account (Firebase cannot end just one), so a code you showed stops working and you sign in to the app again. The Google browser sign-in below still works when `config.mjs` has a Desktop client, and is only used then.
+The code is your Notes sign-in's refresh token with the project id; it is shown only on that tap and never stored by the app. It stays valid (it is not used up) until you Disconnect, so treat it like a password. `login` checks it with one refresh, then keeps the refresh token and your email in `~/.config/notes-mcp/token.json` (mode 0600, no keychain needed). **Disconnect MCP** in the app ends every sign-in of your account (Firebase cannot end just one), so a code you showed stops working for good (a sign-in already open lasts up to an hour more) and you sign in to the app again. The Google browser sign-in below still works with `node server.mjs login --google` when `config.mjs` has a Desktop client.
 
 ## Install
 
@@ -43,7 +43,7 @@ claude mcp add notes -- node "$PWD/server.mjs"      # Claude Code
 codex mcp add notes -- node "$PWD/server.mjs"       # Codex CLI
 ```
 
-Commands: `node server.mjs login [code]`, `node server.mjs logout`, `node server.mjs` (the server on stdio; Claude starts it).
+Commands: `node server.mjs login [--google]`, `node server.mjs logout`, `node server.mjs` (the server on stdio; Claude starts it).
 
 ## How it works
 
