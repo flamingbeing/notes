@@ -16,6 +16,14 @@ export { undoToast } from './undo-toast.js';
 export { loadState } from './load-state.js';
 export { aboutSheet, packagesFromImportMap } from './about-sheet.js';
 export { settingsScreen, SETTINGS_WORDS } from './settings-screen.js';
+// logbook parts (opt-in, named exports; nothing runs on import): drafts, drag-reorder, share out, Back closes the top
+// dialog (transients) and screen history (navigation), hide mode
+export { draftSlot, listDrafts } from './drafts.js';
+export { gripDrag, moveIn } from './drag-list.js';
+export { shareText, copyText } from './share.js';
+export { createTransients } from './transients.js';
+export { createNavigation } from './navigation.js';
+export { MAX_HIDDEN, hideKey, cleanHideList, nameOf, keptBecause, targetOf, entryFor, applyHidden } from './hide-mode.js';
 // gestures (ui/gestures.css): each part starts only where its markup is; startGestures() starts them all
 export { startGestures } from './gestures.js';
 export { largeTitle } from './large-title.js';

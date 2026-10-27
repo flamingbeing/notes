@@ -22,10 +22,10 @@
   "options": { "driveOn": { "scope": "device", "default": false } },
   "html": "the #drive dialog in app/index.html and a button that opens it from Settings",
   "needs": [
-    "the app's merge3 (app/src/notes/merge3.js) for the 3-way line merge: a copy of the same file works",
-    "a sign-in with Google (Firebase Google provider); no Google script and no extra client id",
-    "the Google Drive API enabled in the Google Cloud project behind the Firebase project"
+    "enable the Google Drive API for the app's Firebase project — https://console.cloud.google.com/apis/library/drive.googleapis.com"
   ],
-  "needsYou": "NEEDS-YOU: enable the Google Drive API for the app's Firebase project — https://console.cloud.google.com/apis/library/drive.googleapis.com",
-  "docs": "Settings → Google Drive → Allow, then Sync now. Files land in Notes/<space>/ in the person's Drive; sync never deletes a file. Keep the CSP connect-src allowing https://*.googleapis.com."
+  "docs": [
+    "Settings → Google Drive → Allow, then Sync now. Files land in Notes/<space>/ in the person's Drive; sync never deletes a file. Keep the CSP connect-src allowing https://*.googleapis.com.",
+    "drive also needs the app's merge3 (app/src/notes/merge3.js) for the 3-way line merge (a copy of the same file works) and a sign-in with Google (the Firebase Google provider; no Google script, no extra client id)."
+  ]
 }
