@@ -1,12 +1,30 @@
 {
   "template": "flamingbeing/app-starter",
   "version": "0.2.0",
-  "commit": "",
+  "commit": "8315b24",
   "app": {
     "name": "notes",
     "host": "notes.flamingbeing.com",
     "kit": "homedesign",
     "project": "flamingbeing-notes",
     "title": "Notes"
+  },
+  "modules": {
+    "files": "flamingbeing/app-starter@8315b24:recipes/files.json",
+    "search": "flamingbeing/app-starter@8315b24:recipes/search.json",
+    "backup": "recipes/backup.json",
+    "drive": "recipes/drive.json"
+  },
+  "update": {
+    "ignore": [
+      "app/src/data-modules.js",
+      "app/src/modules.js",
+      "tools/test/add.test.mjs",
+      "app/src/cloud.js",
+      "app/src/screens/list.js",
+      "app/firestore.rules",
+      "app/firestore.app.rules",
+      "app/test/rules.test.mjs"
+    ]
   }
 }
