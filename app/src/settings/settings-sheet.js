@@ -5,7 +5,7 @@ import { toaster } from '@core/ui';
 import { $, input, dialog } from '../shell/dom.js';
 import { SWITCHES, TEXTS } from './options.js';
 
-/** @param {{ settings: import('../../public/settings/types').SettingsApi }} app  @param {() => boolean} signedIn */
+/** @param {{ settings: import('app-ui/settings/types').SettingsApi }} app  @param {() => boolean} signedIn */
 export function settingsSheet(app, signedIn) {
   const { settings } = app;
   const sheet = dialog('settings');

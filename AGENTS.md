@@ -19,10 +19,11 @@ repo; never copy anything from there into this repo, a PR or an issue (neutral p
 - Edit `app/firestore.app.rules`, then rebuild `app/firestore.rules` (`node .devkit/tools/build-rules.mjs
   app/firestore.app.rules`); add a case to `app/test/rules.test.mjs` for every new rule.
 - `worker/claims.js` and `worker/custom-token.js` are app-devkit's: never edit them here (CI compares them).
-- Shared modules (app-sync, app-update) and app-devkit blocks are pinned to exact versions; bump on purpose, after the
+- Shared modules (app-sync, app-ui, app-update) and app-devkit blocks are pinned to exact versions; bump on purpose, after the
   tests pass. No moving `@v1` pins.
-- app-sync's version is named twice, bumped together: `app/index.html`'s import map and the `app-sync` devDependency
-  tag in `package.json` (its `.d.ts` are what `npm run typecheck` checks `app/src` against, under `strict`).
+- app-sync's and app-ui's versions are each named in the import map (`app/index.html`, which also `<link>`s app-ui's
+  sheets and `theme/early.js`), the devDependency tag in `package.json` (app-sync's `.d.ts` and app-ui's JS are what
+  `npm run typecheck` checks `app/src` against, under `strict`) and `worker/headers.js`'s import map hash; bump together.
 - `app/public/sw.js`'s SHELL list is generated: after adding or removing a file the page loads, or bumping app-sync,
   run `node tools/sw-files.mjs app`. Firebase is vendored: bump it with `node tools/vendor-firebase.mjs <version>`
   (never edit `app/public/vendor/`). Both have a `--check` in CI ([decision 0007](docs/decisions/0007-vendored-firebase-generated-sw-list.md)).

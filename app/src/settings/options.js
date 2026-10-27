@@ -5,7 +5,7 @@ export const SETTINGS_COLL = 'settings';
 /** a folder as typed -> as kept: no slashes at the ends, at most 200 characters @param {unknown} v */
 function folder(v) { return String(v ?? '').trim().replace(/^\/+|\/+$/g, '').slice(0, 200); }
 
-/** @type {Record<string, import('../../public/settings/types').OptionSpec>} */
+/** @type {Record<string, import('app-ui/settings/types').OptionSpec>} */
 export const OPTIONS = {
   // this device only: a phone and a computer can differ
   bigRows: { scope: 'device', default: false },
