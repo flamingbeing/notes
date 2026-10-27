@@ -12,6 +12,7 @@ import { notePage } from './note-page.js';
 import { picker } from './picker.js';
 import { transferSheet } from '../transfer/transfer-sheet.js';
 import { backupSheet } from '../transfer/backup-sheet.js';
+import { driveSheet } from '../drive/drive-sheet.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -126,6 +127,9 @@ export function listScreen(app) {
   const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
   const backup = backupSheet(app, msg => toast(msg), () => canWrite);
   $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); backup.reset(); transfer.open(); });
+  /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
+  const drive = driveSheet(app, msg => toast(msg), () => openSpace);
+  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); drive.open(); });
   const pick = picker({
     notes: app.notes, recent: page.recent, canWrite: () => canWrite,
     open: note => page.open(note), create: openTitle,
@@ -141,6 +145,7 @@ export function listScreen(app) {
       { id: 'numbers', label: 'Toggle line numbers', run: flip('lineNumbers') },
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
       { id: 'transfer', label: 'Import or export notes', run: transfer.open },
+      { id: 'drive', label: 'Google Drive', run: drive.open },
       { id: 'settings', label: 'Open settings', run: () => $('open-settings').click() },
     ],
   });
@@ -157,6 +162,7 @@ export function listScreen(app) {
   const section = sectionScreen('list-view', s => {
     $('drawer-open').hidden = false;
     const could = canWrite;
+    openSpace = s.space;
     // writing needs an app role that writes and, in a shared space, owner or edit there
     canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
     $('new').hidden = !canWrite;

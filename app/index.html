@@ -18,6 +18,7 @@
     "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.8/settings/index.js",
     "@core/search": "./search/index.js",
     "@core/backup": "./backup/index.js",
+    "@core/drive": "./drive/index.js",
     "app-update/register.js": "https://core.anawj.com/update/0.2.0/register.js",
     "firebase/app": "./vendor/firebase/12.19.0/firebase-app.js",
     "firebase/auth": "./vendor/firebase/12.19.0/firebase-auth.js",
@@ -134,6 +135,7 @@
     </div>
     <p id="settings-msg" class="small" role="status"></p>
     <div class="row"><button id="open-transfer" type="button">Import or export notes</button></div>
+    <div class="row"><button id="open-drive" type="button">Google Drive</button></div>
     <div class="row"><button id="settings-close" type="button">Close</button></div>
   </dialog>
 
@@ -216,6 +218,20 @@
     <div class="row"><button id="backup-go" type="button" hidden>Restore</button></div>
     <p id="backup-msg" class="small" role="status"></p>
     <div class="row"><button id="transfer-close" type="button">Close</button></div>
+  </dialog>
+
+  <dialog id="drive" aria-labelledby="drive-title">
+    <h2 id="drive-title">Google Drive</h2>
+    <p id="drive-intro" class="small">Keep a copy of this space in your own Google Drive: one Markdown file per note, in a folder called Notes. The app sees only the files it makes there. Nothing is sent until you tap Sync now.</p>
+    <p class="small">Words you write around the app’s block in a file are kept; edits inside the block are merged into the next sync. Notes deleted here stay in Drive.</p>
+    <div class="row">
+      <button id="drive-on" type="button">Allow Google Drive</button>
+      <button id="drive-sync" type="button" hidden>Sync now</button>
+      <button id="drive-off" type="button" hidden>Turn off</button>
+    </div>
+    <p id="drive-last" class="small"></p>
+    <p id="drive-msg" class="small" role="status"></p>
+    <div class="row"><button id="drive-close" type="button">Close</button></div>
   </dialog>
 
   <dialog id="space-new-sheet" aria-labelledby="space-new-title">

@@ -16,6 +16,7 @@
   by feature under `app/src/`.
 
 - Backup and spreadsheets (decision 0017): More → Import or export → Backup: `.json.gz`, CSV, Excel; restore only adds.
+- Google Drive copy (decision 0017): Settings → Google Drive; tested against a fake Drive, live check pending.
 - MCP connector (`mcp/`, decision 0016): 8 tools, `.mcpb` build and workflow, 31 offline tests. Live check pending the
   Desktop OAuth client.
 

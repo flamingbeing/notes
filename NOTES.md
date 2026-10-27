@@ -153,3 +153,12 @@ text changed). Nothing is saved, so there is no format to migrate.
 - `xlsx` is vendored by hand (SheetJS 0.20.3 from cdn.sheetjs.com, `LICENSE` beside it); to bump it, replace the folder,
   the import map line, `tsconfig.json` paths, run `node tools/sw-files.mjs app`, and update the CSP hash in `worker/headers.js`.
 - `recipes/backup.json` adds the module to another app with `tools/add.mjs`.
+
+## Google Drive copy (`@core/drive`, decision 0017)
+
+Settings → Google Drive → Allow, then Sync now: one Markdown file per note in `Notes/<space>/<folder>/<title>.md` in the
+person's Drive. Scope `drive.file` only, asked by popup from the Google sign-in; Drive by `fetch`. The app owns the
+`<!-- notes:start -->` block in each file; text around it is kept and edits inside it are merged (3-way, by line) at the
+next sync. Only changed notes are sent; nothing is deleted in Drive. Tests: `app/test/drive.unit.test.mjs` and
+`e2e/drive.spec.mjs` against `app/test/fake-drive.mjs`; the live Drive is checked by hand with the owner's account after a
+change (the Drive API must be enabled for the Firebase project). `recipes/drive.json` lists the files to copy into another app.
