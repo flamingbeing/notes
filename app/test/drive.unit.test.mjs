@@ -158,3 +158,18 @@ test('driveToken: asks by popup with drive.file for the same account, keeps the 
   await assert.rejects(closed.get(), /closed/);
   await assert.rejects(driveToken({ A, auth: { currentUser: null } }).get(), /Sign in first/);
 });
+
+test('block: a note that contains the marks round-trips', () => {
+  const text = 'a\n<!-- notes:end -->\nb <!-- notes:start -->\nc';
+  const x = extractBlock(`top\n${wrapBlock(text, fp(text))}\nbottom`);
+  assert.equal(x?.inner, text);
+  assert.equal(x?.after, '\nbottom');
+});
+
+test('paths: a new note with the same title does not take an existing note’s file', () => {
+  const first = notePaths([{ id: 'zzz111', title: 'Todo' }], 'S');
+  const kept = { zzz111: { path: first.get('zzz111') } };
+  const next = notePaths([{ id: 'aaa111', title: 'Todo' }, { id: 'zzz111', title: 'Todo' }], 'S', kept);
+  assert.equal(next.get('zzz111'), 'S/Todo.md');
+  assert.equal(next.get('aaa111'), 'S/Todo (aaa111).md');
+});

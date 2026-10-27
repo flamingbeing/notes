@@ -45,17 +45,17 @@ export function driveSheet(app, toast, space) {
   off.addEventListener('click', () => guarded(async () => { await app.settings.set('driveOn', false); toast('Google Drive is off'); }));
   sync.addEventListener('click', () => guarded(async () => {
     const sp = space(), uid = app.auth.user()?.uid;
-    if (!sp || !uid) throw new Error('Open a space first.');
+    if (!uid) throw new Error('Sign in first.');
     const t = await getToken();
     await t.get();   // asks now, from the tap, if the hour is up
     const remote = driveRemote({ token: () => t.get(), forget: t.forget });
     msg.textContent = 'Syncing…';
     const r = await runSync({
       notes: app.notes().map(n => ({ id: n.id, title: n.title, body: n.body, path: n.path })),
-      space: sp.name, scope: `${uid}:${sp.id}`, remote, store, merge: merge3,
+      space: sp?.name || '', scope: `${uid}:${sp?.id || ''}`, remote, store, merge: merge3,
       onProgress: (done, of) => { if (of) msg.textContent = `Syncing… ${done}/${of}`; },
     });
-    if (!r.stopped) localStorage.setItem(lastKey(), String(Date.now()));
+    if (!r.stopped && !r.failed.length) localStorage.setItem(lastKey(), String(Date.now()));
     const bits = [`${r.written} written`, r.merged && `${r.merged} merged with edits made in Drive`, r.conflicts && `${r.conflicts} with a clash marked in the file`, r.failed.length && `${r.failed.length} failed (${r.failed[0].title}: ${r.failed[0].error})`];
     msg.textContent = r.stopped || bits.filter(Boolean).join('; ') + '.';
     if (!r.stopped && !r.failed.length) toast(r.written ? `Synced ${r.written} to Drive` : 'Drive is up to date');
@@ -63,5 +63,5 @@ export function driveSheet(app, toast, space) {
 
   $('drive-close').addEventListener('click', () => sheet.close());
   app.settings.watch('driveOn', () => { if (sheet.open) draw(); });
-  return { open: () => { msg.textContent = ''; draw(); sheet.showModal(); } };
+  return { open: () => { msg.textContent = ''; draw(); sheet.showModal(); getToken().catch(() => {}); } };   // load Google's SDK now, so a later tap can open the popup at once
 }

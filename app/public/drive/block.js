@@ -24,8 +24,13 @@ export function fingerprint(text) {
   return h.toString(36) + '.' + s.length.toString(36);
 }
 
+const ZW = '\u200b';
+/** a mark written inside a note is broken with a zero-width space, so it cannot end or start the block @param {string} t */
+const hide = t => t.replace(/<!-- notes:(start|end)/g, `<!-- notes:${ZW}$1`);
+/** @param {string} t */
+const show = t => t.replace(new RegExp(`<!-- notes:${ZW}(start|end)`, 'g'), '<!-- notes:$1');
 /** @param {string} text @param {string} [fp] */
-export const wrapBlock = (text, fp = '') => `${fp ? START.replace(' -->', ` fp=${fp} -->`) : START}\n${lf(text).replace(/\n+$/, '')}\n${END}`;
+export const wrapBlock = (text, fp = '') => `${fp ? START.replace(' -->', ` fp=${fp} -->`) : START}\n${hide(lf(text).replace(/\n+$/, ''))}\n${END}`;
 
 /**
  * { before, inner, after, fp } around the first block, or null when the file has none. A start mark whose end mark was
@@ -41,7 +46,7 @@ export function extractBlock(fileText) {
   if (t.startsWith('\r\n', from)) from += 2; else if (t[from] === '\n') from += 1;
   const e = t.indexOf(END, from);
   const to = e < 0 ? t.length : e;
-  return { before: t.slice(0, s), inner: lf(t.slice(from, to)).replace(/\n$/, ''), after: e < 0 ? '' : t.slice(e + END.length), fp: sm[1] || '' };
+  return { before: t.slice(0, s), inner: show(lf(t.slice(from, to))).replace(/\n$/, ''), after: e < 0 ? '' : t.slice(e + END.length), fp: sm[1] || '' };
 }
 
 /**

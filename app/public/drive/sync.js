@@ -21,10 +21,10 @@ const TRIES = 3;
  */
 export async function runSync({ notes, space, scope, remote, store, merge, onProgress = () => {} }) {
   /** @type {Result} */ const out = { written: 0, same: 0, merged: 0, conflicts: 0, failed: [], stopped: '' };
-  const paths = notePaths(notes, space);
   const ledgerKey = `ledger:${scope}`;
   /** @type {Record<string, { fp: string, rev: string, path: string }>} */
   const ledger = /** @type {any} */ (await store.get(ledgerKey)) || {};
+  const paths = notePaths(notes, space, ledger);
   const todo = notes.filter(n => {
     const was = ledger[n.id];
     return !was || was.fp !== fingerprint(n.body.replace(/\n+$/, '')) || was.path !== paths.get(n.id);
