@@ -1,0 +1,10 @@
+{
+  "module": "sync-forget",
+  "about": "Sync forget: wipe this device's Drive ledgers and last-sync times when the device forgets its lists (switch of account, Forget this device), so the next account never inherits them. Goes with the drive recipe.",
+  "files": [
+    { "from": "app/public/drive/forget.js" },
+    { "from": "app/test/drive-forget.unit.test.mjs" }
+  ],
+  "needs": ["drive module", "cloud.js: await forgetDrive() in the forget lists step (import from @core/drive)"],
+  "docs": "Nothing to switch: it runs at sign-out of a different account."
+}

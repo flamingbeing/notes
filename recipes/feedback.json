@@ -1,0 +1,13 @@
+{
+  "module": "feedback",
+  "about": "Send feedback: any member writes a private message to the owner; admins see the inbox, mark done and copy a message as a to-do line. Plain documents in feedback/{id}, not synced.",
+  "files": [
+    { "from": "app/src/feedback/feedback.js" },
+    { "from": "app/src/feedback/feedback-sheet.js" }
+  ],
+  "options": { "feedbackOn": { "scope": "device", "default": false } },
+  "html": "the #feedback dialog, #open-feedback (Settings), the switch #opt-feedbackOn",
+  "rules": "match /feedback/{fid}: create by admin or member (own uid, text 1-2000, done false), read, delete and mark done by admin only",
+  "needs": ["cloud.js: app.feedback = { send, list, setDone }", "the rules above, with rules-test cases"],
+  "docs": "Settings → Send feedback."
+}

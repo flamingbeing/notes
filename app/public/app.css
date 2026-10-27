@@ -103,3 +103,8 @@ footer { margin-top: 2rem; }
 .people { list-style: none; padding: 0; }
 .people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
 .people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
+
+/* bulk edit: a picked row */
+#items li.picked button { outline: 2px solid currentColor; outline-offset: -2px; }
+#bin-items li, #feedback-items li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+#share-text { white-space: pre-wrap; max-height: 12rem; overflow: auto; }

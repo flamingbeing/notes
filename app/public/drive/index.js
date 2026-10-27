@@ -10,3 +10,4 @@ export { runSync } from './sync.js';
 export { planFile, fingerprint, wrapBlock, extractBlock, replaceBlock } from './block.js';
 export { notePaths } from './paths.js';
 export { idbStore, memoryStore } from './store.js';
+export { forgetDrive } from './forget.js';

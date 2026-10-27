@@ -8,7 +8,7 @@
 //   a sheet is open or saves are sending (app.js, canReload).
 // - Fetch: SHELL files and pages cache-first; the design kit refreshed in the background; the pinned shared modules
 //   once fetched. Sign-in pages (/__/), /api/ and sw.js always go to the network.
-const VERSION = 'app-v1';
+const VERSION = 'app-v2';
 const SHELL = [
   './',
   'app.css',
@@ -19,6 +19,7 @@ const SHELL = [
   'backup/rows.js',
   'backup/xlsx.js',
   'drive/block.js',
+  'drive/forget.js',
   'drive/index.js',
   'drive/paths.js',
   'drive/remote.js',
@@ -37,7 +38,11 @@ const SHELL = [
   'search/query.js',
   'search/search.js',
   'src/app.js',
+  'src/bin/bin-sheet.js',
+  'src/bin/bin.js',
   'src/boot.js',
+  'src/bulk/bulk-sheet.js',
+  'src/bulk/bulk.js',
   'src/cloud.js',
   'src/config.js',
   'src/drive/drive-sheet.js',
@@ -46,6 +51,8 @@ const SHELL = [
   'src/editor/live-preview.js',
   'src/editor/read-view.js',
   'src/editor/syntax.js',
+  'src/feedback/feedback-sheet.js',
+  'src/feedback/feedback.js',
   'src/notes/attach.js',
   'src/notes/links.js',
   'src/notes/merge3.js',
@@ -61,6 +68,8 @@ const SHELL = [
   'src/screens/signed-out.js',
   'src/settings/options.js',
   'src/settings/settings-sheet.js',
+  'src/share/share-in.js',
+  'src/share/share-sheet.js',
   'src/shell/dom.js',
   'src/shell/download.js',
   'src/shell/roles.js',
@@ -168,6 +177,28 @@ const SHELL = [
   'https://core.anawj.com/ui/1.0.0-rc.9/theme/early.js',
 ];
 const MANIFEST = {};
+
+// Share-in: a share from another app (the manifest's share_target) is POSTed here; its parts wait in a cache for the
+// page, which opens with ?share=1 (src/share/share-sheet.js)
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'POST' || !url.pathname.endsWith('/share-in')) return;
+  e.respondWith((async () => {
+    try {
+    const form = await e.request.formData();
+    const cache = await caches.open('share-in');
+    const fields = {};
+    for (const k of ['title', 'text', 'url']) fields[k] = String(form.get(k) ?? '');
+    await cache.put('/share-in/data', new Response(JSON.stringify(fields), { headers: { 'content-type': 'application/json' } }));
+    let i = 0;
+    for (const f of form.getAll('files')) {
+      if (typeof f === 'string' || f.size > 25e6) continue;   // a very large file is left out, the text still arrives
+      await cache.put(`/share-in/file-${i++}`, new Response(f, { headers: { 'content-type': f.type, 'x-name': encodeURIComponent(f.name) } }));
+    }
+    } catch { /* a share that can't be kept still opens the app */ }
+    return Response.redirect(new URL('./?share=1', url), 303);
+  })());
+});
 
 importScripts('https://core.anawj.com/update/0.2.0/sw-core.js');
 AppUpdate.init({

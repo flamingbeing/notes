@@ -162,3 +162,11 @@ person's Drive. Scope `drive.file` only, asked by popup from the Google sign-in;
 next sync. Only changed notes are sent; nothing is deleted in Drive. Tests: `app/test/drive.unit.test.mjs` and
 `e2e/drive.spec.mjs` against `app/test/fake-drive.mjs`; the live Drive is checked by hand with the owner's account after a
 change (the Drive API must be enabled for the Firebase project). `recipes/drive.json` lists the files to copy into another app.
+
+## Data modules (decision 0018)
+
+Recipes in `recipes/` (`bin`, `bulk-edit`, `share-in`, `paste-clean`, `feedback`, `sync-forget`); options `binScreen`,
+`bulkEdit`, `shareIn`, `feedbackOn` are per device and off. Pure parts have unit tests (`app/test/bin|bulk|share-feedback|
+drive-forget.unit.test.mjs`); the screens are covered by `e2e/data-modules.spec.mjs`; the bin-delete and feedback rules
+by `app/test/rules.test.mjs`. Share-in only works in the installed app (the service worker takes the POST); to test it by
+hand, share text to the app on Android with the Settings switch on.

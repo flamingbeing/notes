@@ -20,6 +20,11 @@ export const OPTIONS = {
   newFolder: { scope: 'device', default: '', clean: folder },
   // Google Drive copy (@core/drive): off until set up from the Drive sheet, never from the settings sheet's switches
   driveOn: { scope: 'device', default: false },
+  // modules added in D2 (recipes/): each off until this device turns it on
+  binScreen: { scope: 'device', default: false },
+  bulkEdit: { scope: 'device', default: false },
+  shareIn: { scope: 'device', default: false },
+  feedbackOn: { scope: 'device', default: false },
 };
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */

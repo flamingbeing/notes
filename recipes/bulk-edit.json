@@ -1,0 +1,14 @@
+{
+  "module": "bulk-edit",
+  "about": "Select many notes in the list, then one popup: add a tag, move to a folder, merge into one note, delete to the bin. Pure core in bulk.js; local here until a second kind of app wants it.",
+  "files": [
+    { "from": "app/src/bulk/bulk.js" },
+    { "from": "app/src/bulk/bulk-sheet.js" },
+    { "from": "app/test/bulk.unit.test.mjs" },
+    { "from": "e2e/data-modules.spec.mjs" }
+  ],
+  "options": { "bulkEdit": { "scope": "device", "default": false } },
+  "html": "#select and #bulk-bar in the list's top bar, the #bulk dialog, the switch #opt-bulkEdit",
+  "needs": ["screens/list.js: the select mode (picked set, aria-pressed rows) and bulk.open(); a record's tags come from its body here, so adding a tag edits the body: change addTag for an app whose records hold tags as a field"],
+  "docs": "Settings → Select many notes. Select, tap notes, Change…"
+}
