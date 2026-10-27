@@ -16,6 +16,8 @@ export function spacesSheet(app, toast) {
   const sheet = dialog('space-sheet'), make = dialog('space-new-sheet');
   const pick = /** @type {HTMLSelectElement} */ ($('space'));
   const msg = $('space-msg');
+  // Members and New space are in the Folders sheet (phone) and the side bar (wider)
+  const spaceOpen = document.querySelectorAll('#space-open, [data-space-open]'), spaceNew = document.querySelectorAll('#space-new, [data-space-new]');
   let uid = '';
   /** @type {Space | null} the open space (null: the person's own notes) */
   let open = null;
@@ -84,8 +86,8 @@ export function spacesSheet(app, toast) {
     pick.replaceChildren(opt(uid, 'My notes'), ...spaces.map(x => opt(x.id, x.role === 'view' ? `${x.name} (view only)` : x.name)));
     pick.value = here;
     pick.hidden = spaces.length === 0;
-    $('space-open').hidden = !open;
-    $('space-new').hidden = !(s.role === 'admin' || s.role === 'member');
+    for (const b of spaceOpen) b.hidden = !open;
+    for (const b of spaceNew) b.hidden = !(s.role === 'admin' || s.role === 'member');
     if (sheet.open) drawSheet();
   };
 
@@ -93,10 +95,10 @@ export function spacesSheet(app, toast) {
     const was = app.space().id, why = await app.switchTo(pick.value);
     if (why) { toast(why); pick.value = was; }
   });
-  $('space-open').addEventListener('click', () => { msg.textContent = ''; drawSheet(); sheet.showModal(); });
+  for (const b of spaceOpen) b.addEventListener('click', () => { msg.textContent = ''; drawSheet(); sheet.showModal(); });
   $('space-close').addEventListener('click', () => sheet.close());
 
-  $('space-new').addEventListener('click', () => { input('space-new-name').value = ''; $('space-new-msg').textContent = ''; make.showModal(); });
+  for (const b of spaceNew) b.addEventListener('click', () => { input('space-new-name').value = ''; $('space-new-msg').textContent = ''; make.showModal(); });
   $('space-new-form').addEventListener('submit', async e => {
     if (/** @type {SubmitEvent} */ (e).submitter?.id !== 'space-new-make') return;
     e.preventDefault();
