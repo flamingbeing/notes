@@ -31,6 +31,8 @@ async function openDetails(page) {
 // Removes every smoke note in the list (its files first, then the note itself, to the bin).
 /** @param {import('@playwright/test').Page} page */
 async function removeSmokeNotes(page) {
+  await page.evaluate(() => document.getElementById('tab-notes').click());   // on a phone the list is the Notes tab page: Settings or Folders may be the open one
+  await expect(page.locator('#items')).toBeVisible();
   const left = page.locator('#items .ui-row', { hasText: PREFIX });
   for (let n = await left.count(); n > 0; n = await left.count()) {
     await left.first().click();
@@ -61,7 +63,6 @@ test('the test user signs in on the live site; a note with a picture exports, im
   await expect(page.locator('#list-view')).toBeVisible({ timeout: 30_000 });   // a member sees the list
   await page.click('#open-settings');   // who is signed in sits in the Settings sheet
   await expect(page.locator('#who')).toHaveText(email);
-  await page.evaluate(() => document.getElementById('tab-notes').click());
   await expect.poll(() => page.evaluate(() => window.starter.ready), { timeout: 30_000 }).toBe(true);
   await removeSmokeNotes(page);
 
@@ -112,4 +113,36 @@ test('the test user signs in on the live site; a note with a picture exports, im
     await synced(page);
   });
   expect(errors).toEqual([]);
+});
+
+test('signed in at 412 px: no gap above the band, a tapped tab slides, toasts sit above the tab bar', async ({ page }, info) => {
+  await page.setViewportSize({ width: 412, height: 860 });
+  await page.goto('/');
+  await signInViaApi(page, { apiKey: firebaseConfig.apiKey, authDomain: firebaseConfig.authDomain, email, password });
+  await page.reload();
+  await expect(page.locator('#list-view')).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => window.starter.ready), { timeout: 30_000 }).toBe(true);
+  const bar = await page.locator('.ui-bar').boundingBox();
+  expect(bar?.y).toBe(0);
+  const title = await page.locator('#home .ui-large-title').boundingBox();
+  expect(title?.y).toBe((bar?.y ?? 0) + (bar?.height ?? 0));   // the band header follows the bar directly
+  // a tapped tab slides its page in (a Web Animation on the page)
+  const slid = await page.evaluate(async () => {
+    document.getElementById('drawer-open').click();
+    await new Promise(r => requestAnimationFrame(r));
+    return Array.from(document.querySelector('#folders').getAnimations(), a => /** @type {KeyframeEffect} */ (a.effect).getKeyframes()[0].transform);
+  });
+  expect(slid).toHaveLength(1);
+  expect(slid[0]).toMatch(/^translateX\(\d+px\)$/);
+  await expect(page.locator('#folders')).toBeVisible();
+  // toasts: the stack's bottom edge clears the tab bar's top
+  const gap = await page.evaluate(() => {
+    const t = document.getElementById('toasts');
+    const m = document.createElement('div'); m.className = 'toast'; m.textContent = 'Test toast'; t.append(m);
+    const r = m.getBoundingClientRect(), b = document.querySelector('.ui-tabbar').getBoundingClientRect();
+    return { toastBottom: r.bottom, tabTop: b.top };
+  });
+  expect(gap.toastBottom).toBeLessThanOrEqual(gap.tabTop);
+  await page.screenshot({ path: info.outputPath('signed-in-412.png') });
+  await page.evaluate(() => document.getElementById('tab-notes').click());
 });
