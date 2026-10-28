@@ -113,6 +113,8 @@ footer { margin-top: 2rem; }
 .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--pad); }
 .bar-end { display: flex; align-items: center; gap: var(--gap); }
+/* a phone's bar holds the chip and four buttons: the title gives way (the large title says Notes) rather than the page scrolling sideways */
+#list-view .ui-bar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .space-bar { padding: 0 var(--pad); }
 #plain { max-width: 40rem; margin: 0 auto; padding: 0 var(--pad) 2rem; }
 /* signed in, nothing in it shows (its sections are hidden, its message empty): without this its padding and the empty

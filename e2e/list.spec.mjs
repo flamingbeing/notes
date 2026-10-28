@@ -151,6 +151,18 @@ test('today’s note: one per date, the same note on two phones', async ({ phone
   await expect.poll(async () => (await serverNotes()).filter(n => n.path === `spaces/${uid}/notes/day-${iso}`).length, { timeout: 15_000 }).toBe(1);
 });
 
+test('the next working day’s note: a weekday after today, its own note', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  await page.click('#nextday');
+  await expect(page.locator('#edit')).toBeVisible();
+  const iso = await page.locator('#edit-text').inputValue();
+  expect(iso).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  const today = await page.evaluate(() => new Date().toLocaleDateString('sv'));
+  expect(iso > today).toBe(true);
+  expect([0, 6]).not.toContain(new Date(iso + 'T12:00').getDay());
+});
+
 test('a viewer reads but cannot add or edit', async ({ phone }) => {
   const t = uniq('seen');
   const page = await phone();
@@ -159,6 +171,7 @@ test('a viewer reads but cannot add or edit', async ({ phone }) => {
   await expect(page.locator('#items')).toContainText(t);
   await expect(page.locator('#new')).toBeHidden();
   await expect(page.locator('#daily')).toBeHidden();
+  await expect(page.locator('#nextday')).toBeHidden();
   await openNote(page, t);
   await expect(page.locator('#edit-body')).toHaveValue('read me');
   await expect(page.locator('#edit-body')).toHaveAttribute('readonly', '');

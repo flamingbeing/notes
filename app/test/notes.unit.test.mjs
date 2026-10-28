@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { merge3, MINE_MARK, SPLIT_MARK, THEIRS_MARK } from '../src/notes/merge3.js';
 import { linksIn, tagsIn, linkKeys, keyOf, parts } from '../src/notes/parse.js';
-import { sizeOf, withDerived, dailyId, dailyNote, isoDay, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
+import { sizeOf, withDerived, dailyId, dailyNote, isoDay, nextWorkday, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
 import { linkIndex, relink, renamePlan } from '../src/notes/links.js';
 
 test('merge3 (the logbook\'s tests)', () => {
@@ -83,6 +83,10 @@ test('record: derived fields, size limits, daily ids', () => {
   assert.equal(sizeOf('é'.repeat(MAX_BYTES / 2 + 1)), 'too-big');   // bytes, not characters
   assert.equal(isoDay(new Date(2026, 0, 5)), '2026-01-05');
   assert.equal(dailyId('2026-10-26'), 'day-2026-10-26');
+  assert.equal(nextWorkday(new Date(2026, 9, 28)), '2026-10-29');   // Wed -> Thu
+  assert.equal(nextWorkday(new Date(2026, 9, 30)), '2026-11-02');   // Fri -> Mon
+  assert.equal(nextWorkday(new Date(2026, 9, 31)), '2026-11-02');   // Sat -> Mon
+  assert.equal(nextWorkday(new Date(2026, 11, 31)), '2027-01-01');  // year end
   assert.deepEqual([dailyNote('2026-10-26', 'Daily').id, dailyNote('2026-10-26', 'Daily').title, dailyNote('2026-10-26').daily], ['day-2026-10-26', '2026-10-26', '2026-10-26']);
 });
 
