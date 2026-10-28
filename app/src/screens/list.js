@@ -36,7 +36,7 @@ export const inFolder = (n, f) => low(n.path) === bare(f) || low(n.path).startsW
 /** the text under a row's title: the body without its markdown marks, the title line itself left out, at most 3 lines when shown
  * @param {Note} note @param {string} title */
 export function previewOf(note, title) {
-  const lines = String(note.body || '').split('\n').map(l => l.replace(/^\s*(?:#{1,6}|[-*+>]|\d+\.)\s+(?:\[[ xX]\]\s+)?/, '').replace(/!?\[\[([^\]|]*)(?:\|[^\]]*)?\]\]/g, '$1').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim()).filter(Boolean);
+  const lines = String(note.body || '').slice(0, 800).split('\n').map(l => l.replace(/^\s*(?:#{1,6}|[-*+>]|\d+\.)\s+(?:\[[ xX]\]\s+)?/, '').replace(/!?\[\[([^\]|]*)(?:\|[^\]]*)?\]\]/g, '$1').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim()).filter(Boolean);
   if (lines[0] === title) lines.shift();
   return lines.join(' ').slice(0, 240);
 }

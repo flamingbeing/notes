@@ -65,7 +65,7 @@ export function fmtBar(viewOf) {
   const btn = (label, aria, fn, tag = '') => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'small'; b.title = aria; b.setAttribute('aria-label', aria);
-    if (label in ICONS) b.append(iconOf(label)); else if (tag) b.append(Object.assign(document.createElement(tag), { textContent: label })); else b.textContent = label;
+    if (Object.hasOwn(ICONS, label)) b.append(iconOf(label)); else if (tag) b.append(Object.assign(document.createElement(tag), { textContent: label })); else b.textContent = label;
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { const view = viewOf(); if (view && !view.state.readOnly) fn(view); });
     return b;

@@ -23,7 +23,7 @@ export const OPTIONS = {
   newFolder: { scope: 'device', default: '', clean: folder },
   // Google Drive copy (@core/drive): off until set up from the Drive sheet, never from the settings sheet's switches
   driveOn: { scope: 'device', default: false },
-  // modules added in D2 (recipes/): each off until this device turns it on
+  // modules added in D2 (recipes/): on by default (owner decision, 28 Oct); a device can switch each off
   binScreen: { scope: 'device', default: true },
   bulkEdit: { scope: 'device', default: true },
   shareIn: { scope: 'device', default: true },

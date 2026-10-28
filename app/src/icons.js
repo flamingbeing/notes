@@ -8,7 +8,7 @@ export const ICONS = {
   menu: [['path', { d: 'M4 6h16' }], ['path', { d: 'M4 12h16' }], ['path', { d: 'M4 18h16' }]],
   pencil: [['path', { d: 'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z' }], ['path', { d: 'm15 5 4 4' }]],
   folder: [['path', { d: 'M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z' }]],
-  settings: [['path', { d: 'M4 6h16' }], ['path', { d: 'M4 12h16' }], ['path', { d: 'M4 18h16' }]],
+  settings: [['path', { d: 'M10 5H3' }], ['path', { d: 'M12 19H3' }], ['path', { d: 'M14 3v4' }], ['path', { d: 'M16 15v4' }], ['path', { d: 'M21 5h-7' }], ['path', { d: 'M21 19h-9' }], ['path', { d: 'M8 10v4' }], ['path', { d: 'M21 12h-9' }], ['path', { d: 'M3 12h5' }]],
   arrowLeft: [['path', { d: 'm12 19-7-7 7-7' }], ['path', { d: 'M19 12H5' }]],
   squareCheck: [['path', { d: 'M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' }], ['path', { d: 'm9 12 2 2 4-4' }]],
   undo: [['path', { d: 'M9 14 4 9l5-5' }], ['path', { d: 'M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11' }]],
@@ -21,5 +21,8 @@ export const iconOf = name => icon(ICONS[name]);
 
 /** @param {ParentNode} [root]  every [data-icon] element that is still empty gets its icon */
 export function fillIcons(root = document) {
-  for (const el of root.querySelectorAll('[data-icon]')) if (!el.firstElementChild) el.replaceChildren(iconOf(/** @type {HTMLElement} */ (el).dataset.icon || ''));
+  for (const el of root.querySelectorAll('[data-icon]')) {
+    const name = /** @type {HTMLElement} */ (el).dataset.icon || '';
+    if (!el.firstElementChild && Object.hasOwn(ICONS, name)) el.replaceChildren(iconOf(name));
+  }
 }
