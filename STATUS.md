@@ -11,6 +11,8 @@
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
   never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
   export, import back, clean up, as the test user (app-devkit 1.10.3 sends the Referer the web key needs).
+- app-ui 1.0.0-rc.30 (28 Oct): swiping between Notes, Folders and Settings moves like iOS paging (spring glide at the
+  finger's speed, rubber band at the ends, bar title cross-fades); Today, Select and New are `data-swipe-fade`.
 - app-ui 1.0.0-rc.11 (28 Oct): on a phone Folders and Settings are swipeable tab pages (the Folders sheet is gone); the version
   and Check for updates are in Settings > About (no version header); look D (Slim) is the default look.
 - Reorganised for daily use (decision 0014): slim top bar + list, folders and tags in a drawer, a note is a
@@ -39,6 +41,7 @@
 
 ## Decisions (dated)
 
+- 2026-10-28: tab swipe follows app-ui's iOS-style paging (rc.30); Notes adds no motion of its own.
 - 2026-10-27: MCP sign-in by code from Settings (0019); the Google client is optional.
 - 2026-10-27: the MCP connector signs in as the user and gets roles from `/api/claims` (0016).
 - 2026-10-27: a note is a full-screen page at `#/note/<id>`; folders and tags in a drawer; + is a draft (0014).
