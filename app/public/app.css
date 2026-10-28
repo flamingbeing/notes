@@ -112,8 +112,6 @@ footer { margin-top: 2rem; }
 #plain:not(:has(> section:not([hidden]), > #sign-out-msg:not(:empty))) { display: none; }
 /* the folder boxes' card mounts into the kit's part, which is inset like text: flush, the card matches the others */
 .ui-settings-part:has(> .ui-list) { margin-inline: 0; }
-/* a tapped tab's page slides in (tab-slide.js): its sideways start must not widen the page */
-.ui-screens.is-tab-sliding { overflow-x: clip; }
 .people { list-style: none; padding: 0; }
 .people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
 .people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
@@ -125,4 +123,3 @@ footer { margin-top: 2rem; }
 
 /* a phone's Folders and Settings pages have no list to add to or select */
 #list-view[data-page]:not([data-page=home]) .bar-end > button { display: none; }
-@media (max-width: 599px) { .toasts { bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); } }
