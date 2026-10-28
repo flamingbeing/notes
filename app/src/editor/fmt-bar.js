@@ -48,7 +48,8 @@ export function fmtBar(viewOf) {
   /** @param {View} view @param {boolean} out */
   const shift = (view, out) => {
     const { v, ls, le } = sel(view);
-    const text = v.slice(ls, le).split('\n').map(l => (out ? l.replace(/^(\t| {1,2})/, '') : l.trim() ? '  ' + l : l)).join('\n');
+    const numbered = (/** @type {string} */ l) => /^\s*\d+\.\s/.test(l);   // "1. " nests under 3 spaces, "- " under 2
+    const text = v.slice(ls, le).split('\n').map(l => (out ? l.replace(numbered(l) ? /^(\t| {1,3})/ : /^(\t| {1,2})/, '') : l.trim() ? (numbered(l) ? '   ' : '  ') + l : l)).join('\n');
     if (text !== v.slice(ls, le)) replaceRange(view, ls, le, text, ls, ls + text.length);
   };
   // the address on the clipboard, as a titled link (the selected text, if any, is its title)

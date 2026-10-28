@@ -3,7 +3,7 @@
 // browser can't read other sites' pages, and the app has no server route for it): "Example Domain" for
 // https://example.com/example-domain, the site's name when the path says nothing.
 
-const TRACKING = /^(utm_.*|fbclid|gclid|dclid|gbraid|wbraid|msclkid|yclid|twclid|igshid|igsh|mc_cid|mc_eid|_hsenc|_hsmi|mkt_tok|vero_id|oly_.*|s_kwcid|ref_src|ref_url|spm|si|feature|share_id|ocid|cvid|sr_share)$/i;
+const TRACKING = /^(utm_.*|fbclid|gclid|dclid|gbraid|wbraid|msclkid|yclid|twclid|igshid|igsh|mc_cid|mc_eid|_hsenc|_hsmi|mkt_tok|vero_id|oly_.*|s_kwcid|ref_src|ref_url)$/i;
 
 /** one address on its own (no spaces, http or https) -> the URL, or null @param {string} text */
 export function asUrl(text) {
@@ -14,11 +14,9 @@ export function asUrl(text) {
 
 /** the address without tracking parameters (and the empty "?" or "#" they leave) @param {URL} url */
 export function cleanUrl(url) {
-  const u = new URL(url.href);
-  for (const k of [...u.searchParams.keys()]) if (TRACKING.test(k)) u.searchParams.delete(k);
-  let s = u.toString();
-  if (!u.search && s.endsWith('?')) s = s.slice(0, -1);
-  return s;
+  // the query is filtered as written (not re-encoded by URLSearchParams), so what stays is byte for byte the original
+  const keep = url.search.slice(1).split('&').filter(kv => kv && !TRACKING.test(decodeURIComponent(kv.split('=')[0].replace(/\+/g, ' ')).trim()));
+  return url.origin + url.pathname + (keep.length ? '?' + keep.join('&') : '') + url.hash;
 }
 
 /** a readable title from the address @param {URL} url */
@@ -30,17 +28,19 @@ export function titleOf(url) {
   // an id, a number or a bare file name says nothing: use the site
   if (seg.length < 3 || /^[\d\s]+$/.test(seg) || (!/\s/.test(seg) && /\d/.test(seg) && seg.length > 10)) return host;
   const words = seg.charAt(0).toUpperCase() + seg.slice(1);
-  return `${words} (${host})`.replace(/[[\]]/g, '');
+  return `${words} (${host})`.replace(/[[\]*_`\\<>]/g, '');
 }
 
-/** Markdown-safe address: spaces and brackets escaped @param {string} href */
-const safe = href => href.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29');
+/** Markdown-safe address: spaces, brackets and angle brackets escaped @param {string} href */
+const safe = href => href.replace(/ /g, '%20').replace(/\(/g, '%28').replace(/\)/g, '%29').replace(/</g, '%3C').replace(/>/g, '%3E').replace(/`/g, '%60').replace(/\\/g, '%5C');
 
 /** the Markdown for a pasted address; label (a selected text) replaces the title -> string, or null if not an address
  * @param {string} text @param {string} [label] */
 export function linkFor(text, label) {
   const url = asUrl(text);
   if (!url) return null;
-  const title = (label || '').trim() || titleOf(url);
-  return `[${title.replace(/[[\]]/g, '')}](${safe(cleanUrl(url))})`;
+  const own = (label || '').trim();
+  if (/\n/.test(own)) return null;
+  const title = own ? own.replace(/[[\]\\]/g, '\\$&') : titleOf(url);   // (a selected text keeps its brackets, escaped)
+  return `[${title}](${safe(cleanUrl(url))})`;
 }

@@ -153,7 +153,7 @@ function ticked(state, at, tick) {
   let end = last;
   for (let n = last + 1; n <= doc.lines; n++) {
     const t = doc.line(n).text;
-    if (sibling(t)) end = n; else if (!nested(t)) break;
+    if (sibling(t) || (nested(t) && end === n - 1)) end = n; else break;
   }
   if (end === last) return tick;
   const item = doc.sliceString(line.from, doc.line(last).to).replace(/^(\s*[-*+] \[)[ xX]/, '$1x');

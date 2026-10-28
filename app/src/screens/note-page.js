@@ -156,15 +156,6 @@ export function notePage(app, toast, canWrite, onShow) {
   window.addEventListener('pagehide', away);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') away(); });
 
-  // the editor's options (this device): source mode, line numbers, readable line width
-  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
-  const applyOptions = () => {
-    sheet.classList.toggle('wide', !settings.get('readableWidth'));
-    ed?.setOptions(options());
-  };
-  settings.watch(null, () => { applyOptions(); fmtShow(); });
-  applyOptions();
-
   // the formatting bar: shown while editing when the setting is on; the Aa button hides or shows it (and keeps the choice)
   const fmtShow = () => {
     const on = !!settings.get('fmtBar');
@@ -179,6 +170,15 @@ export function notePage(app, toast, canWrite, onShow) {
   const keyboard = () => { if (vv) document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`); };
   vv?.addEventListener('resize', keyboard); vv?.addEventListener('scroll', keyboard);
   keyboard();
+  // the editor's options (this device): source mode, line numbers, readable line width
+  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
+  const applyOptions = () => {
+    sheet.classList.toggle('wide', !settings.get('readableWidth'));
+    ed?.setOptions(options());
+  };
+  settings.watch(null, () => { applyOptions(); fmtShow(); });
+  applyOptions();
+
   // read view or editing: a viewer starts in the read view
   /** @param {boolean} on */
   const setReading = on => {

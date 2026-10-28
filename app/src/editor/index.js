@@ -4,7 +4,7 @@
 // note's text: the editor fills it on each change (onChange), and set() puts text in from outside.
 import {
   EditorState, EditorView, Compartment, keymap, placeholder, lineNumbers, drawSelection, Language, syntaxHighlighting,
-  HighlightStyle, history, defaultKeymap, historyKeymap, markdownLanguage, markdownKeymap, autocompletion, completionKeymap, tags,
+  HighlightStyle, syntaxTree, history, defaultKeymap, historyKeymap, markdownLanguage, markdownKeymap, autocompletion, completionKeymap, tags,
 } from '@vendor/codemirror';
 import { notesSyntax } from './syntax.js';
 import { livePreview } from './live-preview.js';
@@ -31,6 +31,15 @@ const highlight = HighlightStyle.define([
 // HTML from the clipboard becomes Markdown, unless it is only code shown as is (an editor's copy: plain text is right)
 /** @param {string} html */
 const isCodeCopy = html => /white-space:\s*pre/i.test(html) && !/<(h[1-6]|li|table|a)\b/i.test(html);
+
+// is pos inside code, a link's address or its brackets (where a pasted address is just text)?
+/** @param {import('@codemirror/state').EditorState} state @param {number} pos */
+function inLinkOrCode(state, pos) {
+  for (let n = syntaxTree(state).resolveInner(pos, -1); n; n = /** @type {any} */ (n.parent)) {
+    if (/^(InlineCode|FencedCode|CodeBlock|URL|Link|Image|LinkLabel)$/.test(n.name)) return true;
+  }
+  return false;
+}
 
 /**
  * @param {{
@@ -62,6 +71,7 @@ export function createEditor(o) {
     };
   };
 
+  let source = o.options.source;   // source mode keeps what is pasted as it is
   /** @type {string} what the editor holds, as last told (a change from set() isn't sent back) */
   let quiet = '';
   const view = new EditorView({
@@ -81,7 +91,7 @@ export function createEditor(o) {
             // a lone web address: a titled link, tracking parameters off (the selected text, if any, is the title)
             const plain = e.clipboardData?.getData('text/plain') || '';
             const { from, to } = v.state.selection.main;
-            const md = v.state.readOnly || !/^\s*https?:\/\//i.test(plain) ? null : linkFor(plain, v.state.sliceDoc(from, to));
+            const md = v.state.readOnly || source || !/^\s*https?:\/\//i.test(plain) || inLinkOrCode(v.state, from) ? null : linkFor(plain, v.state.sliceDoc(from, to));
             if (md) {
               e.preventDefault();
               v.dispatch(v.state.replaceSelection(md), { userEvent: 'input.paste', scrollIntoView: true });
@@ -119,7 +129,7 @@ export function createEditor(o) {
     /** @param {boolean} ro */
     setReadOnly: ro => view.dispatch({ effects: editable.reconfigure(editableOf(ro)) }),
     /** @param {EditorOptions} opt */
-    setOptions: opt => view.dispatch({ effects: [preview.reconfigure(previewOf(opt)), numbers.reconfigure(numbersOf(opt))] }),
+    setOptions: opt => { source = opt.source; view.dispatch({ effects: [preview.reconfigure(previewOf(opt)), numbers.reconfigure(numbersOf(opt))] }); },
     /** text at the cursor (replacing the selection) @param {string} text */
     insert: text => view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true, userEvent: 'input' }),
     focus: () => view.focus(),
