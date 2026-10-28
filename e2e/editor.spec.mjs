@@ -102,8 +102,9 @@ test('the read view draws the Markdown and leaves out scripts and styles', async
   await openNote(page, t);
   await ready(page);
   await fillBody(page, `# Title\n\n**bold** [[${other}|the other note]] <img src=x onerror="window.bad=1"> <span style="color:red">red</span> <script>window.bad=2</script>\n\n[out](https://example.com/)`);
-  await page.click('#edit-mode');
+  await page.keyboard.press('Control+e');   // the read-view shortcut (same as #edit-mode)
   const read = page.locator('#edit-read');
+  await expect(page.locator('#edit-mode')).toHaveAttribute('aria-pressed', 'true');
   await expect(read.locator('h1')).toHaveText('Title');
   await expect(read.locator('strong')).toHaveText('bold');
   await expect(read.locator('script, [onerror], [style]')).toHaveCount(0);
@@ -123,6 +124,7 @@ test('the quick switcher opens a note; the palette runs a command', async ({ pho
   await expect(page.locator('#picker')).toBeVisible();
   await page.fill('#picker-q', b.slice(0, 9));
   await expect(page.locator('#picker-list [role=option]').first()).toContainText(b);
+  await expect(page.locator('#picker-list [role=option]').first().locator('mark').first()).toHaveText('Bravo');   // matches are marked
   await page.keyboard.press('Enter');
   await expect(page.locator('#edit-text')).toHaveValue(b);
   // Ctrl+O from inside the note

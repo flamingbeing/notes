@@ -9,6 +9,24 @@ import { $, input, dialog } from '../shell/dom.js';
 /** @typedef {{ id: string, label: string, hint?: string, run: () => unknown }} Item */
 /** @typedef {{ id: string, label: string, when?: () => boolean, run: () => unknown }} Command */
 
+// The label with each word of the query that it contains in <mark> (case-insensitive; text nodes only, never HTML)
+/** @param {string} label @param {string} q @returns {(string | HTMLElement)[]} */
+export function marked(label, q) {
+  const words = q.toLowerCase().split(/\s+/).filter(w => w.length > 0);
+  if (!words.length) return [label];
+  const low = label.toLowerCase(), hit = new Array(label.length).fill(false);
+  for (const w of words) for (let i = low.indexOf(w); i >= 0; i = low.indexOf(w, i + w.length)) hit.fill(true, i, i + w.length);
+  /** @type {(string | HTMLElement)[]} */
+  const out = [];
+  for (let i = 0; i < label.length;) {
+    let j = i; while (j < label.length && hit[j] === hit[i]) j++;
+    const part = label.slice(i, j);
+    out.push(hit[i] ? Object.assign(document.createElement('mark'), { textContent: part }) : part);
+    i = j;
+  }
+  return out;
+}
+
 /**
  * @param {{
  *   notes: () => Note[], recent: () => string[], canWrite: () => boolean,
@@ -37,7 +55,7 @@ export function picker(o) {
     items = source(box.value.trim());
     list.replaceChildren(...items.map((item, n) => {
       const li = document.createElement('li');
-      li.id = `picker-${n}`; li.setAttribute('role', 'option'); li.textContent = item.label;
+      li.id = `picker-${n}`; li.setAttribute('role', 'option'); li.append(...marked(item.label, box.value.trim()));
       if (item.hint) li.append(Object.assign(document.createElement('span'), { className: 'path', textContent: ` ${item.hint}` }));
       li.addEventListener('mousedown', e => e.preventDefault());
       li.addEventListener('click', () => pick(n));

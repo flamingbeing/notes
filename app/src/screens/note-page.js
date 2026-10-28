@@ -193,6 +193,13 @@ export function notePage(app, toast, canWrite, onShow) {
     fmtShow();
   };
   $('edit-mode').addEventListener('click', () => { setReading(!reading); if (!reading) ed?.focus(); });
+  // Ctrl/Cmd+E flips between editing and the read view (Obsidian's key), while the page is open
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'e') return;
+    if (!sheet.open || $('edit-mode').hidden || document.querySelector('dialog:modal:not(#edit)')) return;
+    e.preventDefault();
+    $('edit-mode').click();
+  });
 
   // Attachments. The list under the text; the file itself opens in a new tab (a picture) or downloads (the Worker says so)
   /** @param {string} target a reference as written */
