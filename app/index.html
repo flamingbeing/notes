@@ -35,6 +35,7 @@
   <script type="module" src="src/boot.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://design.flamingbeing.com/v1/tokens.css">
   <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/theme/theme.css">
   <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/ui/ui.css">
@@ -47,6 +48,7 @@
 <body>
   <main id="plain">
     <section id="signed-out" hidden>
+      <img class="app-mark app-mark-big" src="icons/icon.svg" alt="" width="72" height="72">
       <h1>Notes</h1>
       <p>Sign in to see the list.</p>
       <div id="sign-in-sheet" class="sheet"></div>
@@ -78,7 +80,7 @@
     </header>
 
     <nav class="ui-sidebar" id="side" aria-label="Notes">
-      <p class="ui-sidebar-name">Notes</p>
+      <p class="ui-sidebar-name"><img class="app-mark" src="icons/icon.svg" alt="" width="28" height="28">Notes</p>
       <label class="ui-search"><span class="sr-only">Search</span>
         <input id="q-w" type="search" autocomplete="off" placeholder="Search" aria-keyshortcuts="Control+K Meta+K"><kbd>Ctrl K</kbd></label>
       <button type="button" class="ui-side-link" data-filter="" aria-current="page">All notes <span class="n" id="count-side"></span></button>
