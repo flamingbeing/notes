@@ -259,3 +259,23 @@ test('ticking a to-do moves it below the open ones when the setting is on', asyn
   await content(page).locator('input.cm-task').first().click();
   await expect(body(page)).toHaveValue('# Tasks\n- [ ] second\n- [x] done\n- [x] first\n\nend');
 });
+
+test('resting the mouse on a [[link]] previews that note, in the read view and the editor', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('hover'), other = uniq('Hover target');
+  expect(await page.evaluate(t => window.starter.add(t, 'Plan B: the **second** airway device.'), other)).toBe('');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await fillBody(page, `See [[${other}]] first.\n\nThe end.`);   // (the cursor off the link's line)
+  const card = page.locator('.ui-hover-card');
+  await page.locator('#edit-cm .cm-wikilink[data-note]').hover();
+  await expect(card).toContainText('second airway device');
+  await expect(card.locator('h3')).toHaveText(other);
+  await page.mouse.move(2, 2);
+  await expect(card).toHaveCount(0);
+  await page.keyboard.press('Control+e');
+  await page.locator('#edit-read a.wikilink').hover();
+  await expect(card.locator('strong')).toHaveText('second');
+});

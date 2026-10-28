@@ -82,18 +82,28 @@ test('accent: a picked colour is kept on this device, Reset goes back to the loo
   await expect(page.locator('#accent-pick')).toHaveValue('#3a6390');
 });
 
-test('every look passes axe in light, dark and OLED', async ({ phone }) => {
+// app-ui's looks (PRESETS in theme/presets.js). One test per look: 24 axe runs in one test took ~23 s on a usual runner
+// and passed 60 s on a slow one; 3 runs a test leave room to spare.
+const LOOKS = ['default', 'flat', 'soft', 'paper', 'navy', 'black', 'contrast', 'eye'];
+
+test('the look picker offers every look', async ({ phone }) => {
   const page = await phone();
   await signIn(page);
   await openSettings(page);
   const looks = await page.locator('#preset-pick').locator('option').evaluateAll(os => os.map(o => /** @type {HTMLOptionElement} */ (o).value));
-  expect(looks).toHaveLength(8);
-  for (const look of looks) {
+  expect(looks).toEqual(LOOKS);
+});
+
+for (const look of LOOKS) {
+  test(`look ${look} passes axe in light, dark and OLED`, async ({ phone }) => {
+    const page = await phone();
+    await signIn(page);
+    await openSettings(page);
     await page.locator('#preset-pick').selectOption(look);
     for (const [theme, dark] of [['light', 'dark'], ['dark', 'dark'], ['dark', 'oled']]) {
       await page.getByLabel('Theme').selectOption(theme);
       await page.getByLabel('Dark style').selectOption(dark);
       expect(await AxeBuilder(page), `${look} ${theme} ${dark}`).toEqual([]);
     }
-  }
-});
+  });
+}
