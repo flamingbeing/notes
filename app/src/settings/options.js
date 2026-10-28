@@ -15,6 +15,9 @@ export const OPTIONS = {
   sourceMode: { scope: 'device', default: false },
   lineNumbers: { scope: 'device', default: false },
   readableWidth: { scope: 'device', default: true },
+  // the formatting bar (pinned above the keyboard; the Aa button on a note hides it too), and ticking a to-do moves it down
+  fmtBar: { scope: 'device', default: true },
+  tickToBottom: { scope: 'device', default: false },
   // where today's note and a new note go (a folder, such as Daily and Inbox; none: the top)
   dailyFolder: { scope: 'device', default: '', clean: folder },
   newFolder: { scope: 'device', default: '', clean: folder },

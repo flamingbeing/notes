@@ -6,7 +6,7 @@
 export { EditorState, EditorSelection, StateField, StateEffect, Compartment, Prec, RangeSetBuilder } from '@codemirror/state';
 export { EditorView, Decoration, WidgetType, keymap, placeholder, lineNumbers, drawSelection } from '@codemirror/view';
 export { Language, LanguageSupport, syntaxTree, syntaxHighlighting, HighlightStyle } from '@codemirror/language';
-export { history, defaultKeymap, historyKeymap, undo } from '@codemirror/commands';
+export { history, defaultKeymap, historyKeymap, undo, redo, undoDepth, redoDepth } from '@codemirror/commands';
 export { markdownLanguage, markdownKeymap } from '@codemirror/lang-markdown';
 export { autocompletion, completionKeymap, startCompletion } from '@codemirror/autocomplete';
 export { tags } from '@lezer/highlight';

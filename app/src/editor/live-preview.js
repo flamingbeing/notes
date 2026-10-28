@@ -102,10 +102,10 @@ function build(state) {
 }
 
 /**
- * @param {{ onLink: (target: string) => void }} o
+ * @param {{ onLink: (target: string) => void, tickToBottom?: boolean }} o
  * @returns {import('@codemirror/state').Extension}
  */
-export function livePreview({ onLink }) {
+export function livePreview({ onLink, tickToBottom }) {
   const field = StateField.define({
     create: build,
     update(deco, tr) {
@@ -122,7 +122,10 @@ export function livePreview({ onLink }) {
         if (view.state.readOnly) return true;
         const at = view.posAtDOM(el);
         const now = view.state.sliceDoc(at, at + 3);
-        if (/^\[[ xX]\]$/.test(now)) view.dispatch({ changes: { from: at + 1, to: at + 2, insert: now[1] === ' ' ? 'x' : ' ' }, userEvent: 'input.check' });
+        if (/^\[[ xX]\]$/.test(now)) {
+          const tick = { from: at + 1, to: at + 2, insert: now[1] === ' ' ? 'x' : ' ' };
+          view.dispatch({ changes: tick.insert === 'x' && tickToBottom ? ticked(view.state, at, tick) : tick, userEvent: 'input.check' });
+        }
         return true;
       }
       const link = /** @type {HTMLElement | null} */ (el.closest('.cm-wikilink[data-note]'));
@@ -134,6 +137,27 @@ export function livePreview({ onLink }) {
     },
   });
   return [field, clicks];
+}
+
+// ticking a box with "ticked to the bottom" on: the line moves below the open and ticked to-dos next to it (same
+// indent, no gap), so the open ones stay together at the top. -> the changes
+/** @param {import('@codemirror/state').EditorState} state @param {number} at @param {{ from: number, to: number, insert: string }} tick */
+function ticked(state, at, tick) {
+  const doc = state.doc, line = doc.lineAt(at);
+  const indent = /^\s*/.exec(line.text)?.[0].length ?? 0;
+  const sibling = (/** @type {string} */ t) => /^\s*[-*+] \[[ xX]\] /.test(t) && (/^\s*/.exec(t)?.[0].length ?? 0) === indent;
+  const nested = (/** @type {string} */ t) => t.trim() !== '' && (/^\s*/.exec(t)?.[0].length ?? 0) > indent;
+  // the item takes its nested lines with it; the block ends at the last sibling (and its nested lines)
+  let last = line.number;
+  while (last < doc.lines && nested(doc.line(last + 1).text)) last++;
+  let end = last;
+  for (let n = last + 1; n <= doc.lines; n++) {
+    const t = doc.line(n).text;
+    if (sibling(t) || (nested(t) && end === n - 1)) end = n; else break;
+  }
+  if (end === last) return tick;
+  const item = doc.sliceString(line.from, doc.line(last).to).replace(/^(\s*[-*+] \[)[ xX]/, '$1x');
+  return [{ from: line.from, to: doc.line(last).to + 1, insert: '' }, { from: doc.line(end).to, insert: '\n' + item }];
 }
 
 // is the line at pos shown raw (a cursor or selection on it)?

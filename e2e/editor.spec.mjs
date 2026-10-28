@@ -2,7 +2,7 @@
 // [[ offers notes, pasted HTML becomes Markdown, saves happen by themselves, the read view is cleaned, and the quick
 // switcher and command palette reach notes. Made-up notes only.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer , openSettings } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer , openSettings, closeSettings } from './fixtures.mjs';
 
 const VENDOR = /\/vendor\/(codemirror|marked|dompurify)\//;
 const content = page => page.locator('#edit-cm .cm-content');
@@ -168,3 +168,92 @@ for (const [theme, dark] of [['light', ''], ['dark', ''], ['dark', 'oled']]) {
     expect(await AxeBuilder(page)).toEqual([]);
   });
 }
+
+// ---- editing: formatting bar, Enter continuation, redo, indent, pasted addresses, ticked to the bottom ----
+
+const body = page => page.locator('#edit-body');
+const bar = (page, name) => page.locator(`#edit-fmt [aria-label="${name}"]`);
+const paste = (page, text) => content(page).evaluate((el, text) => {
+  const data = new DataTransfer();
+  data.setData('text/plain', text);
+  el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+}, text);
+
+test('Enter continues bullets, numbers and to-dos; indent, outdent and redo on the bar', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('lists');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  // (insertText arrives as one input event, as a phone keyboard's composition does)
+  for (const [first, next] of [['- one', '- two'], ['1. one', '2. two'], ['- [ ] one', '- [ ] two']]) {
+    await page.keyboard.insertText(first.slice(0, 4));
+    await page.keyboard.insertText(first.slice(4));
+    await page.keyboard.press('Enter');
+    await page.keyboard.insertText(next.replace(/^(- \[ \] |- |\d\. )/, ''));
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Enter');   // an empty item ends the list
+    await expect(body(page)).toHaveValue(new RegExp(`${first.replace(/[[\]]/g, '\\$&')}\\n${next.replace(/[[\]]/g, '\\$&')}`));
+  }
+  await page.keyboard.insertText('- nested');
+  await bar(page, 'Indent').click();
+  await expect(body(page)).toHaveValue(/\n {2}- nested$/);
+  await bar(page, 'Outdent').click();
+  await expect(body(page)).toHaveValue(/\n- nested$/);
+  // Undo and Redo are greyed when there is nothing to do
+  await expect(bar(page, 'Redo')).toBeDisabled();
+  await bar(page, 'Undo').click();
+  await expect(bar(page, 'Redo')).toBeEnabled();
+  await bar(page, 'Redo').click();
+  await expect(bar(page, 'Redo')).toBeDisabled();
+});
+
+test('the formatting bar hides with Aa and stays above the bottom edge', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('bar');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await expect(page.locator('#edit-fmt')).toBeVisible();
+  const box = await page.locator('#edit-fmt').boundingBox();
+  const view = page.viewportSize();
+  expect(box.y + box.height).toBeLessThanOrEqual(view.height + 1);
+  expect(box.y).toBeGreaterThan(view.height / 2);   // pinned low on the screen, not under the title
+  await page.locator('#edit-fmt-toggle').click();
+  await expect(page.locator('#edit-fmt')).toBeHidden();
+  await page.locator('#edit-fmt-toggle').click();
+  await expect(page.locator('#edit-fmt')).toBeVisible();
+});
+
+test('a pasted address becomes a titled link without tracking parameters', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('url');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  await paste(page, 'https://example.com/my-first-post?utm_source=x&id=3&fbclid=abc');
+  await expect(body(page)).toHaveValue('[My first post (example.com)](https://example.com/my-first-post?id=3)');
+  await page.keyboard.insertText(' and ');
+  await paste(page, 'plain words, not an address');
+  await expect(body(page)).toHaveValue(/ and plain words, not an address$/);
+});
+
+test('ticking a to-do moves it below the open ones when the setting is on', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  await openSettings(page);
+  await page.locator('#opt-tickToBottom').check();
+  await closeSettings(page);
+  const t = uniq('tick');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await fillBody(page, '# Tasks\n- [ ] first\n- [ ] second\n- [x] done\n\nend');   // (the cursor stays on the heading, so the to-dos are drawn as boxes)
+  await content(page).locator('input.cm-task').first().click();
+  await expect(body(page)).toHaveValue('# Tasks\n- [ ] second\n- [x] done\n- [x] first\n\nend');
+});
