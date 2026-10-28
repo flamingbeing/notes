@@ -12,7 +12,7 @@ test('a device value stays on this device; an account value reaches the other on
   await open(a);
   await a.check('#opt-bigRows');
   await a.check('#opt-itemCount');
-  await a.click('#settings-close');
+  await a.evaluate(() => document.getElementById('tab-notes').click());
   await expect(a.locator('#items')).toHaveClass(/big/);
   await expect(a.locator('#count')).toBeVisible();
   await synced(a);
@@ -36,7 +36,7 @@ test('the device value survives sign-out and a reload', async ({ phone }) => {
   const { email } = await signIn(a, 'member');
   await open(a);
   await a.check('#opt-bigRows');
-  await a.click('#settings-close');
+  await a.evaluate(() => document.getElementById('tab-notes').click());
   await open(a);
   await a.click('#sign-out');
   await expect(a.locator('#signed-out')).toBeVisible();
@@ -77,4 +77,14 @@ test('the Settings sheet passes axe', async ({ phone }) => {
   await signIn(a, 'member');
   await open(a);
   expect(await AxeBuilder(a)).toEqual([]);
+});
+
+test('the toggles in Settings stay switch-sized, not stretched like text boxes', async ({ phone }) => {
+  const a = await phone();
+  await signIn(a, 'member');
+  await a.evaluate(() => /** @type {HTMLElement} */ (document.getElementById('open-settings')).click());
+  const sw = a.locator('#settings-body .ui-switch').first();
+  await expect(sw).toBeVisible();
+  const w = await sw.evaluate(el => el.getBoundingClientRect().width / parseFloat(getComputedStyle(document.documentElement).fontSize));
+  expect(w).toBeLessThan(4);
 });

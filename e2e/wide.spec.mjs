@@ -36,5 +36,5 @@ test('a laptop gets the side bar and the note beside the list; a phone gets the 
   await page.fill('#q-w', a);
   await expect(page.locator('#items .ui-row', { hasText: b })).toHaveCount(0);
   await page.click('#open-settings-w');
-  await expect(page.locator('#settings')).toBeVisible();
+  await expect(page.locator('#settings-panel')).toBeVisible();
 });

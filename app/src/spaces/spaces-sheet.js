@@ -16,7 +16,7 @@ export function spacesSheet(app, toast) {
   const sheet = dialog('space-sheet'), make = dialog('space-new-sheet');
   const pick = /** @type {HTMLSelectElement} */ ($('space'));
   const msg = $('space-msg');
-  // Members and New space are in the Folders sheet (phone) and the side bar (wider)
+  // Members and New space are in the Folders tab (phone) and the side bar (wider)
   const all = (/** @type {string} */ sel) => /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll(sel));
   const spaceOpen = all('#space-open, [data-space-open]'), spaceNew = all('#space-new, [data-space-new]');
   let uid = '';

@@ -19,8 +19,14 @@ html { overscroll-behavior-y: none; }
 .ui-bar.is-collapsed { border-bottom-color: var(--line); }
 .ui-bar.is-collapsed .ui-bar-title { opacity: 1; }
 .ui-bar-instant, .ui-bar-instant * { transition: none !important; }
-/* bar buttons keep to one line ("Select all" beside Done) */
+/* bar buttons: words in the link colour on one line ("Select all" beside Done), no outline or fill (theme.css's button
+   chrome is for the page); .ui-primary is the bold one */
 .ui-bar :is(button, a) { white-space: nowrap; }
+.ui-bar button { border: 0; background: none; color: var(--link); padding: 0 var(--gap); min-height: var(--tap); }
+.ui-bar .ui-primary { font-weight: 600; }
+/* the app's side-bar (menu) button at the bar's start, an icon; Back takes its place on a pushed screen */
+.ui-bar-menu { min-width: var(--tap); font-size: 1.25rem; line-height: 1; }
+.ui-bar:has(.ui-bar-back:not([hidden])) .ui-bar-menu { display: none; }
 .glass .ui-bar.is-collapsed { background: var(--glass-bg); border-bottom-color: transparent; box-shadow: var(--glass-rim);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
 .ui-large-title { margin: var(--pad) var(--pad); font-family: var(--font-head); font-size: var(--title-size);
@@ -32,9 +38,14 @@ html { overscroll-behavior-y: none; }
    band's padding): no empty band, no flash to the page colour; collapsed, it takes the small title and a soft edge */
 [data-header="band"] .ui-bar, .glass[data-header="band"] .ui-bar.is-collapsed { background: var(--band); color: var(--on-band);
   border-bottom-color: transparent; }
-[data-header="band"] .ui-bar :is(button, a, .ui-back) { color: var(--on-band); background: transparent;
-  border-color: color-mix(in srgb, var(--on-band) 45%, transparent); }
+[data-header="band"] .ui-bar :is(button, a, .ui-back) { color: var(--on-band); background: transparent; border: 0; }
 [data-header="band"] .ui-bar.is-collapsed { box-shadow: 0 1px 6px rgb(0 0 0 / .18); }
+/* a look with a slim bar (data-header="slim"): the bar always shows the screen's name over a hairline; the large
+   title stays for screen readers only (shell.css shows it again in a wide detail pane, where there is no bar) */
+[data-header="slim"] .ui-bar { border-bottom-color: var(--line); }
+[data-header="slim"] .ui-bar-title { opacity: 1; }
+[data-header="slim"] .ui-large-title { position: absolute; width: 1px; height: 1px; margin-block: 0; padding-block: 0; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
 
 /* ---------- tab bar ---------- */
 .ui-tabbar { position: fixed; z-index: 6; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + var(--gap));
@@ -43,8 +54,12 @@ html { overscroll-behavior-y: none; }
 .glass .ui-tabbar { background: var(--glass-bg); border-color: transparent; box-shadow: var(--glass-rim), var(--glass-shadow);
   -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); }
 .ui-tabbar[hidden] { display: none; }
-.ui-tab { display: grid; place-items: center; min-width: var(--tap); min-height: var(--tap); padding: 0 var(--pad);
-  border-radius: calc(var(--pill-r) - 4px); color: var(--muted); text-decoration: none; font-size: .85rem; }
+.ui-tab { display: grid; place-items: center; align-content: center; gap: 2px; min-width: var(--tap); min-height: var(--tap);
+  padding: 0 var(--pad); border: 0; border-radius: calc(var(--pill-r) - 4px); background: transparent; color: var(--muted);
+  font: inherit; font-size: .85rem; text-decoration: none; }   /* a <button> tab looks like a link one: no chrome */
+/* an icon above the label (.ui-tab-icon: an <svg> or a character); the label goes small under it */
+.ui-tab-icon { display: block; width: 1.5rem; height: 1.5rem; font-size: 1.25rem; line-height: 1.5rem; text-align: center; }
+.ui-tab:has(.ui-tab-icon) { padding-block: 4px; font-size: .7rem; }
 .ui-tab[aria-current="page"] { color: var(--accent); font-weight: 600; background: var(--tab-active); }
 /* a look with the tab bar along the bottom edge (data-tabbar="edge"); the tabs stay together in the middle on a wide screen */
 [data-tabbar="edge"] .ui-tabbar { left: 0; right: 0; bottom: 0; transform: none; max-width: none; justify-content: center;
@@ -134,6 +149,8 @@ dialog.ui-sheet.is-dragging { transition: none; }
 .ui-screen[hidden] { display: none; }
 .ui-screens.is-swiping .ui-screen:not(.is-top) { position: absolute; inset: 0 0 auto; }
 .ui-screens.is-swiping .ui-screen.is-top { position: relative; z-index: 2; box-shadow: -8px 0 24px rgb(0 0 0 / .12); }
+/* tab pages mid-swipe (tab-pages.js): the pages beside the current one sit at its sides, out of the flow */
+.ui-screens.is-paging > .ui-screen.is-beside { position: absolute; inset: 0 0 auto; }
 /* while a push or pop slides, the two screens overlap (as in the swipe) instead of one sitting below the other: the
    one underneath, or the one leaving, is out of the flow */
 .ui-screen.is-under { position: absolute; inset: 0 0 auto; z-index: 0; }
@@ -150,20 +167,20 @@ dialog.ui-sheet.is-dragging { transition: none; }
 /* ---------- lists and select mode ---------- */
 /* a card inset from the edges, or flush (the look's card-r, list-inset, list-edge); rows the density's height, with
    separators inset from the start */
-.ui-list { margin: 0 var(--list-inset); padding: 0; background: var(--surface); border-block: var(--border) solid var(--list-edge);
+.ui-list { margin: 0 var(--list-inset); padding: 0; background: var(--list-bg, var(--surface)); border-block: var(--border) solid var(--list-edge);
   border-radius: var(--card-r); box-shadow: var(--list-shadow); overflow: hidden; }
 .ui-row { position: relative; display: flex; align-items: center; gap: var(--pad); min-height: var(--row);
-  padding: var(--gap) var(--pad); background: var(--surface); box-sizing: border-box; }
+  padding: var(--gap) var(--pad); background: var(--list-bg, var(--surface)); box-sizing: border-box; }
 .ui-row + .ui-row { background: linear-gradient(var(--list-sep), var(--list-sep)) right top / calc(100% - var(--pad)) var(--border) no-repeat,
-  var(--surface); }
+  var(--list-bg, var(--surface)); }
 .ui-row-main { flex: 1; min-width: 0; font-weight: var(--row-weight); }
 .ui-row-sub { display: block; color: var(--muted); font-size: .85rem; font-weight: 400; }
 .ui-list.is-editing .ui-row { cursor: pointer; }
 .ui-list.is-editing .ui-row::before { content: ""; flex: none; width: var(--tick-size); height: var(--tick-size); border-radius: 50%;
   border: 2px solid var(--line); box-sizing: border-box; }
 .ui-list.is-editing .ui-row[aria-selected="true"]::before { background: var(--accent); border-color: var(--accent);
-  box-shadow: inset 0 0 0 3px var(--surface); }
-.ui-list.is-editing .ui-row[aria-selected="true"] { background: color-mix(in srgb, var(--selection) 60%, var(--surface)); }
+  box-shadow: inset 0 0 0 3px var(--list-bg, var(--surface)); }
+.ui-list.is-editing .ui-row[aria-selected="true"] { background: color-mix(in srgb, var(--selection) 60%, var(--list-bg, var(--surface))); }
 .ui-list.is-editing { touch-action: pan-y; }
 [data-tick="square"] .ui-list.is-editing .ui-row::before { border-radius: calc(var(--tick-size) / 3); }
 

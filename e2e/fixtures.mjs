@@ -95,6 +95,7 @@ export async function signInAgain(page, email) {
 
 // A new note by its title: + opens an empty note page with the title box ready; Close makes it and closes the page.
 export async function add(page, title) {
+  await toNotes(page);
   await page.click('#new');
   await expect(page.locator('#edit')).toBeVisible();
   await expect(page.locator('#edit-text')).toBeFocused();
@@ -102,18 +103,23 @@ export async function add(page, title) {
   await page.locator('#edit button[value=close]').click();
   await expect(page.locator('#items')).toContainText(title);
 }
-// The Settings sheet opened (it holds the theme switch, the options and Sign out; its button shows once signed in)
+// The Settings tab opened (it holds the theme switch, the options and Sign out; its button shows once signed in)
 export async function openSettings(page) {
   await page.click('#open-settings');
   await expect(page.locator('#settings')).toBeVisible();
 }
-// The drawer (the bar's ☰) opened, and something in it clicked
+// Back to the Notes tab (a phone's Settings and Folders are tab pages, not sheets)
+export async function closeSettings(page) {
+  await toNotes(page);
+  await expect(page.locator('#settings')).toBeHidden();
+}
+// The Folders tab opened, and something on its page clicked
 export async function drawer(page, selector) {
   await page.click('#drawer-open');
   await page.click(selector);
 }
 // One folder ('path:<folder>') or tag ('tag:<tag>') picked in the drawer; '' shows all notes
-export const showOnly = (page, value) => drawer(page, `#drawer button[data-filter="${value}"]`);
+export const showOnly = (page, value) => drawer(page, `#folders button[data-filter="${value}"]`);
 // The open note's Details (folder, links, files, Move) unfolded (they stay as last left on this device)
 export async function details(page) {
   const more = page.locator('#edit-more');
@@ -126,7 +132,9 @@ export const fillBody = (page, text) => page.locator('#edit-body').evaluate((el,
   a.value = t; a.dispatchEvent(new Event('input'));
 }, text);
 // Open a note from the list (its button's name starts with the title; a folder follows it)
-export const openNote = (page, title) => page.locator('#items .ui-row', { hasText: title }).first().click();
+// Back on the Notes tab if Folders or Settings is showing (a tab page stays until another tab is picked)
+export const toNotes = async page => { if (!await page.locator('#home').isVisible()) await page.evaluate(() => document.getElementById('tab-notes')?.click()); };
+export const openNote = async (page, title) => { await toNotes(page); await page.locator('#items .ui-row', { hasText: title }).first().click(); };
 export const synced = page => expect.poll(() => page.evaluate(() => window.starter.status), { timeout: 15_000 }).toBe('synced');
 // Every note on the server, in every vault and space: [{ path, data }] (db.list leaves document paths out)
 export async function serverNotes() {

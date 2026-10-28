@@ -1,6 +1,6 @@
-// The page's shell: the kit's gestures, sync chip and update prompt, Settings (with the account), and the screen switch. The
+// The page's shell: the kit's gestures, sync chip, Settings (with the account), and the screen switch. The
 // screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
-import { syncChip, updatePrompt, plural, startGestures } from '@core/ui';
+import { syncChip, plural, startGestures } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
 import { $, dialog } from './shell/dom.js';
 import { screenSwitch } from './shell/screen-switch.js';
@@ -20,10 +20,11 @@ const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchP
 
 // the kit's parts that need script: hold menus, sheets, select mode, large title, tab bar (the adaptive shell is the list's)
 const kit = startGestures();
+// the bar's Today / Select / New belong to the notes page: on the Folders or Settings page they leave the bar
+document.addEventListener('ui-tab', e => { $('list-view').dataset.page = /** @type {CustomEvent} */ (e).detail.page.id; });
 // for the tests: add(title, body?) -> '' or why the save was refused
 window.starter = { ready: false, add: async (title, body) => (await app?.create({ title, body }))?.refused ?? 'no app', signInAs: emulatorSignIn, files: () => app?.files, members: () => app?.members };
 const app = await start({ canReload: withSW ? () => !typing() && !sheetOpen() : null });
-updatePrompt($('update-prompt'), { update: app?.update || null });
 
 if (!app) notSetUpScreen().show({ phase: 'not-set-up' });
 else {
@@ -47,7 +48,8 @@ else {
     ready: list,
   });
   $('sign-out').addEventListener('click', async () => {
-    dialog('settings').close();
+    dialog('settings-panel').close();
+    kit.tabs?.go('#home');
     const unsent = await app.signOut();
     $('sign-out-msg').textContent = unsent
       ? `Signed out. ${plural(unsent, 'unsent change')} kept on this device; they send when you sign in again.`

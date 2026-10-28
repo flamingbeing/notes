@@ -2,8 +2,12 @@
 // picker and the settings file (export, import), in a host the page gives it. It reads only the settings api it is
 // handed and follows it: a change on another device or by a profile shows at once. The app names the rows and their
 // words; a section can also hold the app's own part (mount), such as @core/theme's themeSwitch for "This device".
+// With about (the app's name and its update api), an About group comes last: the Version row, Check for updates and
+// the About sheet; it also retries an owed reload once a field is left or a sheet closes (as updatePrompt does).
 // Styles: ui/gestures.css (lists), "settings screen".
 import { el, button, plural } from './dom.js';
+import { LABELS } from './labels.js';
+import { aboutSheet } from './about-sheet.js';
 
 /**
  * @typedef {{ key: string, label: string, sub?: string, more?: string, choices?: [unknown, string][], min?: number,
@@ -31,16 +35,26 @@ export const SETTINGS_WORDS = Object.freeze({
   resetPage: 'Reset this page',
   resetDone: 'Back to the defaults',
   undo: 'Undo',
+  about: 'About',
+  version: 'Version',
+  dev: 'dev',
+  checkUpdates: 'Check for updates',
+  aboutRow: 'About this app',
+  aboutSub: 'The outside code it uses and their licences',
+  open: 'Open',
 });
 
 /**
  * @param {HTMLElement} host  the screen is added here
  * @param {{ settings: import('../settings/types').SettingsApi, sections: SettingSection[], file?: string | false,
- *   labels?: Record<string, string> }} o  file: the exported file's name (false: no file rows); labels: words over SETTINGS_WORDS
+ *   labels?: Record<string, string>, about?: { name: string, update: import('./types').UpdateApi | null,
+ *   licences?: Record<string, string>, importMap?: { imports?: Record<string, string> } | null } }} o  file: the
+ *   exported file's name (false: no file rows); labels: words over SETTINGS_WORDS (and LABELS); about: the About group
+ *   (update null: the version reads "dev", no check)
  * @returns {() => void} stop: unwatches and removes the screen
  */
-export function settingsScreen(host, { settings, sections, file = 'settings.json', labels = {} }) {
-  const words = { ...SETTINGS_WORDS, ...labels };
+export function settingsScreen(host, { settings, sections, file = 'settings.json', labels = {}, about }) {
+  const words = { ...LABELS, ...SETTINGS_WORDS, ...labels };
   const box = el('div', { class: 'ui-settings' });
   const status = el('p', { class: 'ui-settings-status small', role: 'status', 'aria-live': 'polite' });
   /** @type {Map<string, (v: unknown) => void>} */
@@ -190,6 +204,33 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
     });
     const main = el('span', { class: 'ui-row-main' }, words.fileRow, el('span', { class: 'ui-row-sub' }, words.fileSub));
     group(words.file, el('ul', { class: 'ui-list' }, el('li', { class: 'ui-row ui-setting' }, main, el('span', { class: 'ui-setting-buttons' }, exp, imp, picker))));
+  }
+
+  // About: the version, Check for updates (its answer under it) and the About sheet
+  if (about) {
+    const { update } = about;
+    const version = el('span', { class: 'ui-setting-value', id: id() }, update ? '…' : words.dev);
+    const vrow = el('li', { class: 'ui-row ui-setting ui-version' }, el('span', { class: 'ui-row-main' }, words.version), version);
+    const list = el('ul', { class: 'ui-list' }, vrow);
+    if (update) {
+      update.versionLabel().then(v => { version.textContent = v || words.notInstalled; }, () => { version.textContent = words.notInstalled; });
+      const answer = el('span', { class: 'ui-row-sub', role: 'status' });
+      const check = button(words.checkUpdates, async () => {
+        answer.textContent = words.checking;
+        try { answer.textContent = await update.checkNow() ? words.updated : words.newest; }
+        catch { answer.textContent = words.checkFailed; }
+      }, { class: 'ui-check-update' });
+      list.append(el('li', { class: 'ui-row ui-setting' }, el('span', { class: 'ui-row-main' }, words.checkUpdates, answer), check));
+      const retry = () => setTimeout(() => update.retryUpdate(), 0);
+      document.addEventListener('focusout', retry);
+      document.addEventListener('close', retry, true);   // a dialog closing ('close' doesn't bubble, so on the way down)
+      stops.push(() => { document.removeEventListener('focusout', retry); document.removeEventListener('close', retry, true); });
+    }
+    const open = button(words.open, () => void aboutSheet({ name: about.name, update, licences: about.licences,
+      importMap: about.importMap, labels }), { class: 'ui-about-open', 'aria-label': `${words.open} ${words.aboutRow.toLowerCase()}` });
+    list.append(el('li', { class: 'ui-row ui-setting' },
+      el('span', { class: 'ui-row-main' }, words.aboutRow, el('span', { class: 'ui-row-sub' }, words.aboutSub)), open));
+    group(words.about, list);
   }
 
   box.append(status);

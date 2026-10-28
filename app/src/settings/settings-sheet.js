@@ -1,4 +1,4 @@
-// The Settings sheet (#settings, a side panel from 840 px) drawn by the kit's settingsScreen from the app's options
+// The Settings sheet (the Settings tab's page on a phone, a side panel from 600 px) drawn by the kit's settingsScreen from the app's options
 // (options.js): a switch per option, boxes for the two folders, this device's look and density, the buttons that open
 // the other sheets, and the account (who is signed in, Sign out). The editor's options apply in note-page.js. An option
 // for the account while signed out is refused by the settings api, and the screen says why.
@@ -58,10 +58,10 @@ function folders(host) {
   listIn(host, rows);
 }
 
-/** @param {{ settings: import('app-ui/settings/types').SettingsApi }} app */
+/** @param {{ settings: import('app-ui/settings/types').SettingsApi, update?: import('app-ui/ui/types').UpdateApi | null }} app */
 export function settingsSheet(app) {
   const { settings } = app;
-  const sheet = dialog('settings');
+  const panel = dialog('settings-panel');
 
   // what the options do to the page, now and whenever one changes (here or on another device)
   const apply = () => {
@@ -73,7 +73,7 @@ export function settingsSheet(app) {
 
   const body = $('settings-body');
   settingsScreen(body, {
-    settings, file: 'notes-settings.json',
+    settings, file: 'notes-settings.json', about: { name: 'Notes', update: app.update || null },
     sections: [
       ...SECTIONS,
       { title: 'This device', mount: host => themeSwitch(host) },
@@ -101,6 +101,9 @@ export function settingsSheet(app) {
     box.addEventListener('change', async () => { await settings.set(key, box.value).catch(() => {}); show(); });
   }
 
-  for (const id of ['open-settings', 'open-settings-w']) $(id).addEventListener('click', () => sheet.showModal());
-  $('settings-close').addEventListener('click', () => sheet.close());
+  // a tablet or laptop shows it as a side panel (the phone's tab is the page itself): the body moves in and back out
+  const page = $('settings');
+  $('open-settings-w').addEventListener('click', () => { $('settings-panel-body').append(body); panel.showModal(); });
+  panel.addEventListener('close', () => page.append(body));
+  $('settings-close').addEventListener('click', () => panel.close());
 }

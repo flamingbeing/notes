@@ -82,7 +82,7 @@ test('a new note: + opens an empty page in the folder for new notes; nothing typ
   await page.fill('#opt-newFolder', 'Inbox/');
   await page.locator('#opt-newFolder').press('Tab');
   await expect(page.locator('#opt-newFolder')).toHaveValue('Inbox');
-  await page.click('#settings-close');
+  await page.evaluate(() => document.getElementById('tab-notes').click());
 
   await page.click('#new');
   await expect(page.locator('#edit-text')).toBeFocused();

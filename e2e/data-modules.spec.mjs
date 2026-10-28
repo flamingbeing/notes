@@ -1,11 +1,11 @@
 // The D2 modules, each off until the device turns it on: bulk edit (tag, merge, delete to the bin), the bin (restore),
 // feedback (a member sends, an admin reads), and share-in's chooser.
-import { test, expect, signIn, synced, uniq } from './fixtures.mjs';
+import { test, expect, signIn, synced, uniq, toNotes } from './fixtures.mjs';
 
 const turnOn = async (page, ...names) => {
   await page.click('#open-settings');
   for (const n of names) await page.check(`#opt-${n}`);
-  await page.click('#settings-close');
+  await page.evaluate(() => document.getElementById('tab-notes').click());
 };
 const add = (page, title, body = 'text') => page.evaluate(([t, b]) => window.starter.add(t, b), [title, body]);
 
@@ -48,6 +48,7 @@ test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it
   await expect(a.locator('#bin-items li', { hasText: y })).toBeVisible();
   await a.locator('#bin-items li', { hasText: y }).getByRole('button', { name: 'Restore' }).click();
   await a.click('#bin-close');
+  await toNotes(a);
   await expect(a.locator('#items .ui-row', { hasText: new RegExp(`^${y}$`) })).toBeVisible();
   await expect(a.locator('#items .ui-row', { hasText: z })).toBeVisible();
 });

@@ -12,10 +12,10 @@
     "@core/auth": "https://core.anawj.com/sync/1.4.0/auth.js",
     "@core/sync": "https://core.anawj.com/sync/1.4.0/sync.js",
     "@core/update": "https://core.anawj.com/sync/1.4.0/update.js",
-    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.10/ui/index.js",
-    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.10/theme/index.js",
+    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.11/ui/index.js",
+    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.11/theme/index.js",
     "@core/files": "./files/index.js",
-    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.10/settings/index.js",
+    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.11/settings/index.js",
     "@core/search": "./search/index.js",
     "@core/backup": "./backup/index.js",
     "@core/drive": "./drive/index.js",
@@ -31,16 +31,16 @@
   }
 }
   </script>
-  <script src="https://core.anawj.com/ui/1.0.0-rc.10/theme/early.js"></script>
+  <script src="https://core.anawj.com/ui/1.0.0-rc.11/theme/early.js"></script>
   <script type="module" src="src/boot.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="https://design.flamingbeing.com/v1/tokens.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/theme/theme.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/ui.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/theme/glass.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/gestures.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.10/ui/shell/shell.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.11/theme/theme.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.11/ui/ui.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.11/theme/glass.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.11/ui/gestures.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.11/ui/shell/shell.css">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="src/app.js"></script>
 </head>
@@ -60,7 +60,6 @@
       <h1>Notes</h1>
       <p>This app isn't connected to its Firebase project yet (see README, "Fill").</p>
     </section>
-    <div id="update-prompt"></div>
     <p id="sign-out-msg" class="error" role="alert"></p>
   </main>
 
@@ -68,7 +67,7 @@
        opens full screen); a tablet or laptop gets the side bar, the list, and the note beside it. -->
   <div id="list-view" class="ui-shell" hidden>
     <header class="ui-bar">
-      <span data-bar-lead></span>
+      <span data-bar-lead><button type="button" class="ui-bar-menu" aria-label="Folders and tags" aria-controls="side">☰</button></span>
       <h2 class="ui-bar-title" aria-hidden="true">Notes</h2>
       <span class="bar-end">
         <span id="sync-chip"></span>
@@ -78,7 +77,7 @@
       </span>
     </header>
 
-    <nav class="ui-sidebar" aria-label="Notes">
+    <nav class="ui-sidebar" id="side" aria-label="Notes">
       <p class="ui-sidebar-name">Notes</p>
       <label class="ui-search"><span class="sr-only">Search</span>
         <input id="q-w" type="search" autocomplete="off" placeholder="Search" aria-keyshortcuts="Control+K Meta+K"><kbd>Ctrl K</kbd></label>
@@ -142,53 +141,52 @@
           <p class="small" data-multi-names></p>
         </div>
       </section>
+
+      <section class="ui-screen ui-tab-page" id="folders" aria-labelledby="folders-title" hidden>
+        <h1 class="ui-large-title" id="folders-title">Folders</h1>
+        <ul class="nav" aria-label="Show">
+          <li><button type="button" data-filter="">All notes</button></li>
+        </ul>
+        <div id="drawer-folders-box" hidden>
+          <h3>Folders</h3>
+          <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
+        </div>
+        <div id="drawer-tags-box" hidden>
+          <h3>Tags</h3>
+          <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
+        </div>
+        <h3>Go</h3>
+        <div class="row">
+          <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
+          <button id="space-open" type="button" hidden>Members</button>
+          <button id="space-new" type="button" hidden>New space</button>
+        </div>
+      </section>
+
+      <section class="ui-screen ui-tab-page" id="settings" aria-labelledby="settings-title" hidden>
+        <h1 class="ui-large-title" id="settings-title">Settings</h1>
+        <div id="settings-body"></div>
+      </section>
     </main>
 
     <nav class="ui-tabbar" data-minimise aria-label="Sections">
-      <button type="button" class="ui-tab" aria-current="page" id="tab-notes">Notes</button>
-      <button id="drawer-open" type="button" class="ui-tab" aria-haspopup="dialog" aria-controls="drawer">Folders</button>
-      <button id="open-settings" type="button" class="ui-tab" aria-haspopup="dialog" aria-controls="settings" hidden>Settings</button>
+      <button type="button" class="ui-tab" data-tab-page="#home" aria-current="page" id="tab-notes"><span class="ui-tab-icon" aria-hidden="true">✎</span>Notes</button>
+      <button id="drawer-open" type="button" class="ui-tab" data-tab-page="#folders"><span class="ui-tab-icon" aria-hidden="true">▤</span>Folders</button>
+      <button id="open-settings" type="button" class="ui-tab" data-tab-page="#settings" hidden><span class="ui-tab-icon" aria-hidden="true">≡</span>Settings</button>
     </nav>
   </div>
 
   <div id="toasts"></div>
   <template id="row-menu"></template>
 
-  <dialog id="drawer" class="ui-sheet" data-detents="medium large" aria-labelledby="drawer-title">
+  <!-- Settings on a tablet or laptop: a side panel; the page's #settings-body moves in while it is open (a phone has the Settings tab) -->
+  <dialog id="settings-panel" class="ui-sheet" data-detents="medium large" data-wide="panel" aria-labelledby="settings-panel-title">
     <div class="ui-sheet-grabber" aria-label="Expand or collapse"></div>
     <div class="ui-sheet-head">
-      <h2 id="drawer-title">Folders and tags</h2>
-      <button id="drawer-close" type="button" data-close>Done</button>
-    </div>
-    <div class="ui-sheet-body">
-      <ul class="nav" aria-label="Show">
-        <li><button type="button" data-filter="">All notes</button></li>
-      </ul>
-      <div id="drawer-folders-box" hidden>
-        <h3>Folders</h3>
-        <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
-      </div>
-      <div id="drawer-tags-box" hidden>
-        <h3>Tags</h3>
-        <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
-      </div>
-      <h3>Go</h3>
-      <div class="row">
-        <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
-        <button id="space-open" type="button" hidden>Members</button>
-        <button id="space-new" type="button" hidden>New space</button>
-      </div>
-    </div>
-  </dialog>
-
-  <!-- Settings (the kit's settingsScreen, filled in settings/settings-sheet.js): a side panel from 840 px -->
-  <dialog id="settings" class="ui-sheet" data-detents="medium large" data-wide="panel" aria-labelledby="settings-title">
-    <div class="ui-sheet-grabber" aria-label="Expand or collapse"></div>
-    <div class="ui-sheet-head">
-      <h2 id="settings-title">Settings</h2>
+      <h2 id="settings-panel-title">Settings</h2>
       <button id="settings-close" type="button" data-close>Done</button>
     </div>
-    <div class="ui-sheet-body" id="settings-body"></div>
+    <div class="ui-sheet-body" id="settings-panel-body"></div>
   </dialog>
 
   <dialog id="edit" class="page" aria-labelledby="edit-title">

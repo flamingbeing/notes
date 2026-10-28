@@ -3,7 +3,7 @@
 .bar h1 { margin-inline-end: auto; }
 h1 { font-size: 1.4rem; }
 button.icon { min-width: 2.75rem; font-size: 1.2rem; line-height: 1; }
-input { padding: .5rem; flex: 1; min-width: 10rem; }
+input:not([type=checkbox]):not([type=radio]) { padding: .5rem; flex: 1; min-width: 10rem; }
 footer { margin-top: 2rem; }
 
 /* a note changed (here or on another device) since the list last showed */
@@ -25,9 +25,9 @@ footer { margin-top: 2rem; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 /* the sample options (src/options.js) */
 #items.big .ui-row { padding-block: 1rem; font-size: 1.15rem; }
-#settings label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
-#settings label.file { display: inline-block; padding: .5rem .75rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; }
-#settings label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+#settings-body label.file input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+#settings-body label.file { display: inline-block; padding: .5rem .75rem; border: 1px solid currentColor; border-radius: .4rem; cursor: pointer; }
+#settings-body label.file:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* the note editor (src/editor/): CodeMirror's own classes, coloured from the theme. Readable line width (the default)
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
@@ -88,7 +88,7 @@ footer { margin-top: 2rem; }
 #picker-list li { padding: .5rem; border-radius: var(--radius-s); cursor: pointer; }
 #picker-list li[aria-selected=true] { background: var(--accent); color: var(--on-accent); }
 #picker-list .path { opacity: .75; font-size: .85em; }
-#settings h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+#settings-body h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
 /* shared spaces: the switcher, and the people in the members sheet */
 #space-bar select { flex: 1; min-width: 8rem; }
 .top { flex-wrap: nowrap; }
@@ -96,12 +96,12 @@ footer { margin-top: 2rem; }
 #filter-chip { align-items: center; gap: .5rem; }
 
 /* the folder and tag lists: in the Folders sheet (phone) and the side bar (tablet, laptop); a folder's own folders indented under it */
-.side-head, #drawer h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
-.side-nav, #drawer .nav { display: flex; flex-direction: column; gap: 2px; }
+.side-head, #folders h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
+.side-nav, #folders .nav { display: flex; flex-direction: column; gap: 2px; }
 .ui-side-link { padding-inline-start: calc(var(--pad) + var(--depth, 0) * 1rem); }
-#drawer .nav { list-style: none; padding: 0; margin: 0; }
-#drawer .nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
-#drawer .nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
+#folders .nav { list-style: none; padding: 0; margin: 0; }
+#folders .nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
+#folders .nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
 .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--pad); }
 .bar-end { display: flex; align-items: center; gap: var(--gap); }
@@ -115,3 +115,7 @@ footer { margin-top: 2rem; }
 #items .ui-row.picked { outline: 2px solid currentColor; outline-offset: -2px; }
 #bin-items li, #feedback-items li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 #share-text { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
+
+/* a phone's Folders and Settings pages have no list to add to or select */
+#list-view[data-page]:not([data-page=home]) .bar-end > button { display: none; }
+@media (max-width: 599px) { .toasts { bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); } }
