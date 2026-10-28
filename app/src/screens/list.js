@@ -7,7 +7,7 @@
 import { refusedList, toaster, emptyState, adaptiveShell, confirmModal } from '@core/ui';
 import { createSearch } from '@core/search';
 import { COLL } from '../cloud.js';
-import { isoDay } from '../notes/model.js';
+import { isoDay, nextWorkday } from '../notes/model.js';
 import { $, input, dialog, sectionScreen } from '../shell/dom.js';
 import { iconOf } from '../icons.js';
 import { notePage } from './note-page.js';
@@ -187,11 +187,13 @@ export function listScreen(app, kit) {
   // (the phone's bar and the wide layouts' list header each have the buttons)
   const twice = (/** @type {string} */ id) => [$(id), $(id + '-w')];
   for (const b of twice('new')) b.addEventListener('click', newNote);
-  const daily = async () => {
-    const { note, refused } = await app.daily(isoDay(), String(app.settings.get('dailyFolder') || ''));
+  // today's note, or the next working day's (Mon to Fri), in the folder for today's notes
+  const daily = async (iso = isoDay()) => {
+    const { note, refused } = await app.daily(iso, String(app.settings.get('dailyFolder') || ''));
     if (refused) toast(refused); else void page.open(note);
   };
   for (const b of twice('daily')) b.addEventListener('click', () => void daily());
+  for (const b of twice('nextday')) b.addEventListener('click', () => void daily(nextWorkday()));
   /** a note by its title: the one there is, or a new one @param {string} title */
   const openTitle = async title => {
     const have = app.find(title);
@@ -259,7 +261,8 @@ export function listScreen(app, kit) {
     commands: [
       { id: 'go', label: 'Go to note', run: () => pick.switcher() },
       { id: 'new', label: 'New note', when: () => canWrite, run: newNote },
-      { id: 'today', label: 'Open today’s note', when: () => canWrite, run: daily },
+      { id: 'today', label: 'Open today’s note', when: () => canWrite, run: () => daily() },
+      { id: 'nextday', label: 'Open the next working day’s note', when: () => canWrite, run: () => daily(nextWorkday()) },
       { id: 'search', label: 'Search notes', run: () => { for (const d of document.querySelectorAll('dialog:modal')) /** @type {HTMLDialogElement} */ (d).close(); focusSearch(); } },
       { id: 'read', label: 'Toggle read view', when: inNote, run: page.toggleRead },
       { id: 'tidy', label: 'Tidy this note’s Markdown', when: () => inNote() && canWrite, run: page.tidy },
@@ -295,7 +298,7 @@ export function listScreen(app, kit) {
     canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
     role = s.role;
     modules();
-    for (const b of [...twice('new'), ...twice('daily')]) b.hidden = !canWrite;
+    for (const b of [...twice('new'), ...twice('daily'), ...twice('nextday')]) b.hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
     if (canWrite !== could) draw(all, new Set());
   });

@@ -34,6 +34,13 @@ export function isoDay(d = new Date()) {
   const p = (/** @type {number} */ n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+// the next working day after d: Monday to Friday (public holidays not skipped)
+/** @param {Date} [d] -> 'YYYY-MM-DD' */
+export function nextWorkday(d = new Date()) {
+  const n = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+  while (n.getDay() === 0 || n.getDay() === 6) n.setDate(n.getDate() + 1);
+  return isoDay(n);
+}
 /** @param {string} iso */
 export const dailyId = iso => 'day-' + iso;
 /** @param {string} iso @param {string} [folder] @returns {Note} */
