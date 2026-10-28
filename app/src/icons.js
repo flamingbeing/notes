@@ -19,6 +19,22 @@ export const ICONS = {
   paperclip: [['path', { d: 'm16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551' }]],
   calendar: [['path', { d: 'M8 2v4' }], ['path', { d: 'M16 2v4' }], ['rect', { width: '18', height: '18', x: '3', y: '4', rx: '2' }], ['path', { d: 'M3 10h18' }]],
   squarePen: [['path', { d: 'M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' }], ['path', { d: 'M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z' }]],
+  chevronRight: [['path', { d: 'm9 18 6-6-6-6' }]],
+  hash: [['path', { d: 'M4 9h16' }], ['path', { d: 'M4 15h16' }], ['path', { d: 'M10 3 8 21' }], ['path', { d: 'M16 3l-2 18' }]],
+  fileText: [['path', { d: 'M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z' }], ['path', { d: 'M14 2v4a2 2 0 0 0 2 2h4' }], ['path', { d: 'M10 9H8' }], ['path', { d: 'M16 13H8' }], ['path', { d: 'M16 17H8' }]],
+  search: [['circle', { cx: '11', cy: '11', r: '8' }], ['path', { d: 'm21 21-4.3-4.3' }]],
+  users: [['path', { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' }], ['circle', { cx: '9', cy: '7', r: '4' }], ['path', { d: 'M22 21v-2a4 4 0 0 0-3-3.87' }], ['path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' }]],
+  plus: [['path', { d: 'M5 12h14' }], ['path', { d: 'M12 5v14' }]],
+  bold: [['path', { d: 'M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8' }]],
+  italic: [['path', { d: 'M19 4h-9' }], ['path', { d: 'M14 20H5' }], ['path', { d: 'M15 4 9 20' }]],
+  heading: [['path', { d: 'M6 12h12' }], ['path', { d: 'M6 20V4' }], ['path', { d: 'M18 20V4' }]],
+  list: [['path', { d: 'M3 12h.01' }], ['path', { d: 'M3 18h.01' }], ['path', { d: 'M3 6h.01' }], ['path', { d: 'M8 12h13' }], ['path', { d: 'M8 18h13' }], ['path', { d: 'M8 6h13' }]],
+  listOrdered: [['path', { d: 'M10 12h11' }], ['path', { d: 'M10 18h11' }], ['path', { d: 'M10 6h11' }], ['path', { d: 'M4 10h2' }], ['path', { d: 'M4 6h1v4' }], ['path', { d: 'M6 18H4c0-1 2-2 2-3s-1-1.5-2-1' }]],
+  outdent: [['path', { d: 'M21 12H11' }], ['path', { d: 'M21 18H11' }], ['path', { d: 'M21 6H11' }], ['path', { d: 'm7 8-4 4 4 4' }]],
+  indent: [['path', { d: 'M21 12H11' }], ['path', { d: 'M21 18H11' }], ['path', { d: 'M21 6H11' }], ['path', { d: 'm3 8 4 4-4 4' }]],
+  link: [['path', { d: 'M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71' }], ['path', { d: 'M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71' }]],
+  listChecks: [['path', { d: 'm3 17 2 2 4-4' }], ['path', { d: 'm3 7 2 2 4-4' }], ['path', { d: 'M13 6h8' }], ['path', { d: 'M13 12h8' }], ['path', { d: 'M13 18h8' }]],
+  clipboard: [['rect', { width: '8', height: '4', x: '8', y: '2', rx: '1', ry: '1' }], ['path', { d: 'M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2' }]],
 };
 
 /** @param {string} name @returns {SVGSVGElement} */

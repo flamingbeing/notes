@@ -70,7 +70,7 @@ test('accent: a picked colour is kept on this device, Reset goes back to the loo
   await openSettings(page);
   const reset = page.getByRole('button', { name: 'Reset colour' });
   await expect(reset).toBeHidden();
-  await expect(page.locator('#accent-pick')).toHaveValue('#3a6390');   // the app's (config.js)
+  await expect(page.locator('#accent-pick')).toHaveValue('#7c5cd6');   // the app's (config.js)
   await page.locator('#accent-pick').fill('#c2417a');
   await expect(reset).toBeVisible();
   await page.reload();
@@ -79,12 +79,12 @@ test('accent: a picked colour is kept on this device, Reset goes back to the loo
   expect(await cssVar(page, '--accent')).not.toBe('');
   await page.getByRole('button', { name: 'Reset colour' }).click();
   await expect(reset).toBeHidden();
-  await expect(page.locator('#accent-pick')).toHaveValue('#3a6390');
+  await expect(page.locator('#accent-pick')).toHaveValue('#7c5cd6');
 });
 
 // app-ui's looks (PRESETS in theme/presets.js). One test per look: 24 axe runs in one test took ~23 s on a usual runner
 // and passed 60 s on a slow one; 3 runs a test leave room to spare.
-const LOOKS = ['default', 'flat', 'soft', 'paper', 'navy', 'black', 'contrast', 'eye'];
+const LOOKS = ['default', 'flat', 'soft', 'paper', 'navy', 'black', 'contrast', 'violet', 'eye'];
 
 test('the look picker offers every look', async ({ phone }) => {
   const page = await phone();

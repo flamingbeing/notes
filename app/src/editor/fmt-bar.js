@@ -1,7 +1,7 @@
 // The formatting bar over the editor (ported from the logbook's full bar): **bold**, *italic*, # heading, "- " bullets,
 // "1. " numbers, "- [ ] " to-dos, indent and outdent, [links](…), the clipboard's address as a link, Undo and Redo. Each writes a little Markdown into the CodeMirror view, as one
 // change, so Undo (and Ctrl+Z) takes it back. The buttons don't take the focus, so the selection stays.
-import { ICONS, iconOf } from '../icons.js';
+import { iconOf } from '../icons.js';
 import { EditorSelection, undo, redo, undoDepth, redoDepth } from '@vendor/codemirror';
 import { linkFor } from '../notes/paste-link.js';
 
@@ -61,11 +61,11 @@ export function fmtBar(viewOf) {
     const { a, b, v } = sel(view), md = linkFor(clip, v.slice(a, b));
     if (md) replaceRange(view, a, b, md);
   };
-  /** @param {string} label @param {string} aria @param {(view: View) => void} fn @param {string} [tag] */
-  const btn = (label, aria, fn, tag = '') => {
+  /** @param {string} icon  an ICONS name @param {string} aria @param {(view: View) => void} fn */
+  const btn = (icon, aria, fn) => {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'small'; b.title = aria; b.setAttribute('aria-label', aria);
-    if (Object.hasOwn(ICONS, label)) b.append(iconOf(label)); else if (tag) b.append(Object.assign(document.createElement(tag), { textContent: label })); else b.textContent = label;
+    b.append(iconOf(icon));
     b.addEventListener('mousedown', e => e.preventDefault());
     b.addEventListener('click', () => { const view = viewOf(); if (view && !view.state.readOnly) fn(view); });
     return b;
@@ -73,13 +73,13 @@ export function fmtBar(viewOf) {
   const bar = /** @type {HTMLElement & { refresh: (view: View) => void }} */ (/** @type {unknown} */ (document.createElement('div')));
   bar.className = 'fmt-bar'; bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Formatting');
   bar.append(
-    btn('B', 'Bold', v => wrap(v, '**'), 'b'), btn('I', 'Italic', v => wrap(v, '*'), 'i'),
-    btn('H', 'Heading', v => prefix(v, /^#{1,3}\s/, () => '# ')),
-    btn('•', 'Bullet list', v => prefix(v, /^[-*+]\s(?!\[[ xX]\])/, () => '- ')),
-    btn('1.', '1. Numbered list', v => prefix(v, /^\d+\.\s/, i => `${i + 1}. `)),
+    btn('bold', 'Bold', v => wrap(v, '**')), btn('italic', 'Italic', v => wrap(v, '*')),
+    btn('heading', 'Heading', v => prefix(v, /^#{1,3}\s/, () => '# ')),
+    btn('list', 'Bullet list', v => prefix(v, /^[-*+]\s(?!\[[ xX]\])/, () => '- ')),
+    btn('listOrdered', 'Numbered list', v => prefix(v, /^\d+\.\s/, i => `${i + 1}. `)),
     btn('squareCheck', 'To-do', v => prefix(v, /^[-*+]\s\[[ xX]\]\s/, () => '- [ ] ')),
-    btn('⇤', 'Outdent', v => shift(v, true)), btn('⇥', 'Indent', v => shift(v, false)),
-    btn('Link', 'Link', link), btn('Paste', 'Paste the copied address as a link', v => void pasteLink(v)),
+    btn('outdent', 'Outdent', v => shift(v, true)), btn('indent', 'Indent', v => shift(v, false)),
+    btn('link', 'Link', link), btn('clipboard', 'Paste the copied address as a link', v => void pasteLink(v)),
     btn('undo', 'Undo', v => { undo(v); v.focus(); }), btn('redo', 'Redo', v => { redo(v); v.focus(); }),
   );
   const [undoBtn, redoBtn] = /** @type {HTMLButtonElement[]} */ ([...bar.querySelectorAll('[aria-label="Undo"], [aria-label="Redo"]')]);
