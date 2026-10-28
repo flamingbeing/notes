@@ -14,7 +14,6 @@ footer { margin-top: 2rem; }
 #edit textarea { width: 100%; box-sizing: border-box; min-height: 12rem; font: inherit; padding: .5rem; }
 #edit input:not([type=checkbox]) { width: 100%; box-sizing: border-box; }
 .links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
-.links button.missing { border-style: dashed; }
 .files { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
 .files li { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .files img { width: 2.5rem; height: 2.5rem; object-fit: cover; border-radius: .25rem; }
@@ -56,7 +55,6 @@ footer { margin-top: 2rem; }
   #edit-fmt .fmt-bar { flex-wrap: nowrap; overflow-x: auto; }
   #edit.with-fmt { padding-bottom: 5rem; }
 }
-.fmt-bar button { min-width: 2.25rem; }
 /* unboxed, like the read view: the page is the editor (focus shows as the caret) */
 #edit-cm .cm-editor { background: transparent; min-height: 50vh; }
 #edit-cm .cm-editor.cm-focused { outline: none; }
@@ -110,7 +108,7 @@ footer { margin-top: 2rem; }
 .side-nav, #folders .nav { display: flex; flex-direction: column; gap: 2px; }
 .ui-side-link { padding-inline-start: calc(var(--pad) + var(--depth, 0) * 1rem); }
 #folders .nav { list-style: none; padding: 0; margin: 0; }
-#folders .nav button { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
+#folders .nav button:not(.tree-toggle) { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
 #folders .nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
 .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--pad); }
@@ -143,8 +141,46 @@ footer { margin-top: 2rem; }
 #folders h3 { margin: 1rem 0 .25rem; padding-inline: calc(var(--pad) + var(--list-inset, 0px)); color: var(--muted); font-size: .85rem; font-weight: 600; text-transform: none; }
 #folders .ui-list.nav { border-radius: var(--card-r); overflow: hidden; }
 #folders .ui-list .ui-row { padding: 0; }
-#folders .ui-list .ui-row > button { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; margin: 0; min-height: var(--tap); border: 0; border-radius: 0; background: transparent; text-align: left; padding-inline: calc(var(--pad) + var(--depth, 0) * 1rem) var(--pad); }
+#folders .ui-list .ui-row > button:not(.tree-toggle) { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; margin: 0; min-height: var(--tap); border: 0; border-radius: 0; background: transparent; text-align: left; padding-inline: calc(var(--pad) + var(--depth, 0) * 1rem) var(--pad); }
 #folders .ui-list .ui-row > button[aria-current=true] { color: var(--accent); font-weight: 600; }
 #folders .ui-list .n { color: var(--muted); font-weight: 400; }
 /* a note's row: the first three lines of its text under the title */
 .ui-row-main[data-preview]::after { content: attr(data-preview); color: var(--muted); font-size: .85rem; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: .15rem; }
+/* the Folders tab as a file explorer: compact rows, each with its icon; a folder's chevron folds away the folders in it.
+   The side bar's folders and tags take the same icons */
+.tree-icon { display: inline-flex; flex: none; color: var(--muted); }
+.tree-icon svg { width: 18px; height: 18px; }
+.ui-side-link:has(.tree-icon) { display: flex; align-items: center; gap: .5rem; }
+.tree-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#folders .ui-list .ui-row > button:not(.tree-toggle) { justify-content: flex-start; }
+#folders .ui-list .ui-row > button[aria-current=true] { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+#folders .ui-list .ui-row > button[aria-current=true] .tree-icon { color: var(--accent); }
+#folders .ui-list .ui-row.tree { display: flex; align-items: center; padding-inline-start: calc(.25rem + var(--depth, 0) * 1.1rem); }
+#folders .ui-list .ui-row.tree > button[data-filter] { padding-inline-start: .25rem; }
+.tree-toggle { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 2rem; min-height: var(--tap); padding: 0; margin: 0; border: 0; background: transparent; color: var(--muted); }
+.tree-toggle svg { width: 16px; height: 16px; transform: rotate(90deg); transition: transform var(--d-quick, .2s) ease; }
+.tree-toggle[aria-expanded=false] svg { transform: none; }
+#folders li:has(> button[hidden]) { display: none; }
+/* the format bar: flat icons, as in a note app's keyboard bar */
+.fmt-bar button { display: inline-flex; align-items: center; justify-content: center; min-width: 2.5rem; min-height: 2.5rem; padding: 0; border: 0; border-radius: var(--radius-s, 6px); background: transparent; color: var(--muted); }
+.fmt-bar button svg { width: 20px; height: 20px; }
+.fmt-bar button:active:not(:disabled) { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .tree-toggle svg { transition: none; } }
+/* the quick switcher and command palette: on a phone it drops from the top, full width, the list under the box;
+   a touch screen has no keys to hint at */
+#picker-q { width: 100%; border: 0; border-radius: var(--control-r, var(--radius)); background: color-mix(in srgb, var(--text) 6%, transparent); padding: .6rem .75rem; font-size: 1rem; }
+@media (max-width: 599px) {
+  dialog.picker[open] { margin: 0; inset: 0 0 auto; width: 100%; max-width: none; max-height: 85vh; border: 0; border-radius: 0 0 var(--sheet-r, 16px) var(--sheet-r, 16px); padding-top: calc(env(safe-area-inset-top, 0px) + .75rem); animation: picker-in var(--d-quick, .3s) cubic-bezier(.2, .8, .2, 1); }
+  #picker-list { max-height: 60vh; }
+}
+@keyframes picker-in { from { transform: translateY(-100%); } }
+@media (pointer: coarse) { .picker-keys { display: none; } }
+@media (prefers-reduced-motion: reduce) { dialog.picker[open] { animation: none; } }
+/* a note's Details as properties: muted labels, the folder a quiet field, links as links */
+#edit-more summary { color: var(--muted); font-size: .9rem; }
+#edit-more h3, #edit-more > label[for=edit-path] { display: block; font-size: .8rem; font-weight: 600; color: var(--muted); margin: 1rem 0 .25rem; text-transform: none; }
+#edit-path { border-color: transparent; background: color-mix(in srgb, var(--text) 5%, transparent); }
+#edit-path:focus { border-color: var(--accent); }
+.links { flex-direction: column; gap: 0; }
+.links button { border: 0; background: none; padding: .35rem 0; min-height: 2rem; color: var(--accent); text-align: left; font-weight: 500; }
+.links button.missing { opacity: .75; text-decoration: underline dashed; }

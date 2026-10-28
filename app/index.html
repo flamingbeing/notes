@@ -14,10 +14,10 @@
     "@core/auth": "https://core.anawj.com/sync/1.5.0/auth.js",
     "@core/sync": "https://core.anawj.com/sync/1.5.0/sync.js",
     "@core/update": "https://core.anawj.com/sync/1.5.0/update.js",
-    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.20/ui/index.js",
-    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.20/theme/index.js",
+    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.24/ui/index.js",
+    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.24/theme/index.js",
     "@core/files": "./files/index.js",
-    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.20/settings/index.js",
+    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.24/settings/index.js",
     "@core/search": "./search/index.js",
     "@core/backup": "./backup/index.js",
     "@core/drive": "./drive/index.js",
@@ -33,14 +33,14 @@
   }
 }
   </script>
-  <script src="https://core.anawj.com/ui/1.0.0-rc.20/theme/early.js"></script>
+  <script src="https://core.anawj.com/ui/1.0.0-rc.24/theme/early.js"></script>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/app.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/auth.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/sync.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/update.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.20/ui/index.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.20/theme/index.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.20/settings/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.24/ui/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.24/theme/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.24/settings/index.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/update/0.2.0/register.js" data-module>
   <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-app.js" data-module>
   <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-auth.js" data-module>
@@ -50,12 +50,12 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://design.flamingbeing.com/v1/tokens.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/theme/theme.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/ui/ui.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/theme/glass.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/ui/prose.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/ui/gestures.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.20/ui/shell/shell.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/theme/theme.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/ui/ui.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/theme/glass.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/ui/prose.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/ui/gestures.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.24/ui/shell/shell.css">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="src/app.js"></script>
 </head>
@@ -88,7 +88,7 @@
       <span class="bar-end">
         <span id="sync-chip"></span>
         <button id="daily" type="button" class="ui-icon-btn" aria-label="Today" title="Today's note" hidden><span data-icon="calendar"></span></button>
-        <button id="select" type="button" data-edit-for="#items" hidden>Select</button>
+        <button id="select" type="button" class="ui-icon-btn" data-edit-for="#items" aria-label="Select" title="Select notes" hidden><span data-icon="listChecks"></span></button>
         <button id="new" type="button" class="ui-primary ui-icon-btn" aria-label="New" title="New note" hidden><span data-icon="squarePen"></span></button>
       </span>
     </header>
@@ -134,7 +134,7 @@
           <select id="space"></select>
         </div>
         <label class="ui-search ui-phone-search"><span class="sr-only">Search</span>
-          <input id="q" type="search" autocomplete="off" placeholder="Search: word, &quot;phrase&quot;, -leave out, tag:work, path:folder"></label>
+          <input id="q" type="search" autocomplete="off" placeholder="Search, tag:, path:, -word" title="A word, &quot;a phrase&quot;, -leave out, tag:work, path:folder"></label>
         <p id="search-msg" class="small pad" role="status"></p>
         <div id="refused-list"></div>
         <p id="edit-msg" class="small pad" role="status"></p>
@@ -161,7 +161,7 @@
       <section class="ui-screen ui-tab-page" id="folders" aria-labelledby="folders-title" hidden>
         <h1 class="ui-large-title" id="folders-title">Folders</h1>
         <ul class="ui-list nav" aria-label="Show">
-          <li class="ui-row"><button type="button" data-filter="">All notes</button></li>
+          <li class="ui-row"><button type="button" data-filter=""><span class="tree-icon" aria-hidden="true" data-icon="fileText"></span><span class="tree-name">All notes</span></button></li>
         </ul>
         <div id="drawer-folders-box" hidden>
           <h3>Folders</h3>
@@ -172,11 +172,11 @@
           <ul id="drawer-tags" class="ui-list nav" aria-label="Tags"></ul>
         </div>
         <h3>Go</h3>
-        <div class="row">
-          <button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O">Go to note</button>
-          <button id="space-open" type="button" hidden>Members</button>
-          <button id="space-new" type="button" hidden>New space</button>
-        </div>
+        <ul class="ui-list nav" aria-label="Go">
+          <li class="ui-row"><button id="go-to" type="button" aria-keyshortcuts="Control+O Meta+O"><span class="tree-icon" aria-hidden="true" data-icon="search"></span><span class="tree-name">Go to note</span></button></li>
+          <li class="ui-row"><button id="space-open" type="button" hidden><span class="tree-icon" aria-hidden="true" data-icon="users"></span><span class="tree-name">Members</span></button></li>
+          <li class="ui-row"><button id="space-new" type="button" hidden><span class="tree-icon" aria-hidden="true" data-icon="plus"></span><span class="tree-name">New space</span></button></li>
+        </ul>
       </section>
 
       <section class="ui-screen ui-tab-page" id="settings" aria-labelledby="settings-title" hidden>

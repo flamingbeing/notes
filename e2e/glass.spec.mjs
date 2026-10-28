@@ -18,7 +18,7 @@ const surface = page => page.evaluate(() => {
 
 test('glass by default (look A); Solid in the switch takes it off, kept on reload and before the modules run', async ({ phone }) => {
   const page = await phone();
-  // notes' own look is D (no glass); these test the glass of look A, which a device can pick
+  // notes' own look is E (no glass); these test the glass of look A, which a device can pick
   await page.addInitScript(() => { if (!localStorage.getItem('core-theme')) localStorage.setItem('core-theme', JSON.stringify({ look: 'a' })); });
   await signIn(page);
   const root = page.locator('html');
@@ -49,7 +49,7 @@ test('glass by default (look A); Solid in the switch takes it off, kept on reloa
 // (Playwright can't emulate prefers-reduced-transparency; glass.css turns glass down for it in the same query)
 test('asked for more contrast: solid card colour, no blur', async ({ phone }) => {
   const page = await phone();
-  // notes' own look is D (no glass); these test the glass of look A, which a device can pick
+  // notes' own look is E (no glass); these test the glass of look A, which a device can pick
   await page.addInitScript(() => { if (!localStorage.getItem('core-theme')) localStorage.setItem('core-theme', JSON.stringify({ look: 'a' })); });
   await page.emulateMedia({ contrast: 'more' });
   await signIn(page);

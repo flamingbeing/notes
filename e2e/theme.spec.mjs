@@ -70,7 +70,7 @@ test('accent: a picked colour is kept on this device, Reset goes back to the loo
   await openSettings(page);
   const reset = page.getByRole('button', { name: 'Reset colour' });
   await expect(reset).toBeHidden();
-  await expect(page.locator('#accent-pick')).toHaveValue('#3a6390');   // the app's (config.js)
+  await expect(page.locator('#accent-pick')).toHaveValue('#7c5cd6');   // the app's (config.js)
   await page.locator('#accent-pick').fill('#c2417a');
   await expect(reset).toBeVisible();
   await page.reload();
@@ -79,7 +79,7 @@ test('accent: a picked colour is kept on this device, Reset goes back to the loo
   expect(await cssVar(page, '--accent')).not.toBe('');
   await page.getByRole('button', { name: 'Reset colour' }).click();
   await expect(reset).toBeHidden();
-  await expect(page.locator('#accent-pick')).toHaveValue('#3a6390');
+  await expect(page.locator('#accent-pick')).toHaveValue('#7c5cd6');
 });
 
 test('every look passes axe in light, dark and OLED', async ({ phone }) => {
@@ -87,7 +87,7 @@ test('every look passes axe in light, dark and OLED', async ({ phone }) => {
   await signIn(page);
   await openSettings(page);
   const looks = await page.locator('#preset-pick').locator('option').evaluateAll(os => os.map(o => /** @type {HTMLOptionElement} */ (o).value));
-  expect(looks).toHaveLength(8);
+  expect(looks).toHaveLength(9);
   for (const look of looks) {
     await page.locator('#preset-pick').selectOption(look);
     for (const [theme, dark] of [['light', 'dark'], ['dark', 'dark'], ['dark', 'oled']]) {

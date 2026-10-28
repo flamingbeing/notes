@@ -85,7 +85,9 @@ test('the web config adds apiKey and appId, and is kept on a re-run', () => {
 test("--accent sets the default look's colour, kept on a re-run; a bad one is refused", () => {
   const dir = copy();
   fill({ dir, ...ARGS });
-  assert.match(read(dir, 'app/src/config.js'), /"accent":"#3a6390"/, "the template's colour by default");
+  // the template's own colour (an app that changed it keeps its own)
+  const own = /"accent":"(#[0-9a-f]{6})"/.exec(read(ROOT, 'app/src/config.js'))?.[1];
+  assert.ok(own && read(dir, 'app/src/config.js').includes(`"accent":"${own}"`), "the template's colour by default");
   fill({ dir, ...ARGS, accent: '#0F766E' });
   assert.match(read(dir, 'app/src/config.js'), /"accent":"#0f766e"/);
   fill({ dir, ...ARGS, title: 'Pets' });

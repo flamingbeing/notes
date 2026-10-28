@@ -9,6 +9,7 @@ import { createSearch } from '@core/search';
 import { COLL } from '../cloud.js';
 import { isoDay } from '../notes/model.js';
 import { $, input, dialog, sectionScreen } from '../shell/dom.js';
+import { iconOf } from '../icons.js';
 import { notePage } from './note-page.js';
 import { picker } from './picker.js';
 import { transferSheet } from '../transfer/transfer-sheet.js';
@@ -68,31 +69,69 @@ export function listScreen(app, kit) {
   const side = /** @type {HTMLElement} */ ($('list-view').querySelector('.ui-sidebar'));
   const items = $('items');
   const select = () => kit.selects.get('items');
-  /** @param {string} value @param {string} label @param {number} count @param {number} [depth] @param {boolean} [inSide]  the side bar's button, not the sheet's list item */
-  const choice = (value, label, count, depth = 0, inSide = false) => {
+  /** @param {string} value @param {string} label @param {number} count @param {number} [depth] @param {boolean} [inSide]  the side bar's button, not the sheet's list item @param {string} [glyph]  its icon */
+  const choice = (value, label, count, depth = 0, inSide = false, glyph = '') => {
     const li = document.createElement('li'), b = document.createElement('button');
     if (!inSide) li.className = 'ui-row';
     b.type = 'button'; b.dataset.filter = value;
     if (inSide) b.className = 'ui-side-link';
-    b.textContent = label;
+    if (glyph) {
+      const i = document.createElement('span');
+      i.className = 'tree-icon'; i.setAttribute('aria-hidden', 'true'); i.append(iconOf(glyph));
+      // the icon tells a tag from a folder of the same name; a screen reader hears the word
+      b.append(i, Object.assign(document.createElement('span'), { className: 'sr-only', textContent: glyph === 'hash' ? 'tag ' : 'folder ' }));
+    }
+    b.append(Object.assign(document.createElement('span'), { className: 'tree-name', textContent: label }));
     const n = document.createElement('span');
     n.className = 'n'; n.textContent = String(count);
     b.append(n);
-    if (depth) b.style.setProperty('--depth', String(depth));
+    if (depth) (inSide ? b : li).style.setProperty('--depth', String(depth));
     li.append(b);
     return inSide ? b : li;
+  };
+  // the Folders tab's folders are a tree, as in a file explorer: a folder with folders inside has a chevron that folds
+  // them away; what is folded is kept on this device, per space ('<space id>:<folder>')
+  const SHUT = 'notes-folders-shut';
+  /** @type {Set<string>} */
+  const shut = new Set((() => { try { return JSON.parse(localStorage.getItem(SHUT) || '[]'); } catch { return []; } })());
+  const keepShut = () => { try { localStorage.setItem(SHUT, JSON.stringify([...shut])); } catch { /* private window: folded for now only */ } };
+  /** @param {string} f */
+  const shutKey = f => `${openSpace?.id || ''}:${f}`;
+  /** @param {string} f */
+  const isShut = f => shut.has(shutKey(f));
+  // a row shows when none of the folders above it is folded
+  const foldTree = () => {
+    for (const li of /** @type {NodeListOf<HTMLElement>} */ ($('drawer-folders').querySelectorAll('li[data-folder]'))) {
+      const f = li.dataset.folder || '';
+      li.hidden = f.split('/').slice(0, -1).some((_, i, a) => isShut(a.slice(0, i + 1).join('/')));
+      const t = li.querySelector('.tree-toggle');
+      if (t) { t.setAttribute('aria-expanded', String(!isShut(f))); t.setAttribute('aria-label', `${isShut(f) ? 'Unfold' : 'Fold'} ${f.split('/').pop()}`); }
+    }
+  };
+  /** @param {string} f @param {number} count @param {boolean} parent  it has folders inside */
+  const folderRow = (f, count, parent) => {
+    const li = /** @type {HTMLElement} */ (choice('path:' + f, f.split('/').pop() || f, count, f.split('/').length - 1, false, 'folder'));
+    li.dataset.folder = f;
+    li.classList.add('tree');
+    const t = document.createElement(parent ? 'button' : 'span');
+    t.className = 'tree-toggle';
+    if (parent) { /** @type {HTMLButtonElement} */ (t).type = 'button'; t.append(iconOf('chevronRight')); } else t.setAttribute('aria-hidden', 'true');
+    li.prepend(t);
+    return li;
   };
   // the drawer's folders (a tree, each with how many notes are in it or under it) and tags; a choice gone from the
   // space (its last note moved or deleted, another space opened) goes back to all notes
   const fillDrawer = () => {
     const tags = [...new Set(all.flatMap(n => n.tags || []))].sort();
     const folders = [...new Set(all.flatMap(n => (n.path || '').split('/').map((_, i, a) => a.slice(0, i + 1).join('/'))).filter(Boolean))].sort();
-    const folderChoices = (/** @type {boolean} */ inSide) => folders.map(f => choice('path:' + f, f.split('/').pop() + '/', all.filter(n => inFolder(n, f)).length, f.split('/').length - 1, inSide));
-    const tagChoices = (/** @type {boolean} */ inSide) => tags.map(t => choice('tag:' + t, '#' + t, all.filter(n => hasTag(n, t)).length, 0, inSide));
+    const tagChoices = (/** @type {boolean} */ inSide) => tags.map(t => choice('tag:' + t, t, all.filter(n => hasTag(n, t)).length, 0, inSide, 'hash'));
     // both places list the same choices: the Folders tab (phone) and the side bar (tablet and laptop)
-    $('drawer-folders').replaceChildren(...folderChoices(false));
+    const counts = new Map(folders.map(f => [f, all.filter(n => inFolder(n, f)).length]));
+    // sorted, so a folder's first folder inside comes right after it
+    $('drawer-folders').replaceChildren(...folders.map((f, i) => folderRow(f, counts.get(f) || 0, !!folders[i + 1]?.startsWith(f + '/'))));
+    foldTree();
     $('drawer-tags').replaceChildren(...tagChoices(false));
-    $('side-folders').replaceChildren(...folderChoices(true));
+    $('side-folders').replaceChildren(...folders.map(f => choice('path:' + f, f.split('/').pop() || f, counts.get(f) || 0, f.split('/').length - 1, true, 'folder')));
     $('side-tags').replaceChildren(...tagChoices(true));
     $('drawer-folders-box').hidden = $('side-folders-box').hidden = !folders.length;
     $('drawer-tags-box').hidden = $('side-tags-box').hidden = !tags.length;
@@ -110,6 +149,12 @@ export function listScreen(app, kit) {
   foldersPage.addEventListener('click', e => {
     const b = /** @type {HTMLElement} */ (e.target).closest('button');
     if (!b) return;
+    if (b.classList.contains('tree-toggle')) {
+      const f = /** @type {HTMLElement} */ (b.closest('li')).dataset.folder || '';
+      if (!shut.delete(shutKey(f))) shut.add(shutKey(f));
+      keepShut(); foldTree();
+      return;
+    }
     // a folder or tag leads back to the list; the other buttons open their own sheets
     if (b.dataset.filter !== undefined) { showOnly(b.dataset.filter); kit.tabs?.go('#home'); }
   });

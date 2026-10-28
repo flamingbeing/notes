@@ -5,4 +5,4 @@ import { applyTheme } from '@core/theme';
 import { APP } from './config.js';
 
 addEventListener('beforeinstallprompt', e => e.preventDefault());
-applyTheme({ accent: APP.accent, look: 'd' });
+applyTheme({ accent: APP.accent, look: 'e', surface: 'ink' });
