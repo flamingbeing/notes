@@ -76,6 +76,7 @@ const SHELL = [
   'src/shell/download.js',
   'src/shell/roles.js',
   'src/shell/screen-switch.js',
+  'src/shell/tab-slide.js',
   'src/spaces/spaces-sheet.js',
   'src/spaces/spaces.js',
   'src/transfer/backup-settings.js',

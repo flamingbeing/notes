@@ -107,6 +107,13 @@ footer { margin-top: 2rem; }
 .bar-end { display: flex; align-items: center; gap: var(--gap); }
 .space-bar { padding: 0 var(--pad); }
 #plain { max-width: 40rem; margin: 0 auto; padding: 0 var(--pad) 2rem; }
+/* signed in, nothing in it shows (its sections are hidden, its message empty): without this its padding and the empty
+   message's margin stood as a strip (~49 px) above the shell's bar on every tab page */
+#plain:not(:has(> section:not([hidden]), > #sign-out-msg:not(:empty))) { display: none; }
+/* the folder boxes' card mounts into the kit's part, which is inset like text: flush, the card matches the others */
+.ui-settings-part:has(> .ui-list) { margin-inline: 0; }
+/* a tapped tab's page slides in (tab-slide.js): its sideways start must not widen the page */
+.ui-screens.is-tab-sliding { overflow-x: clip; }
 .people { list-style: none; padding: 0; }
 .people li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; margin: .25rem 0; }
 .people li span { flex: 1; min-width: 10rem; overflow-wrap: anywhere; }
