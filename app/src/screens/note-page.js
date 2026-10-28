@@ -343,6 +343,17 @@ export function notePage(app, toast, canWrite, onShow) {
     // (a new note's save takes a moment: another note may have opened meanwhile)
     if (shown === turn) editing = null;
   });
+  // a window resized across 600 px with a note open (a tablet turned, a laptop window dragged): the page reopens in
+  // the other mode (over the list, or beside it) and stays open; its close event is caught before any listener sees it
+  const wideMq = matchMedia('(min-width: 600px)');
+  let switching = 0;
+  window.addEventListener('close', e => { if (e.target === sheet && switching) { switching--; e.stopImmediatePropagation(); } }, true);
+  wideMq.addEventListener('change', () => {
+    if (!sheet.open || sheet.matches(':modal') !== wideMq.matches) return;
+    switching++;
+    sheet.close();
+    if (wideMq.matches) sheet.show(); else sheet.showModal();
+  });
   const remove = async () => {
     if (!editing) return;
     if (!await confirmModal('Delete this note? It goes to the bin.', { title: 'Delete note', danger: true, yes: 'Delete' })) return;
