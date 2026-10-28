@@ -24,12 +24,12 @@ export const OPTIONS = {
   // Google Drive copy (@core/drive): off until set up from the Drive sheet, never from the settings sheet's switches
   driveOn: { scope: 'device', default: false },
   // modules added in D2 (recipes/): each off until this device turns it on
-  binScreen: { scope: 'device', default: false },
-  bulkEdit: { scope: 'device', default: false },
-  shareIn: { scope: 'device', default: false },
-  feedbackOn: { scope: 'device', default: false },
+  binScreen: { scope: 'device', default: true },
+  bulkEdit: { scope: 'device', default: true },
+  shareIn: { scope: 'device', default: true },
+  feedbackOn: { scope: 'device', default: true },
   // Advanced: the one-time code for the Notes MCP server (Connect MCP)
-  mcpOn: { scope: 'device', default: false },
+  mcpOn: { scope: 'device', default: true },
 };
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */

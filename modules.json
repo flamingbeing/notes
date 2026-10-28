@@ -1,0 +1,35 @@
+{
+  "about": "The app's modules, named once: node tools/modules.mjs writes the import map, tsconfig paths, Vite aliases, style and modulepreload links, sw.js list, CSP hash and rules from this (README, \"Modules\").",
+  "core": {
+    "app-sync": "https://core.anawj.com/sync/",
+    "app-ui": "https://core.anawj.com/ui/"
+  },
+  "imports": {
+    "@core/app": { "core": "app-sync", "file": "app.js", "preload": true },
+    "@core/auth": { "core": "app-sync", "file": "auth.js", "preload": true },
+    "@core/sync": { "core": "app-sync", "file": "sync.js", "preload": true },
+    "@core/update": { "core": "app-sync", "file": "update.js", "preload": true },
+    "@core/ui": { "core": "app-ui", "file": "ui/index.js", "types": "./node_modules/app-ui/ui/index.js", "preload": true },
+    "@core/theme": { "core": "app-ui", "file": "theme/index.js", "types": "./node_modules/app-ui/theme/index.js", "preload": true },
+    "@core/files": { "url": "./files/index.js", "types": "./app/public/files/index.js" },
+    "@core/settings": { "core": "app-ui", "file": "settings/index.js", "types": "./node_modules/app-ui/settings/index.js", "preload": true },
+    "@core/search": { "url": "./search/index.js", "types": "./app/public/search/index.js", "alias": "app/public/search/index.js" },
+    "@core/backup": { "url": "./backup/index.js", "types": "./app/public/backup/index.js" },
+    "@core/drive": { "url": "./drive/index.js", "types": "./app/public/drive/index.js", "alias": "app/public/drive/index.js" },
+    "app-update/register.js": { "url": "https://core.anawj.com/update/0.2.0/register.js", "preload": true },
+    "firebase/app": { "url": "./vendor/firebase/12.19.0/firebase-app.js", "preload": true },
+    "firebase/auth": { "url": "./vendor/firebase/12.19.0/firebase-auth.js", "preload": true },
+    "firebase/firestore": { "url": "./vendor/firebase/12.19.0/firebase-firestore.js", "preload": true },
+    "@vendor/codemirror": { "url": "./vendor/codemirror/6.43.15/codemirror.js", "types": "./tools/codemirror-entry.js" },
+    "marked": { "url": "./vendor/marked/18.1.1/marked.esm.js" },
+    "dompurify": { "url": "./vendor/dompurify/3.4.17/purify.es.js" },
+    "fflate": { "url": "./vendor/fflate/0.8.2/fflate.js" },
+    "xlsx": { "url": "./vendor/xlsx/0.20.3/xlsx.mjs", "types": "./app/public/vendor/xlsx/0.20.3/xlsx.d.ts" }
+  },
+  "paths": {
+    "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
+    "app-ui/*": ["./node_modules/app-ui/*"],
+    "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
+  },
+  "styles": []
+}

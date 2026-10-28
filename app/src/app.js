@@ -2,6 +2,7 @@
 // screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
 import { syncChip, plural, startGestures } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
+import { fillIcons } from './icons.js';
 import { $, dialog } from './shell/dom.js';
 import { screenSwitch } from './shell/screen-switch.js';
 import { signedOutScreen } from './screens/signed-out.js';
@@ -19,7 +20,8 @@ const sheetOpen = () => !!document.querySelector('dialog:modal');
 const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchParams(location.search).has('sw'));
 
 // the kit's parts that need script: hold menus, sheets, select mode, large title, tab bar (the adaptive shell is the list's)
-const kit = startGestures();
+const kit = startGestures(document, { onPrevMissing: () => kit.tabs?.go('#folders') });   // a right swipe on the first page opens Folders
+fillIcons();
 // the bar's Today / Select / New belong to the notes page: on the Folders or Settings page they leave the bar
 document.addEventListener('ui-tab', e => { $('list-view').dataset.page = /** @type {CustomEvent} */ (e).detail.page.id; });
 // for the tests: add(title, body?) -> '' or why the save was refused

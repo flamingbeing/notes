@@ -16,12 +16,13 @@
 // swaps), so the only differences left are real changes. For every file the template changed between the base and
 // --to: added -> added (an app file of the same name is merged as if from an empty base), deleted -> deleted unless the
 // app changed it (a file now in a module's recipe is kept and the module recorded in .starter.json "modules"), changed -> `git merge-file` with the app's copy (a template rename is a delete plus an add) (conflicts left as <<<<<<< markers, listed at the end).
-// Generated parts never conflict: sw.js's SHELL list, worker/headers.js's import-map hash and package-lock.json are
-// kept from the app and regenerated afterwards.
+// Generated parts never conflict: sw.js's SHELL list, worker/headers.js's import-map hash, the import map, tsconfig
+// paths, Vite aliases (from modules.json, merged three-way like any file) and package-lock.json are kept from the app
+// and regenerated afterwards.
 //
 // Afterwards (not with --dry-run): app-sync's two version names checked (app/index.html's import map, package.json's
-// devDependency), `npm install` when package.json changed (the lock), `node tools/sw-files.mjs app` (sw.js's list),
-// the import map's CSP hash in worker/headers.js, app-devkit's pins in .github/workflows compared with the template's
+// devDependency), `npm install` when package.json changed (the lock), `node tools/modules.mjs` (everything made from
+// modules.json: the import map, paths, aliases, sw.js's list, the CSP hash and the rules), app-devkit's pins in .github/workflows compared with the template's
 // and the newest app-devkit tag, and .starter.json's "commit" moved to --to. Then run the tests and commit.
 //
 // .starter.json may hold { "update": { "ignore": ["<glob>", ...], "rename": { "<template path>": "<app path>" } } }:
@@ -29,10 +30,11 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import crypto from 'node:crypto';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { swapsFor, fixup, isText } from './fill.mjs';
+import { render } from './flavour.mjs';
+import { importMapHash, manifestFrom, formatManifest, MANIFEST } from './modules.mjs';
 
 // the app's own: its notes, settings and the lock (regenerated)
 // (recipes/<module>/ are the modules' sources: an app reads them from the template when it adds one, tools/add.mjs)
@@ -44,7 +46,7 @@ const SYNC_DEP = /("app-sync":\s*"github:flamingbeing\/app-sync#v)(\d+\.\d+\.\d+
 const PIN_RE = /flamingbeing\/app-devkit\/([\w./-]+?)@(v\d+\.\d+\.\d+)|devkit-ref:\s*(v\d+\.\d+\.\d+)/g;
 
 const defaultExec = (cmd, args, cwd) => execFileSync(cmd, args, { cwd, stdio: 'inherit' });
-const git = (cwd, args, opts = {}) => execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', maxBuffer: 64 << 20, ...opts });
+const git = (cwd, args, opts = {}) => execFileSync('git', ['-C', cwd, '-c', 'core.quotePath=false', ...args], { encoding: 'utf8', maxBuffer: 64 << 20, ...opts });
 
 // '<glob>' -> RegExp: ** any folders, * anything but /, ? one character
 export function globRe(glob) {
@@ -53,11 +55,7 @@ export function globRe(glob) {
 }
 
 // the CSP hash of the page's one inline script (the import map), as worker/headers.js names it
-export function importMapHash(html) {
-  const m = html.match(/<script type="importmap">([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('app/index.html has no import map');
-  return `'sha256-${crypto.createHash('sha256').update(m[1]).digest('base64')}'`;
-}
+export { importMapHash };
 
 // app-sync's version as the import map and package.json name it
 export function syncVersions(html, pkg) {
@@ -87,14 +85,23 @@ export function merge3(ours, base, theirs, labels = ['app', 'template (base)', '
 }
 
 // generated parts: swapped for a placeholder before the merge, the app's own put back after (then regenerated)
-function hold(rel, text) {
+// (and once the template has modules.json, the parts tools/modules.mjs writes from it: the import map, tsconfig paths,
+// SOURCE_ALIAS; the merge of modules.json itself carries both sides' modules, and after() writes them again)
+const GENERATED = {
+  'app/index.html': [/(<script type="importmap">\n)[\s\S]*?(\n\s*<\/script>)/, '{"generated": true}'],
+  'tsconfig.json': [/("paths":\s*\{\n)[\s\S]*?(\n\s*\})/, '      "generated": []'],
+  'vite.config.mjs': [/(export const SOURCE_ALIAS = \{\n)[\s\S]*?(\};)/, '  // generated\n'],
+};
+function hold(rel, text, generated = false) {
   if (rel.endsWith('sw.js')) return text.replace(SHELL_RE, 'const SHELL = [/*generated*/];');
   if (rel === 'worker/headers.js') return text.replace(HASH_RE, `$1"'sha256-generated'"`);
+  if (generated && GENERATED[rel]) return text.replace(GENERATED[rel][0], (_, a, c) => a + GENERATED[rel][1] + c);
   return text;
 }
-function putBack(rel, merged, ours) {
+function putBack(rel, merged, ours, generated = false) {
   if (rel.endsWith('sw.js') && SHELL_RE.test(ours)) return merged.replace('const SHELL = [/*generated*/];', () => ours.match(SHELL_RE)[0]);
   if (rel === 'worker/headers.js' && HASH_RE.test(ours)) return merged.replace(/export const IMPORT_MAP = "'sha256-generated'"/, () => ours.match(HASH_RE)[0]);
+  if (generated && GENERATED[rel]) { const [re, ph] = GENERATED[rel], m = ours.match(re); if (m) return merged.replace(re, (all, a, c) => all.includes(ph) ? m[0] : all); }
   return merged;
 }
 
@@ -108,8 +115,8 @@ export function templateRepo(from) {
 export const show = (repo, ref, rel) => { try { return execFileSync('git', ['-C', repo, 'show', `${ref}:${rel}`], { maxBuffer: 64 << 20, stdio: ['ignore', 'pipe', 'ignore'] }); } catch { return null; } };
 
 // every file of a template commit, read in one go: { path: Buffer }
-function treeAt(repo, ref) {
-  const paths = git(repo, ['ls-tree', '-r', '--name-only', ref]).trim().split('\n').filter(Boolean);
+export function treeAt(repo, ref) {
+  const paths = git(repo, ['ls-tree', '-r', '-z', '--name-only', ref]).split('\0').filter(Boolean);
   const out = execFileSync('git', ['-C', repo, 'cat-file', '--batch'], { input: paths.map(p => `${ref}:${p}\n`).join(''), maxBuffer: 256 << 20 });
   const files = {};
   let at = 0;
@@ -123,12 +130,13 @@ function treeAt(repo, ref) {
 }
 
 // the template commit (of the last `limit` before `to`) whose files, with the app's values, match most of the app's
-// files: for an app whose .starter.json has no "commit"
+// files: for an app whose .starter.json has no "commit" (a flavoured app's: rendered as its flavour)
 export function findBase(repo, to, meta, dir, { limit = 200 } = {}) {
   const shas = git(repo, ['rev-list', `--max-count=${limit}`, to]).trim().split('\n');
   let best = null;
   for (const sha of shas) {
-    const files = treeAt(repo, sha);
+    let files = treeAt(repo, sha);
+    if (meta.flavour) try { files = render(files, meta.flavour); } catch { break; }   // a commit from before flavours (and every older one)
     const tpl = JSON.parse(files['.starter.json']?.toString() || 'null')?.app ?? meta.app;
     const swaps = swapsFor(tpl, meta.app);
     let same = 0;
@@ -143,8 +151,16 @@ export function findBase(repo, to, meta, dir, { limit = 200 } = {}) {
   return best;
 }
 
+// git diff --name-status of two rendered trees ({ rel: Buffer })
+export function renderedDiff(a, b) {
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])].sort()
+    .flatMap(rel => !a[rel] ? [`A\t${rel}`] : !b[rel] ? [`D\t${rel}`] : a[rel].equals(b[rel]) ? [] : [`M\t${rel}`]).join('\n');
+}
+
 // -> { from, to, behind, changes: [{ action, path, note? }], conflicts: [paths], pins: [...] }
-export function update({ dir = '.', from, to = 'main', base, dryRun = false, install = true, checkLatest = true, findBase: findBaseToo = false, log = console.log } = {}) {
+// unflavour { project }: the template's cloud files instead of its flavour's (tools/add.mjs cloud: a static app made the
+// cloud app, from the static render at its commit to the cloud tree at `to`); .starter.json loses "flavour"
+export function update({ dir = '.', from, to = 'main', base, dryRun = false, install = true, checkLatest = true, findBase: findBaseToo = false, unflavour = null, log = console.log } = {}) {
   dir = path.resolve(dir);
   const metaPath = path.join(dir, '.starter.json');
   const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
@@ -166,16 +182,27 @@ export function update({ dir = '.', from, to = 'main', base, dryRun = false, ins
     const result = { from: baseSha.slice(0, 7), to: short, behind, changes: [], conflicts: [], pins: [] };
     log(`template ${meta.template}: ${result.from} -> ${short} (${behind} commit${behind === 1 ? '' : 's'})`);
 
-    const tplApp = r => JSON.parse(show(repo.dir, r, '.starter.json')?.toString() || 'null')?.app;
+    // a flavoured app (static) takes the template's commits rendered as its flavour (tools/flavour.mjs), so it gets
+    // the changes to its own files and none of the cloud's
+    const oldF = meta.flavour ?? null, newF = unflavour ? null : oldF;
+    const appNew = unflavour ? { ...meta.app, project: unflavour.project } : meta.app;
+    const trees = new Map();
+    const treeOf = (sha, f) => trees.get(`${sha}:${f}`) ?? trees.set(`${sha}:${f}`, f ? render(treeAt(repo.dir, sha), f) : treeAt(repo.dir, sha)).get(`${sha}:${f}`);
+    const at = (sha, rel, f = newF) => f ? treeOf(sha, f)[rel] ?? null : show(repo.dir, sha, rel);
+    const listAt = (sha, folder) => newF
+      ? Object.keys(treeOf(sha, newF)).filter(r => r.startsWith(`${folder}/`) && !r.slice(folder.length + 1).includes('/')).map(r => r.slice(folder.length + 1))
+      : git(repo.dir, ['ls-tree', '--name-only', `${sha}:${folder}`], { stdio: ['ignore', 'pipe', 'ignore'] }).trim().split('\n').filter(Boolean);
+    const tplApp = r => JSON.parse(at(r, '.starter.json')?.toString() || 'null')?.app;
     const swapsBase = swapsFor(tplApp(baseSha) ?? meta.app, meta.app);
-    const swapsNew = swapsFor(tplApp(newSha) ?? meta.app, meta.app);
-    const filled = (rel, buf, swaps) => {
+    const swapsNew = swapsFor(tplApp(newSha) ?? meta.app, appNew);
+    const filled = (rel, buf, swaps, app = meta.app) => {
       if (buf === null || !isText(rel)) return buf;
       let text = buf.toString('utf8');
       for (const [re, v] of swaps) text = text.replace(re, v);
-      return Buffer.from(fixup(rel, text, meta.app));
+      return Buffer.from(fixup(rel, text, app));
     };
-    const ignore = [...DEFAULT_IGNORE, ...(meta.update?.ignore ?? [])].map(globRe);
+    // (the move to the cloud brings the recipes' sources the static render left out: files)
+    const ignore = [...DEFAULT_IGNORE.filter(g => !(unflavour && g.startsWith('recipes/'))), ...(meta.update?.ignore ?? [])].map(globRe);
     const rename = meta.update?.rename ?? {};
     const appPath = rel => rename[rel] ?? rel;
     const read = rel => { try { return fs.readFileSync(path.join(dir, rel)); } catch { return null; } };
@@ -186,22 +213,43 @@ export function update({ dir = '.', from, to = 'main', base, dryRun = false, ins
     // files the template moved out of the base into a module's recipe: the app that has them keeps them (it already
     // has the module) and the module is recorded, so a later update takes the recipe's changes
     const owned = [];
-    const recipeFiles = git(repo.dir, ['ls-tree', '--name-only', newSha, 'recipes/']).trim().split('\n').filter(f => /^recipes\/[^/]+\.json$/.test(f));
+    let recipeFiles = [];
+    try { recipeFiles = listAt(newSha, 'recipes').map(f => `recipes/${f}`).filter(f => /^recipes\/[^/]+\.json$/.test(f)); } catch { /* none */ }
     for (const f of recipeFiles) {
       let r;
-      try { r = JSON.parse(show(repo.dir, newSha, f).toString()); } catch { continue; }
+      try { r = JSON.parse(at(newSha, f).toString()); } catch { continue; }
       for (const p of [...(r.vendor ?? []), ...(r.files ?? []).filter(x => x.from).map(x => x.to ?? x.from)]) owned.push({ module: r.module, path: p, recipe: f });
     }
     const moved = new Map();
+    // the template names its modules in modules.json: the generated parts are held out of the merge and written again
+    const generated = !!at(newSha, MANIFEST);
+    // an app from before modules.json: its own list, read from its import map, merged with the template's
+    const manifestOf = get => {
+      const html = get('app/index.html');
+      return html ? Buffer.from(formatManifest(manifestFrom({ html: html.toString('utf8'), tsconfig: get('tsconfig.json')?.toString('utf8'), vite: get('vite.config.mjs')?.toString('utf8') }))) : null;
+    };
 
-    const diff = git(repo.dir, ['diff', '--name-status', '--no-renames', baseSha, newSha]).trim();
+    // -z: a path with non-ASCII characters, a quote or a newline is otherwise printed quoted and never found again
+    const gitDiff = () => { const z = git(repo.dir, ['diff', '--name-status', '-z', '--no-renames', baseSha, newSha]).split('\0').filter(Boolean); return z.filter((_, i) => i % 2 === 0).map((st, i) => `${st}\t${z[2 * i + 1]}`).join('\n'); };
+    const diff = oldF || newF ? renderedDiff(treeOf(baseSha, oldF), treeOf(newSha, newF)) : gitDiff();
     for (const line of diff ? diff.split('\n') : []) {
       const [status, rel] = line.split('\t');
       const target = appPath(rel);
       if (ignore.some(re => re.test(rel) || re.test(target))) { note('ignored', target); continue; }
-      const oldT = filled(rel, show(repo.dir, baseSha, rel), swapsBase);
-      const newT = filled(rel, show(repo.dir, newSha, rel), swapsNew);
-      const ours = read(target);
+      const oldT = filled(rel, at(baseSha, rel, oldF), swapsBase);
+      const newT = filled(rel, at(newSha, rel), swapsNew, appNew);
+      let ours = read(target);
+      if (rel === MANIFEST && ours === null && oldT === null && status === 'A') {
+        ours = manifestOf(read);
+        const base = manifestOf(r => filled(r, at(baseSha, r, oldF), swapsBase));
+        if (ours && base && !ours.equals(base)) {
+          const m = merge3(ours.toString('utf8'), base.toString('utf8'), newT.toString('utf8'), ['app', `template ${result.from}`, `template ${short}`]);
+          write(target, m.text);
+          if (m.conflicts) { result.conflicts.push(target); note('conflict', target, `${m.conflicts} to resolve`); } else note('merged', target, 'with the app\'s own modules');
+          continue;
+        }
+        ours = null;
+      }
       if (status === 'D') {
         if (ours === null) continue;
         const own = owned.find(o => rel === o.path || rel.startsWith(`${o.path}/`));
@@ -214,14 +262,20 @@ export function update({ dir = '.', from, to = 'main', base, dryRun = false, ins
         if (status === 'M' && oldT) { note('kept', target, 'the app deleted it; the template changed it'); continue; }
         write(target, newT); note('added', target); continue;
       }
-      if (ours.equals(newT)) continue;
-      if (oldT && ours.equals(oldT)) { write(target, newT); note('updated', target); continue; }
-      if (!isText(rel)) { result.conflicts.push(target); note('conflict', target, 'binary, changed on both sides: the app\'s kept'); continue; }
-      const o = ours.toString('utf8');
-      const m = merge3(hold(rel, o), hold(rel, (oldT ?? Buffer.from('')).toString('utf8')), hold(rel, newT.toString('utf8')),
+      // .ts and the template-owned .mjs files (fill's KEEP) merge as text too; they only skip fill's swaps
+      const textual = isText(rel) || /\.(m?js|ts)$/.test(rel);
+      // a checkout with CRLF line endings (Windows autocrlf) against the template's LF: compare and merge as LF, write back CRLF
+      const crlf = textual && /\r\n/.test(ours.toString('utf8')) && !/(^|[^\r])\n/.test(ours.toString('utf8')) && !/\r\n/.test(newT.toString('utf8'));   // all CRLF: a file with mixed endings is left as it is
+      const lf = t => crlf ? t.replace(/\r\n/g, '\n') : t;
+      const toApp = t => crlf ? t.replace(/\r?\n/g, '\r\n') : t;
+      const o = lf(ours.toString('utf8'));
+      if (ours.equals(newT) || (crlf && o === newT.toString('utf8'))) continue;
+      if (oldT && (ours.equals(oldT) || (crlf && o === oldT.toString('utf8')))) { write(target, crlf ? Buffer.from(toApp(newT.toString('utf8'))) : newT); note('updated', target); continue; }
+      if (!textual) { result.conflicts.push(target); note('conflict', target, 'binary, changed on both sides: the app\'s kept'); continue; }
+      const m = merge3(hold(rel, o, generated), hold(rel, lf((oldT ?? Buffer.from('')).toString('utf8')), generated), hold(rel, newT.toString('utf8'), generated),
         ['app', `template ${result.from}`, `template ${short}`]);
-      const text = putBack(rel, m.text, o);
-      if (text === o) continue;
+      const text = toApp(putBack(rel, m.text, o, generated));
+      if (text === ours.toString('utf8')) continue;
       write(target, text);
       if (m.conflicts) { result.conflicts.push(target); note('conflict', target, `${m.conflicts} to resolve`); }
       else note('merged', target);
@@ -233,8 +287,8 @@ export function update({ dir = '.', from, to = 'main', base, dryRun = false, ins
     const appPins = devkitPins(wf(path.join(dir, '.github/workflows')));
     const tplWf = {};
     let wfNames = [];
-    try { wfNames = git(repo.dir, ['ls-tree', '--name-only', `${newSha}:.github/workflows`], { stdio: ['ignore', 'pipe', 'ignore'] }).trim().split('\n').filter(Boolean); } catch { /* none */ }
-    for (const f of wfNames) tplWf[f] = show(repo.dir, newSha, `.github/workflows/${f}`).toString();
+    try { wfNames = listAt(newSha, '.github/workflows'); } catch { /* none */ }
+    for (const f of wfNames) tplWf[f] = at(newSha, `.github/workflows/${f}`).toString();
     const tplPins = devkitPins(tplWf);
     let latest = null;
     if (checkLatest) try {
@@ -250,13 +304,14 @@ export function update({ dir = '.', from, to = 'main', base, dryRun = false, ins
 
     if (!dryRun) {
       after(dir, { install, changedPkg: result.changes.some(c => c.path === 'package.json' && c.action !== 'ignored'), log });
-      const tplMeta = JSON.parse(show(repo.dir, newSha, '.starter.json')?.toString() || '{}');
+      const tplMeta = JSON.parse(at(newSha, '.starter.json')?.toString() || '{}');
       const modules = { ...meta.modules };
       for (const [m, recipe] of moved) modules[m] ??= `${meta.template}@${short}:${recipe}`;
-      fs.writeFileSync(metaPath, JSON.stringify({ ...meta, ...(moved.size ? { modules } : {}), version: tplMeta.version ?? meta.version, commit: short }, null, 2) + '\n');
+      const { flavour: _, ...plain } = meta;
+      fs.writeFileSync(metaPath, JSON.stringify({ ...(unflavour ? { ...plain, app: appNew } : meta), ...(moved.size ? { modules } : {}), version: tplMeta.version ?? meta.version, commit: short }, null, 2) + '\n');
       log(`.starter.json: commit ${short}`);
     }
-    for (const m of moved.keys()) log(`\nNEXT: ${m} is now a module and the template's screens have empty slots for it: run \`node tools/add.mjs ${m}\` (your files are kept and merged) so it stays wired in${m === 'files' ? ', then rebuild the rules (node .devkit/tools/build-rules.mjs app/firestore.app.rules)' : ''}`);
+    for (const m of moved.keys()) log(`\nNEXT: ${m} is now a module and the template's screens have empty slots for it: run \`node tools/add.mjs ${m}\` (your files are kept and merged) so it stays wired in`);
     if (result.conflicts.length) log(`\n${result.conflicts.length} file(s) with conflicts to resolve by hand:\n  ${result.conflicts.join('\n  ')}`);
     return result;
   } finally { repo.done(); }
@@ -269,6 +324,13 @@ export function after(dir, { install = true, changedPkg = true, log = console.lo
   const v = syncVersions(html, fs.readFileSync(pkgPath, 'utf8'));
   if (v.map.length !== 1 || v.map[0] !== v.dep) log(`warning: app-sync named differently: import map ${v.map.join(', ') || 'none'}, package.json ${v.dep ?? 'none'} (bump both with --sync <version>)`);
   if (install && changedPkg) { log('npm install (package-lock.json)'); exec('npm', ['install', '--no-audit', '--no-fund'], dir); }
+  // the app's own tools/modules.mjs (the template's newest after an update) writes every generated place from
+  // modules.json; an app from before it gets sw.js's list and the hash as they were made then
+  if (fs.existsSync(path.join(dir, 'tools/modules.mjs'))) {
+    const r = spawnSync('node', ['tools/modules.mjs'], { cwd: dir, encoding: 'utf8' });
+    log(r.status === 0 ? r.stdout.trim() : `warning: modules failed (run npm install, then node tools/modules.mjs): ${r.stderr.trim()}`);
+    return;
+  }
   if (fs.existsSync(path.join(dir, 'tools/sw-files.mjs'))) {
     const r = spawnSync('node', ['tools/sw-files.mjs', 'app'], { cwd: dir, encoding: 'utf8' });
     log(r.status === 0 ? 'sw.js SHELL regenerated' : `warning: sw-files failed (run npm install, then node tools/sw-files.mjs app): ${r.stderr.trim()}`);

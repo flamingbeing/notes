@@ -2,6 +2,7 @@
 //
 //   node tools/add.mjs <source> [--dir <app>] [--dry-run]
 //   node tools/add.mjs --remove <module> [--dir <app>] [--dry-run]
+//   node tools/add.mjs cloud --project <firebase-project-id> [--dir <app>] [--dry-run]   a static app made the cloud app
 //
 // <source> is a recipe: a local path (`recipes/search.json`), `<owner/repo>@<tag|sha>:recipes/<module>.json`, or a
 // bare module name, which means the template's recipe at the commit the app was made from (.starter.json "template"
@@ -9,32 +10,40 @@
 //
 // A recipe (recipes/search.json is the first) is JSON with these fields, every one optional but "module":
 //   module          the name .starter.json "modules" records it under
-//   importMap       { name: url } added to app/index.html's import map (literal URLs)
+//   modules         { name: entry } added to modules.json's "imports" (tools/modules.mjs: { url, types?, alias? } or
+//                   { core, file, types?, alias? }), which writes the import map, tsconfig paths and Vite alias from it.
+//                   Older recipes' importMap { name: url }, tsconfigPaths { name: [path] } and viteAlias { name: path }
+//                   are read as the same thing.
+//   styles          [file] the module's own style sheets (copied in by `files`), added to modules.json's "styles": the
+//                   page links each after app.css
 //   root            the folder of the recipe's repo that mirrors the app (recipes/search): `vendor` and `files` paths are
 //                   the app's, read from under it (default: the repo's top)
 //   vendor          folders of outside packages, copied like files; each must hold its LICENSE
 //   files           [{ from, to? }] files or folders copied from the recipe's repo (the folder above recipes/) to the
-//                   app (`to` defaults to `from`), with the app's own values swapped in as fill.mjs does;
-//                   [{ to, after, line }] one line put after the line holding `after` (the glue: app/src/modules.js);
+//                   app (`to` defaults to `from`), with the app's own values swapped in as fill.mjs does. A module joins
+//                   the app's registries by its own files: worker/<module>-route.js listed in worker/modules.js, rules in
+//                   app/rules/<module>.rules, rules tests in app/test/rules/<module>.mjs;
+//                   [{ to, after, line }] one line put after the line holding `after` (a registry's entry: app/src/modules.js,
+//                   worker/modules.js);
 //                   [{ to, after, block }] the lines of `block` (a file in the recipe's repo, usually recipes/<module>/...)
 //                   put after the line holding `after`; both get the app's own values swapped in
-//   tsconfigPaths   { name: [path] } added to tsconfig.json's "paths"
 //   tsconfigInclude [glob] added to tsconfig.json's "include"
-//   viteAlias       { name: path } added to vite.config.mjs SOURCE_ALIAS (builds that bundle core from source)
 //   cssVars         { --name: value } added to app/public/app.css's :root block
 //   needs           owner-only steps, printed as NEEDS-YOU lines
 //   docs            lines printed after the add
 //
 // Every edit is idempotent: a second run changes nothing. A copied file the app has changed is merged three-way with
-// the copy from the source .starter.json recorded before (git merge-file, as update-from-starter.mjs does), else kept.
-// --remove undoes each edit; a file the app changed is kept and listed. Afterwards sw.js's list and the import map's
-// CSP hash are regenerated (update-from-starter.mjs --refresh) and .starter.json "modules" records { module: source }.
+// the copy from the source .starter.json recorded before (git merge-file, as update-from-starter.mjs does), else kept;
+// a line or block the previous recipe put in and this one doesn't is taken out.
+// --remove undoes each edit; a file the app changed is kept and listed. Afterwards node tools/modules.mjs writes every
+// generated place (sw.js's list, the import map's CSP hash, the rules) and .starter.json "modules" records { module: source }.
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { swapsFor, fixup, isText } from './fill.mjs';
-import { after, merge3, templateRepo, show } from './update-from-starter.mjs';
+import { swapsFor, fixup, isText, fill, RULES } from './fill.mjs';
+import { after, merge3, templateRepo, show, update } from './update-from-starter.mjs';
+import { MANIFEST, applyEdits, formatManifest, generate, manifestFrom, moduleEdits } from './modules.mjs';
 
 const REMOTE = /^([\w.-]+\/[\w.-]+)@([\w./-]+):(.+\.json)$/;
 const MAP_RE = /(<script type="importmap">\n)([\s\S]*?)(\n\s*<\/script>)/;
@@ -50,7 +59,7 @@ export function openSource(source, dir, github = 'https://github.com', clones = 
     const url = `${github}/${repo}`;
     const r = clones ? clones.get(url) ?? clones.set(url, templateRepo(url)).get(url) : templateRepo(url);
     const read = file => show(r.dir, ref, file);
-    const list = file => execFileSync('git', ['-C', r.dir, 'ls-tree', '-r', '--name-only', ref, '--', file], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
+    const list = file => execFileSync('git', ['-C', r.dir, '-c', 'core.quotePath=false', 'ls-tree', '-r', '-z', '--name-only', ref, '--', file], { encoding: 'utf8' }).split('\0').filter(Boolean);
     return withRecipe({ read, list, done: clones ? () => {} : r.done }, rel, source);
   }
   const file = path.resolve(dir, source);
@@ -160,10 +169,6 @@ export function editInclude(text, globs, remove = false) {
 /** the line edits a recipe makes: [{ file, anchor, line, key }], and [{ file, anchor, block }] for a block of lines */
 export function lineEdits(recipe) {
   const out = [];
-  for (const [name, paths] of Object.entries(recipe.tsconfigPaths ?? {}))
-    out.push({ file: 'tsconfig.json', anchor: '"paths": {', line: `      ${JSON.stringify(name)}: ${JSON.stringify(paths)},`, key: `${JSON.stringify(name)}:` });
-  for (const [name, to] of Object.entries(recipe.viteAlias ?? {}))
-    out.push({ file: 'vite.config.mjs', anchor: '// add: viteAlias', line: `  '${name}': '${to}',`, key: `'${name}':` });
   for (const [name, value] of Object.entries(recipe.cssVars ?? {}))
     out.push({ file: 'app/public/app.css', anchor: CSS_MARK, line: `  ${name}: ${value};`, key: `${name}:` });
   for (const f of recipe.files ?? []) {
@@ -220,6 +225,7 @@ export function add({ source, dir = '.', dryRun = false, remove = false, log = c
     opened.push(src);
     const result = { module: src.recipe.module, changes: [], conflicts: [] };
     const { recipe } = src;
+    if (meta.flavour && !remove && recipe.module === 'files') throw new Error(`the files module needs the cloud (its Worker routes and rules): node tools/add.mjs cloud --project <id> first`);
     const was = !remove && recorded[recipe.module] ? pinned(recorded[recipe.module], meta, dir) : null;
     const prevSource = was && was !== from ? was : null;
     const prev = prevSource ? openSource(prevSource, dir, github, clones) : null;
@@ -271,10 +277,38 @@ export function add({ source, dir = '.', dryRun = false, remove = false, log = c
       else note('merged', c.to);
     }
 
-    if (recipe.importMap) editText('app/index.html', html => editImportMap(html, Object.fromEntries(Object.entries(recipe.importMap).map(([k, v]) => [k, remove ? null : v]))));
+    // modules.json: the recipe's modules and styles in (or out), then the places generated from it
+    const edits = moduleEdits(recipe);
+    const names = (r, e) => Object.keys(e.imports).length || Object.keys(e.paths).length || r.styles?.length;
+    if (names(recipe, edits) || (prev && names(prev.recipe, moduleEdits(prev.recipe)))) {
+      const text = rel => read(rel)?.toString('utf8') ?? null;
+      const html = text('app/index.html');
+      if (html === null) throw new Error('app/index.html is missing');
+      let manifest = text(MANIFEST) !== null ? JSON.parse(text(MANIFEST)) : manifestFrom({ html, tsconfig: text('tsconfig.json'), vite: text('vite.config.mjs') });
+      if (prev) {   // what the previous recipe named and this one doesn't
+        const was = moduleEdits(prev.recipe);
+        manifest = applyEdits(manifest, { modules: Object.fromEntries(Object.keys(was.imports).filter(n => !(n in edits.imports)).map(n => [n, null])),
+          tsconfigPaths: Object.fromEntries(Object.keys(was.paths).filter(n => !(n in edits.paths)).map(n => [n, []])),
+          styles: (prev.recipe.styles ?? []).filter(st => !(recipe.styles ?? []).includes(st)) }, true);
+      }
+      manifest = applyEdits(manifest, recipe, remove);
+      const mtext = formatManifest(manifest);
+      if (mtext !== text(MANIFEST)) { write(MANIFEST, mtext); note('edited', MANIFEST); }
+      const g = generate(manifest, text('package.json') ?? '{}', { html, tsconfig: text('tsconfig.json'), vite: text('vite.config.mjs') });
+      editText('app/index.html', () => g.html);
+      if (g.tsconfig != null) editText('tsconfig.json', () => g.tsconfig);
+      if (g.vite != null) editText('vite.config.mjs', () => g.vite);
+    }
     if (recipe.tsconfigInclude) editText('tsconfig.json', t => editInclude(t, recipe.tsconfigInclude, remove));
-    // glue: lines and blocks put after an anchor; a block the previous recipe put there and this one changed is swapped
+    // glue: lines and blocks put after an anchor; a block the previous recipe put there and this one changed is swapped,
+    // and one this recipe no longer has is taken out
     const glue = (r, e) => e.block ? swapped(r, e.file, r.read(e.block).toString('utf8'), meta.app).replace(/\n+$/, '').split('\n') : swapped(r, e.file, e.line, meta.app);
+    const same = (a, b) => a.file === b.file && a.anchor === b.anchor && a.line === b.line && a.block === b.block;
+    if (prev && !remove) for (const e of lineEdits(prev.recipe)) {
+      if (lineEdits(recipe).some(n => same(n, e) || (e.block && n.file === e.file && n.block === e.block)) || read(e.file) === null) continue;
+      if (e.block) { const lines = prev.read(e.block) ? glue(prev, e) : null; if (lines) editText(e.file, t => dropBlock(t, lines)); }
+      else editText(e.file, t => dropLine(t, e.line === e.key ? glue(prev, e) : e.key, e.anchor));
+    }
     for (const e of lineEdits(recipe)) {
       const css = e.anchor === CSS_MARK && !remove ? read(e.file)?.toString('utf8') ?? '' : null;
       if (css !== null && !css.includes(CSS_MARK)) { write(e.file, `${css && css.replace(/\n*$/, '\n\n')}:root {\n  ${CSS_MARK}\n}\n`); note('edited', e.file); }
@@ -306,6 +340,25 @@ export function add({ source, dir = '.', dryRun = false, remove = false, log = c
   } finally { for (const s of opened) s.done(); closeClones(clones); }
 }
 
+// A static app (.starter.json "flavour") made the cloud app: the template's cloud files at the app's commit come in as an
+// update from the static render to the cloud tree (the app's own changes merged, the static files it never changed
+// taken out), then fill.mjs sets the Firebase project and writes config.js with its web config. -> update's result
+export function toCloud({ dir = '.', project, from, to, dryRun = false, install = true, log = console.log } = {}) {
+  const meta = JSON.parse(fs.readFileSync(path.join(dir, '.starter.json'), 'utf8'));
+  if (!meta.flavour) throw new Error('this app is the cloud app already (.starter.json has no "flavour")');
+  if (!RULES.project[0].test(project ?? '')) throw new Error(`--project <id>: ${RULES.project[1]}`);
+  if (!meta.commit && !to) throw new Error('.starter.json has no "commit" (the template commit the app started from)');
+  const r = update({ dir, from, to: to ?? meta.commit, dryRun, install, checkLatest: false, unflavour: { project }, log });
+  // conflicts first: fill would swap values into half-merged files
+  if (r.conflicts.length && !dryRun) log('resolve the conflicts above, then: node tools/fill.mjs (it writes config.js with the project)');
+  else if (!dryRun) {
+    fill({ dir, log });
+    for (const m of ['NEEDS-YOU: the Firebase project\'s web app config: node tools/fill.mjs --web-config <file> (README, "Fill")',
+      'then: npm test, npm run typecheck and npm run e2e (the emulators) before the PR']) log(m);
+  }
+  return r;
+}
+
 export function parseArgs(argv) {
   const out = {};
   for (let i = 0; i < argv.length; i++) {
@@ -313,6 +366,7 @@ export function parseArgs(argv) {
     if (a === '--dry-run') out.dryRun = true;
     else if (a === '--remove') { out.remove = true; out.source = argv[++i]; }
     else if (a === '--dir') out.dir = argv[++i];
+    else if (a === '--project') out.project = argv[++i];
     else if (!a.startsWith('--') && !out.source) out.source = a;
     else throw new Error(`unknown argument ${a}`);
   }
@@ -322,7 +376,9 @@ export function parseArgs(argv) {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const r = add(parseArgs(process.argv.slice(2)));
+    const o = parseArgs(process.argv.slice(2));
+    if (o.project && o.source !== 'cloud') throw new Error('--project is for `add.mjs cloud`');
+    const r = o.source === 'cloud' && !o.remove ? toCloud(o) : add(o);
     if (r.conflicts.length) process.exit(1);
   } catch (e) {
     console.error(`add: ${e.message}`);

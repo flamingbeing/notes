@@ -33,6 +33,14 @@ export const hasTag = (n, t) => (n.tags || []).some(x => low(x) === bare(t) || l
 /** @param {Note} n @param {string} f */
 export const inFolder = (n, f) => low(n.path) === bare(f) || low(n.path).startsWith(bare(f) + '/');
 
+/** the text under a row's title: the body without its markdown marks, the title line itself left out, at most 3 lines when shown
+ * @param {Note} note @param {string} title */
+export function previewOf(note, title) {
+  const lines = String(note.body || '').split('\n').map(l => l.replace(/^\s*(?:#{1,6}|[-*+>]|\d+\.)\s+(?:\[[ xX]\]\s+)?/, '').replace(/!?\[\[([^\]|]*)(?:\|[^\]]*)?\]\]/g, '$1').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim()).filter(Boolean);
+  if (lines[0] === title) lines.shift();
+  return lines.join(' ').slice(0, 240);
+}
+
 /** @param {import('../cloud.js').Started} app @param {ReturnType<typeof import('@core/ui').startGestures>} kit  the started gesture parts (select mode) */
 export function listScreen(app, kit) {
   let canWrite = false;
@@ -63,6 +71,7 @@ export function listScreen(app, kit) {
   /** @param {string} value @param {string} label @param {number} count @param {number} [depth] @param {boolean} [inSide]  the side bar's button, not the sheet's list item */
   const choice = (value, label, count, depth = 0, inSide = false) => {
     const li = document.createElement('li'), b = document.createElement('button');
+    if (!inSide) li.className = 'ui-row';
     b.type = 'button'; b.dataset.filter = value;
     if (inSide) b.className = 'ui-side-link';
     b.textContent = label;
@@ -259,14 +268,20 @@ export function listScreen(app, kit) {
       rows.set(note.id, li);
     }
     const name = titleOf(note), path = note.path || '';
-    if (li.dataset.name !== name || (li.dataset.path ?? '') !== path) {
-      li.dataset.name = name; li.dataset.path = path;
+    const preview = previewOf(note, name);
+    if (li.dataset.name !== name || (li.dataset.path ?? '') !== path || (li.dataset.preview ?? '') !== preview) {
+      li.dataset.name = name; li.dataset.path = path; li.dataset.preview = preview;
       const main = document.createElement('span');
       main.className = 'ui-row-main'; main.append(name);
       if (path) {
         const sub = document.createElement('span');
         sub.className = 'ui-row-sub'; sub.textContent = ` ${path}/`;
         main.append(sub);
+      }
+      if (preview) {
+        const pv = document.createElement('span');
+        pv.className = 'ui-row-sub note-preview'; pv.textContent = preview;
+        main.append(pv);
       }
       li.replaceChildren(main);
     }

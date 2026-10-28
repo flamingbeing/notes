@@ -14,7 +14,7 @@ export function feedbackSheet(app, toast, isAdmin) {
     try { list = await app.feedback.list(); } catch (e) { msg.textContent = `The inbox could not be read: ${/** @type {Error} */ (e).message}`; return; }
     items.replaceChildren(...list.map(f => {
       const li = document.createElement('li'), text = document.createElement('span');
-      text.textContent = `${f.done ? '✓ ' : ''}${f.text}`; li.append(text);
+      text.textContent = `${f.done ? 'Done: ' : ''}${f.text}`; li.append(text);
       for (const [label, run] of /** @type {[string, () => Promise<void>][]} */ ([
         [f.done ? 'Not done' : 'Done', async () => { await app.feedback.setDone(f.id, !f.done); void draw(); }],
         ['Copy as task', async () => { await navigator.clipboard.writeText(asTask(f)); toast('Copied'); }],

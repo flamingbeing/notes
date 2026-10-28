@@ -32,8 +32,8 @@ footer { margin-top: 2rem; }
 /* the note editor (src/editor/): CodeMirror's own classes, coloured from the theme. Readable line width (the default)
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
-  box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--bg); }
-#edit.page::backdrop { background: var(--bg); }
+  box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--editor-bg); }
+#edit.page::backdrop { background: var(--editor-bg); }
 /* from 600 px the page is not modal: it sits over the detail pane, the side bar and the list stay usable */
 @media (min-width: 600px) {
   #edit.page[open] { position: fixed; inset: 0 0 0 calc(var(--shell-side) + var(--shell-list)); width: auto; height: 100dvh; z-index: 5;
@@ -41,7 +41,7 @@ footer { margin-top: 2rem; }
 }
 #edit-form { max-width: 44rem; margin: 0 auto; }
 #edit.wide #edit-form { max-width: none; }
-.page-bar { position: sticky; top: 0; z-index: 1; background: var(--bg); padding: .5rem 0; align-items: center; }
+.page-bar { position: sticky; top: 0; z-index: 1; background: var(--editor-bg); flex-wrap: wrap; gap: .25rem .5rem; padding: .5rem 0; align-items: center; }
 .page-bar .grow { flex: 1; }
 #edit .title-box { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; border-color: transparent; background: transparent; padding-inline: 0; margin-bottom: .5rem; }
 #edit details { margin: 1rem 0; }
@@ -52,16 +52,16 @@ footer { margin-top: 2rem; }
 .fmt-bar button:disabled { opacity: .4; }
 /* on a phone the bar is pinned just above the keyboard (--kb from the visual viewport; note-page.js) and the page leaves room for it */
 @media (max-width: 599px) {
-  #edit-fmt { position: fixed; inset-inline: 0; bottom: var(--kb, 0px); z-index: 3; background: var(--bg); border-top: 1px solid var(--line); padding: .25rem var(--pad); }
+  #edit-fmt { position: fixed; inset-inline: 0; bottom: var(--kb, 0px); z-index: 3; background: var(--editor-bg); border-top: 1px solid var(--line); padding: .25rem var(--pad); }
   #edit-fmt .fmt-bar { flex-wrap: nowrap; overflow-x: auto; }
   #edit.with-fmt { padding-bottom: 5rem; }
 }
 .fmt-bar button { min-width: 2.25rem; }
-#edit-cm .cm-editor { border: 1px solid var(--border); border-radius: var(--radius-s); background: var(--bg); min-height: 12rem; }
+#edit-cm .cm-editor { border: var(--border) solid var(--line); border-radius: var(--radius-s); background: var(--editor-bg); min-height: 12rem; }
 #edit-cm .cm-editor.cm-focused { outline: 2px solid var(--focus); outline-offset: 1px; }
 #edit-cm .cm-scroller { font: inherit; line-height: var(--leading); max-height: 60vh; }
-#edit-cm .cm-content { padding: .5rem; caret-color: var(--text); }
-#edit-cm .cm-cursor { border-inline-start-color: var(--text); }
+#edit-cm .cm-content { padding: .5rem; caret-color: var(--accent); }
+#edit-cm .cm-cursor { border-inline-start-color: var(--accent); }
 #edit-cm .cm-selectionBackground, #edit-cm .cm-focused .cm-selectionBackground { background: var(--selection); }
 #edit-cm .cm-placeholder { color: var(--muted); }
 #edit-cm .cm-gutters { background: var(--surface); color: var(--muted); border-inline-end: 1px solid var(--line); }
@@ -74,7 +74,7 @@ footer { margin-top: 2rem; }
 #edit-cm .cm-codeblock { background: var(--fill); }
 #edit-cm .cm-link, #edit-cm .cm-wikilink { color: var(--link); }
 #edit-cm .cm-wikilink { text-decoration: underline; cursor: pointer; }
-#edit-cm .cm-tag { color: var(--accent); }
+#edit-cm .cm-tag { color: var(--link); }
 #edit-cm .cm-meta { color: var(--muted); }
 #edit-cm .cm-quote { border-inline-start: 3px solid var(--line); padding-inline-start: .75rem; color: var(--muted); }
 #edit-cm .cm-hr { border-bottom: 1px solid var(--line); }
@@ -135,3 +135,13 @@ footer { margin-top: 2rem; }
 .app-mark { flex: none; border-radius: 22%; vertical-align: middle; }
 .app-mark-big { display: block; margin: 1rem 0 .5rem; }
 .ui-sidebar-name { display: flex; align-items: center; gap: .5rem; }
+
+/* the Folders tab: rows in the kit's list, section labels indented to the row text, a folder's own folders indented under it */
+#folders h3 { margin: 1rem 0 .25rem; padding-inline: calc(var(--pad) + var(--list-inset, 0px)); color: var(--muted); font-size: .85rem; font-weight: 600; text-transform: none; }
+#folders .ui-list.nav { border-radius: var(--card-r); overflow: hidden; }
+#folders .ui-list .ui-row { padding: 0; }
+#folders .ui-list .ui-row > button { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: .5rem; width: 100%; margin: 0; min-height: var(--tap); border: 0; border-radius: 0; background: transparent; text-align: left; padding-inline: calc(var(--pad) + var(--depth, 0) * 1rem) var(--pad); }
+#folders .ui-list .ui-row > button[aria-current=true] { color: var(--accent); font-weight: 600; }
+#folders .ui-list .n { color: var(--muted); font-weight: 400; }
+/* a note's row: the first three lines of its text under the title */
+.note-preview { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: .15rem; }
