@@ -6,6 +6,8 @@ Lasting decisions and how to test. Shaping decisions have their own records in [
 
 `bash tools/dev-setup.sh` once, then README, "Tests". Each browser test signs in its own made-up accounts, so each
 person has their own vault (`spaces/<uid>/notes`); tests run side by side and check only their own notes.
+Keep each browser test well inside the 60 s timeout: an axe run takes about 1 s and a slow CI runner is about 3x
+slower than a usual one, so a loop of axe runs is one test per case (`e2e/theme.spec.mjs`, one per look).
 
 Test list (what each part is proved by):
 
