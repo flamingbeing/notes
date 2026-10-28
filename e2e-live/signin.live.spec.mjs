@@ -127,14 +127,13 @@ test('signed in at 412 px: no gap above the band, a tapped tab slides, toasts si
   const title = await page.locator('#home .ui-large-title').boundingBox();
   expect(title?.y).toBe((bar?.y ?? 0) + (bar?.height ?? 0));   // the band header follows the bar directly
   // a tapped tab slides its page in (a Web Animation on the page)
-  const slid = await page.evaluate(() => new Promise(res => {
-    const f = document.getElementById('folders');
-    const t = setTimeout(() => res(false), 1000);
-    new MutationObserver(() => { if (f.getAnimations().length) { clearTimeout(t); res(true); } }).observe(f, { attributes: true });
+  const slid = await page.evaluate(async () => {
     document.getElementById('drawer-open').click();
-    if (f.getAnimations().length) { clearTimeout(t); res(true); }
-  }));
-  expect(slid).toBe(true);
+    await new Promise(r => requestAnimationFrame(r));
+    return Array.from(document.querySelector('#folders').getAnimations(), a => /** @type {KeyframeEffect} */ (a.effect).getKeyframes()[0].transform);
+  });
+  expect(slid).toHaveLength(1);
+  expect(slid[0]).toMatch(/^translateX\(\d+px\)$/);
   await expect(page.locator('#folders')).toBeVisible();
   // toasts: the stack's bottom edge clears the tab bar's top
   const gap = await page.evaluate(() => {
