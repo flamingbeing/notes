@@ -278,11 +278,7 @@ export function listScreen(app, kit) {
         sub.className = 'ui-row-sub'; sub.textContent = ` ${path}/`;
         main.append(sub);
       }
-      if (preview) {
-        const pv = document.createElement('span');
-        pv.className = 'ui-row-sub note-preview'; pv.textContent = preview;
-        main.append(pv);
-      }
+      if (preview) main.dataset.preview = preview;   // drawn by CSS (::after), so the row's text stays the title
       li.replaceChildren(main);
     }
     li.classList.toggle('changed', changed);

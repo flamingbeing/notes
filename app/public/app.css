@@ -144,4 +144,4 @@ footer { margin-top: 2rem; }
 #folders .ui-list .ui-row > button[aria-current=true] { color: var(--accent); font-weight: 600; }
 #folders .ui-list .n { color: var(--muted); font-weight: 400; }
 /* a note's row: the first three lines of its text under the title */
-.note-preview { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: .15rem; }
+.ui-row-main[data-preview]::after { content: attr(data-preview); color: var(--muted); font-size: .85rem; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: .15rem; }

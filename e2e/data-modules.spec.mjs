@@ -9,15 +9,17 @@ const turnOn = async (page, ...names) => {
 };
 const add = (page, title, body = 'text') => page.evaluate(([t, b]) => window.starter.add(t, b), [title, body]);
 
-test('every option starts off: no Select button, no Bin or Feedback buttons', async ({ phone }) => {
+test('every option starts on: Select, Bin and Feedback are there; each can be switched off', async ({ phone }) => {
   const a = await phone();
   await signIn(a, 'member');
   await synced(a);
-  await expect(a.locator('#select')).toBeHidden();
+  await expect(a.locator('#select')).toBeVisible();
   await a.click('#open-settings');
+  await expect(a.locator('#open-bin')).toBeVisible();
+  await expect(a.locator('#open-feedback')).toBeVisible();
+  for (const n of ['binScreen', 'bulkEdit', 'shareIn', 'feedbackOn']) await expect(a.locator(`#opt-${n}`)).toBeChecked();
+  await a.uncheck('#opt-binScreen');
   await expect(a.locator('#open-bin')).toBeHidden();
-  await expect(a.locator('#open-feedback')).toBeHidden();
-  for (const n of ['binScreen', 'bulkEdit', 'shareIn', 'feedbackOn']) await expect(a.locator(`#opt-${n}`)).not.toBeChecked();
 });
 
 test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it back', async ({ phone }) => {
