@@ -1,5 +1,5 @@
 // Look D, slim: a slim bar that always shows the screen's name over a hairline (no large title), room at its start for
-// the app's side-bar button, flat lists on the page's own colour with faint lines, a full-width tab bar with icons, no
+// the app's side-bar button, lists as cards inset from the edges with faint lines, a full-width tab bar with icons, no
 // band and no glass; quiet like a notes app. Data only (looks.js says what each key means).
 /** @type {import('../looks.js').Look} */
 export default {
@@ -11,7 +11,7 @@ export default {
     'look-font-head': 'inherit',
     'title-size': '1.25rem', 'title-weight': '600', 'title-track': '0',
     'bar-line': 'var(--line)',
-    'card-r': '0', 'list-inset': '0', 'list-bg': 'var(--bg)',
+    'card-r': 'var(--radius-l)', 'list-inset': 'var(--gap)', 'list-bg': 'var(--surface)',
     'list-edge': 'transparent', 'list-sep': 'color-mix(in srgb, var(--line) 25%, transparent)', 'list-shadow': 'none',
     'row-weight': '400',
     'control-r': 'var(--radius)', 'pill-r': 'var(--radius-l)',

@@ -2,7 +2,9 @@
 <html lang="en" class="glass">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)">
   <meta name="robots" content="noindex, nofollow">
   <title>Notes</title>
   <script type="importmap">
@@ -12,10 +14,10 @@
     "@core/auth": "https://core.anawj.com/sync/1.5.0/auth.js",
     "@core/sync": "https://core.anawj.com/sync/1.5.0/sync.js",
     "@core/update": "https://core.anawj.com/sync/1.5.0/update.js",
-    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.13/ui/index.js",
-    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.13/theme/index.js",
+    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.16/ui/index.js",
+    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.16/theme/index.js",
     "@core/files": "./files/index.js",
-    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.13/settings/index.js",
+    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.16/settings/index.js",
     "@core/search": "./search/index.js",
     "@core/backup": "./backup/index.js",
     "@core/drive": "./drive/index.js",
@@ -31,17 +33,28 @@
   }
 }
   </script>
-  <script src="https://core.anawj.com/ui/1.0.0-rc.13/theme/early.js"></script>
+  <script src="https://core.anawj.com/ui/1.0.0-rc.16/theme/early.js"></script>
+  <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/app.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/auth.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/sync.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/update.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/settings/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/update/0.2.0/register.js" data-module>
+  <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-app.js" data-module>
+  <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-auth.js" data-module>
+  <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-firestore.js" data-module>
   <script type="module" src="src/boot.js"></script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://design.flamingbeing.com/v1/tokens.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/theme/theme.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/ui/ui.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/theme/glass.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/ui/gestures.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.13/ui/shell/shell.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/theme.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/ui.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/glass.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/gestures.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/shell/shell.css">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="src/app.js"></script>
 </head>
@@ -69,7 +82,7 @@
        opens full screen); a tablet or laptop gets the side bar, the list, and the note beside it. -->
   <div id="list-view" class="ui-shell" hidden>
     <header class="ui-bar">
-      <span data-bar-lead><button type="button" class="ui-bar-menu" aria-label="Folders and tags" aria-controls="side">☰</button></span>
+      <span data-bar-lead><button type="button" class="ui-bar-menu" aria-label="Folders and tags" aria-controls="side"><span data-icon="menu"></span></button></span>
       <h2 class="ui-bar-title" aria-hidden="true">Notes</h2>
       <span class="bar-end">
         <span id="sync-chip"></span>
@@ -146,16 +159,16 @@
 
       <section class="ui-screen ui-tab-page" id="folders" aria-labelledby="folders-title" hidden>
         <h1 class="ui-large-title" id="folders-title">Folders</h1>
-        <ul class="nav" aria-label="Show">
-          <li><button type="button" data-filter="">All notes</button></li>
+        <ul class="ui-list nav" aria-label="Show">
+          <li class="ui-row"><button type="button" data-filter="">All notes</button></li>
         </ul>
         <div id="drawer-folders-box" hidden>
           <h3>Folders</h3>
-          <ul id="drawer-folders" class="nav" aria-label="Folders"></ul>
+          <ul id="drawer-folders" class="ui-list nav" aria-label="Folders"></ul>
         </div>
         <div id="drawer-tags-box" hidden>
           <h3>Tags</h3>
-          <ul id="drawer-tags" class="nav" aria-label="Tags"></ul>
+          <ul id="drawer-tags" class="ui-list nav" aria-label="Tags"></ul>
         </div>
         <h3>Go</h3>
         <div class="row">
@@ -172,9 +185,9 @@
     </main>
 
     <nav class="ui-tabbar" data-minimise aria-label="Sections">
-      <button type="button" class="ui-tab" data-tab-page="#home" aria-current="page" id="tab-notes"><span class="ui-tab-icon" aria-hidden="true">✎</span>Notes</button>
-      <button id="drawer-open" type="button" class="ui-tab" data-tab-page="#folders"><span class="ui-tab-icon" aria-hidden="true">▤</span>Folders</button>
-      <button id="open-settings" type="button" class="ui-tab" data-tab-page="#settings" hidden><span class="ui-tab-icon" aria-hidden="true">≡</span>Settings</button>
+      <button type="button" class="ui-tab" data-tab-page="#home" aria-current="page" id="tab-notes"><span class="ui-tab-icon" aria-hidden="true" data-icon="pencil"></span>Notes</button>
+      <button id="drawer-open" type="button" class="ui-tab" data-tab-page="#folders"><span class="ui-tab-icon" aria-hidden="true" data-icon="folder"></span>Folders</button>
+      <button id="open-settings" type="button" class="ui-tab" data-tab-page="#settings" hidden><span class="ui-tab-icon" aria-hidden="true" data-icon="settings"></span>Settings</button>
     </nav>
   </div>
 
@@ -194,7 +207,7 @@
   <dialog id="edit" class="page" aria-labelledby="edit-title">
     <form method="dialog" id="edit-form">
       <div class="row page-bar">
-        <button value="close" formnovalidate><span aria-hidden="true">← </span>Close</button>
+        <button value="close" formnovalidate><span aria-hidden="true" data-icon="arrowLeft"></span> Close</button>
         <h2 id="edit-title" class="sr-only">Note</h2>
         <span class="grow"></span>
         <button id="edit-mode" type="button" aria-pressed="false" hidden>Read view</button>

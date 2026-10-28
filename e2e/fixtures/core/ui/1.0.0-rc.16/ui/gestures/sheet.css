@@ -11,6 +11,7 @@ dialog.ui-sheet { position: fixed; inset: auto 0 0; margin: 0 auto; width: 100%;
 dialog.ui-sheet[open] { display: flex; animation: ui-rise var(--d-spring) var(--spring-snappy); }
 dialog.ui-sheet[data-detent="large"] { height: calc(100dvh - 12px); }
 dialog.ui-sheet.is-dragging { transition: none; }
+@media (max-width: 839.98px) { dialog.ui-sheet.is-dragging { will-change: transform; } }   /* a phone slides it by transform */
 .glass dialog.ui-sheet { padding: 0; border-radius: var(--glass-r) var(--glass-r) 0 0; }
 .ui-sheet-grabber { display: block; width: 100%; min-height: 24px; padding: 0; margin: 0; border: 0; background: none;
   cursor: grab; position: relative; flex: none; }

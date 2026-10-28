@@ -20,11 +20,12 @@ import { tabPages } from './tab-pages.js';
 
 /**
  * @param {ParentNode} [root]
+ * @param {{ onPrevMissing?: () => void }} [o]  onPrevMissing: a right swipe on the first tab page (an app opens its drawer)
  * @returns {{ title: ReturnType<typeof largeTitle> | null, menus: ReturnType<typeof holdMenus> | null,
  *   sheets: Map<string, ReturnType<typeof detentSheet>>, screens: ReturnType<typeof screenStack> | null,
  *   selects: Map<string, ReturnType<typeof selectMode>>, tabs: ReturnType<typeof tabPages> | null, stop: () => void }}
  */
-export function startGestures(root = document) {
+export function startGestures(root = document, { onPrevMissing } = {}) {
   /** @type {(() => void)[]} */
   const stops = [];
   // iOS shows :active press states only when the page listens for touches
@@ -66,7 +67,7 @@ export function startGestures(root = document) {
   if (screens) stops.push(screens.stop);
   if (back) stops.push(() => { back.remove(); host?.classList.remove('has-bar-back'); });
   const tabBar = /** @type {HTMLElement | null} */ (root.querySelector('nav.ui-tabbar'));
-  const tabs = tabBar && host && screens && tabBar.querySelector('[data-tab-page]') ? tabPages(tabBar, { screens, host, root }) : null;
+  const tabs = tabBar && host && screens && tabBar.querySelector('[data-tab-page]') ? tabPages(tabBar, { screens, host, root, onPrevMissing }) : null;
   if (tabs) stops.push(tabs.stop);
   const selects = new Map();
   for (const list of /** @type {NodeListOf<HTMLElement>} */ (root.querySelectorAll('.ui-list[data-select]'))) {

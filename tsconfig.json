@@ -16,15 +16,15 @@
     "paths": {
       "@core/ui": ["./node_modules/app-ui/ui/index.js"],
       "@core/theme": ["./node_modules/app-ui/theme/index.js"],
-      "@core/settings": ["./node_modules/app-ui/settings/index.js"],
       "@core/files": ["./app/public/files/index.js"],
+      "@core/settings": ["./node_modules/app-ui/settings/index.js"],
       "@core/search": ["./app/public/search/index.js"],
       "@core/backup": ["./app/public/backup/index.js"],
-      "xlsx": ["./app/public/vendor/xlsx/0.20.3/xlsx.d.ts"],
       "@core/drive": ["./app/public/drive/index.js"],
+      "@vendor/codemirror": ["./tools/codemirror-entry.js"],
+      "xlsx": ["./app/public/vendor/xlsx/0.20.3/xlsx.d.ts"],
       "@core/*": ["./node_modules/app-sync/types/*.d.ts"],
       "app-ui/*": ["./node_modules/app-ui/*"],
-      "@vendor/codemirror": ["./tools/codemirror-entry.js"],
       "zod": ["./e2e/fixtures/outside-package/vendor/zod/3.23.8/index.d.ts"]
     }
   },

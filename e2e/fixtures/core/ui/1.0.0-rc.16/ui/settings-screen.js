@@ -8,10 +8,11 @@
 import { el, button, plural } from './dom.js';
 import { LABELS } from './labels.js';
 import { aboutSheet } from './about-sheet.js';
+import { icon, info as infoIcon } from '../icons/lucide.js';
 
 /**
  * @typedef {{ key: string, label: string, sub?: string, more?: string, choices?: [unknown, string][], min?: number,
- *   max?: number, step?: number }} SettingRow  sub: one line of help; more: the rest, behind an ⓘ button; choices:
+ *   max?: number, step?: number }} SettingRow  sub: one line of help; more: the rest, behind an info button; choices:
  *   [value, word] pairs (a picker); a boolean default is a switch; a number one a number field (min, max, step)
  * @typedef {{ title: string, rows?: SettingRow[], reset?: boolean, mount?: (host: HTMLElement) => (() => void) | void }} SettingSection
  *   reset: adds "Reset this page", which puts this section's rows back to their defaults and offers Undo
@@ -80,7 +81,7 @@ export function settingsScreen(host, { settings, sections, file = 'settings.json
     const li = el('li', { class: 'ui-row ui-setting' }, main, control);
     if (more) {
       const detail = el('p', { class: 'ui-row-more ui-small small', id: id(), hidden: '' }, more);
-      const info = el('button', { type: 'button', class: 'ui-info', 'aria-label': `${words.moreInfo}: ${label}`, 'aria-expanded': 'false', 'aria-controls': detail.id }, 'ⓘ');
+      const info = el('button', { type: 'button', class: 'ui-info', 'aria-label': `${words.moreInfo}: ${label}`, 'aria-expanded': 'false', 'aria-controls': detail.id }, icon(infoIcon));
       info.addEventListener('click', () => {
         detail.hidden = !detail.hidden;
         info.setAttribute('aria-expanded', String(!detail.hidden));

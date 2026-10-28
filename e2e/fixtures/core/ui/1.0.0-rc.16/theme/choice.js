@@ -6,7 +6,7 @@
 // chosen, an unknown value or no storage: the defaults, so a new option stays off until picked. v0's stored
 // { theme, layout } reads as it did.
 import { THEMES, LAYOUTS, DENSITIES, cleanChoice } from './schema.js';
-import { paletteCss, accentOf } from './palette-css.js';
+import { paletteCss, accentOf, palettes } from './palette-css.js';
 import { cleanHex } from './colour.js';
 import { lookOf, LOOK_IDS } from './looks.js';
 import { guardSolid, startGuard } from './guard.js';
@@ -59,6 +59,20 @@ function mark(root, key, value, off) {
 export const glassOn = c => c.material !== 'solid' && lookOf(c.look, app.look).variants.glass !== 'none'
   && (c.material === 'always' || !guardSolid());
 
+/** the browser bar / status bar colour: the page's ground, one <meta name="theme-color"> per scheme (media), both the same when light or dark is chosen
+ *  @param {Choice} c */
+function themeColour(c) {
+  if (!document.head) return;   // (no page, as in a node test)
+  const { light, dark } = palettes(c, app);
+  for (const [scheme, p] of /** @type {const} */ ([['light', light], ['dark', dark]])) {
+    const forced = c.theme === 'light' || c.theme === 'dark';
+    const colour = (forced ? (c.theme === 'dark' ? dark : light) : p).bg;
+    let m = /** @type {HTMLMetaElement | null} */ (document.head.querySelector(`meta[name="theme-color"][data-scheme="${scheme}"]`));
+    if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; m.dataset.scheme = scheme; m.media = `(prefers-color-scheme: ${scheme})`; document.head.append(m); }
+    m.content = colour;
+  }
+}
+
 /** @param {Choice} c */
 function show(c) {
   const root = document.documentElement;
@@ -70,6 +84,7 @@ function show(c) {
   mark(root, 'motion', c.motion, 'auto');
   for (const [k, v] of Object.entries(look.variants)) root.dataset[k] = v;
   root.classList.toggle('glass', glassOn(c));
+  themeColour(c);
   // (no constructed stylesheets, as in node or an old browser: theme.css's own values stay)
   if (typeof CSSStyleSheet !== 'function' || !('adoptedStyleSheets' in document)) return;
   // (early.js's sheet, when it put back the last look before the first paint: this one replaces its values)

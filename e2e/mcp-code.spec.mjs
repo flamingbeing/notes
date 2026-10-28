@@ -5,13 +5,11 @@ import { decodeCode } from '../app/src/mcp/code.js';
 
 const openSettings = async page => { await page.click('#open-settings'); await expect(page.locator('#settings')).toBeVisible(); };
 
-test('off until this device turns it on; the code is shown once and wiped on close', async ({ phone }) => {
+test('on by default; the code is shown once and wiped on close', async ({ phone }) => {
   const page = await phone();
   await signIn(page, 'member');
   await openSettings(page);
-  await expect(page.locator('#opt-mcpOn')).not.toBeChecked();
-  await expect(page.locator('#open-mcp')).toBeHidden();
-  await page.check('#opt-mcpOn');
+  await expect(page.locator('#opt-mcpOn')).toBeChecked();
   await page.click('#open-mcp');
   await expect(page.locator('#mcp')).toBeVisible();
   await expect(page.locator('#mcp-code')).toBeHidden();

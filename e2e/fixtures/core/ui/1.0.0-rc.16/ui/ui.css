@@ -1,7 +1,23 @@
 /* @core/ui v0: the kit parts' look, on @core/theme's custom properties (theme/theme.css loads first), corners from
    the look's tokens (theme/looks.js). */
 /* the kit's own names start ui-; the bare ones (.chip .error .danger .small .row) still work for now, but go in 1.0 */
-:is(.ui-chip, .chip) { font-size: .85rem; padding: .2rem .6rem; border-radius: var(--control-r); border: 1px solid currentColor; }
+:is(.ui-chip, .chip) { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; padding: .2rem .6rem; border-radius: var(--pill-r); border: 1px solid currentColor; color: var(--muted); }
+/* icons (icons/lucide.js): drawn in the text colour, as tall as the text */
+.ui-icon { flex: none; width: 1.25em; height: 1.25em; vertical-align: middle; }
+/* the sync chip: an icon per state (a count badge on it); colour by state, pending turns, the rest stays still */
+.ui-chip-icon { position: relative; display: inline-flex; flex: none; }
+.ui-chip-badge { position: absolute; top: -.45em; right: -.55em; min-width: 1.1em; padding: 0 .25em; box-sizing: border-box; border-radius: 1em;
+  background: currentColor; font-size: .7rem; line-height: 1.1rem; text-align: center; }
+.ui-chip-badge:empty { display: none; }
+.ui-chip-badge { -webkit-text-fill-color: var(--bg); }
+:is(.ui-chip, .chip)[data-state="synced"] { color: var(--ok); }
+:is(.ui-chip, .chip)[data-state="pending"] { color: var(--link); }
+:is(.ui-chip, .chip):is([data-state="offline"], [data-state="at-risk"]) { color: var(--warn); }
+:is(.ui-chip, .chip)[data-state="pending"] .ui-icon { animation: ui-spin 1.2s linear infinite; }
+:is(.ui-chip, .chip)[data-state="unknown"] .ui-icon { opacity: .6; }
+@keyframes ui-spin { to { transform: rotate(1turn); } }
+@media (prefers-reduced-motion: reduce) { :is(.ui-chip, .chip)[data-state="pending"] .ui-icon { animation: none; } }
+:root[data-motion="still"] :is(.ui-chip, .chip)[data-state="pending"] .ui-icon { animation: none; }
 :is(.ui-chip, .chip)[data-state="attention"], .ui-error, .ui-danger, .error, .danger { color: var(--danger); }
 .ui-small, .small { font-size: .85rem; color: var(--muted); }
 .ui-inline, .row { display: flex; gap: var(--gap); flex-wrap: wrap; align-items: center; }
@@ -61,7 +77,7 @@ li.dragging { position: relative; z-index: 2; box-shadow: var(--list-shadow); ba
 .user-hidden { display: none !important; }
 .hide-cand { outline: 2px dashed var(--accent); outline-offset: 2px; cursor: pointer; }
 
-/* settings rows: the ⓘ detail and "Reset this page" (settings-screen.js) */
+/* settings rows: the info detail and "Reset this page" (settings-screen.js) */
 .ui-setting:has(.ui-row-more) { flex-wrap: wrap; }
 .ui-info { flex: none; min-width: var(--tap); min-height: var(--tap); padding: 0; border: 0; background: none; color: var(--link); }
 .ui-row-more { flex-basis: 100%; margin: 0; }

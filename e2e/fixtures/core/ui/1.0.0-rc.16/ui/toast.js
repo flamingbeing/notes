@@ -1,6 +1,7 @@
 // Toasts: a short note ("Saved") in a live region, gone by itself after a few seconds or when dismissed.
 import { LABELS } from './labels.js';
 import { el } from './dom.js';
+import { icon, x } from '../icons/lucide.js';
 
 /**
  * @param {HTMLElement} host  the region is added here (once per page)
@@ -16,7 +17,7 @@ export function toaster(host, { ms = 4000, labels = {} } = {}) {
   return {
     show(message, o = {}) {
       const note = el('div', { class: 'toast' }, el('span', {}, message));
-      const close = el('button', { type: 'button', 'aria-label': words.dismiss }, '×');
+      const close = el('button', { type: 'button', 'aria-label': words.dismiss }, icon(x));
       if (o.action) {
         const act = o.action;
         const b = el('button', { type: 'button', class: 'toast-action' }, act.label);

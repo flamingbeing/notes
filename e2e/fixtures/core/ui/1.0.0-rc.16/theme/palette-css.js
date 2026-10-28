@@ -35,7 +35,7 @@ export function palettes(choice, app = {}) {
 }
 
 // corners per round level: small, normal, large (level 2 is v0's .4rem)
-const ROUND = [['0', '0', '0'], ['.15rem', '.25rem', '.4rem'], ['.25rem', '.4rem', '.75rem'], ['.5rem', '.8rem', '1.25rem']];
+const ROUND = [['0px', '0px', '0px'], ['.15rem', '.25rem', '.4rem'], ['.25rem', '.4rem', '.75rem'], ['.5rem', '.8rem', '1.25rem']];
 
 /** @param {Partial<Choice>} choice @returns {Record<string, string>}  shape and type tokens (the same in light and dark) */
 export function shapeTokens(choice) {

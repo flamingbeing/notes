@@ -7,6 +7,9 @@
 :root {
   color-scheme: light dark;
   --font: var(--home-font, system-ui, sans-serif);
+  --font-ui: var(--font);        /* buttons, bars, lists */
+  --font-editor: var(--font);    /* a note or text editor: an app may set a reading or writing face */
+  --font-size: 1rem;             /* the base size the page's text and editor start from */
   --font-head: inherit;
   --leading: 1.5;
   --bg: light-dark(var(--home-bg, #f5f5f7), #1c1c1e);
@@ -16,6 +19,17 @@
   --line: light-dark(var(--home-control, #8a8a91), #8e8e93);
   --accent: light-dark(var(--home-accent, #3a6390), #8fb4e0);
   --on-accent: light-dark(#ffffff, #111113);
+  /* the writing ground: white (near-black in dark), the accent only on the caret, links and selection */
+  --editor-bg: light-dark(#ffffff, #121214);
+  --card-bg: var(--surface);
+  /* buttons: plain (the surface, a hairline) unless filled (the accent); one height, centred (see button below) */
+  --button-bg: var(--surface);
+  --button-text: var(--text);
+  --button-h: var(--tap);
+  /* a formatting bar over the keyboard (an app's editor bar): its ground, text and button size */
+  --fmt-bg: var(--surface);
+  --fmt-text: var(--text);
+  --fmt-h: 40px;
   --band: light-dark(var(--accent), #3878c0);   /* a band of colour behind a title (look B): deep in dark, white text */
   --on-band: #ffffff;
   --danger: light-dark(var(--home-bad, #b3261e), #ff8a80);
@@ -47,6 +61,8 @@
   --radius-s: .25rem;
   --radius: .4rem;
   --radius-l: .75rem;
+  --radius-input: var(--radius);
+  --radius-button: max(var(--control-r), calc(var(--card-r) * 1.25));   /* the look's control corner, and always rounder than its cards */
   --border: 1px;
   --shadow: 0 1px 3px rgb(0 0 0 / .14);
   --gap: .5rem;
@@ -56,7 +72,7 @@
   /* the look's tokens (palette-css.js puts the picked look's over these) */
   --look-font-head: inherit;
   --title-size: 2rem; --title-weight: 700; --title-track: 0; --bar-line: transparent;
-  --card-r: 0; --list-inset: 0; --list-edge: var(--line); --list-sep: color-mix(in srgb, var(--line) 40%, transparent); --list-shadow: none;
+  --card-r: 0px; --list-inset: 0; --list-edge: var(--line); --list-sep: color-mix(in srgb, var(--line) 40%, transparent); --list-shadow: none;
   --row-weight: 400; --control-r: var(--radius); --pill-r: calc(var(--radius-l) * 2); --menu-r: var(--radius-l);
   --sheet-r: var(--radius-l); --tick-size: 22px; --tab-active: var(--selection); --glass-tint: 0%;
 }
@@ -67,23 +83,28 @@
 :root[data-density="comfortable"] { --row: 60px; --tap: 48px; --gap: .625rem; --pad: 1.125rem; font-size: 106.25%; }
 :root[data-density="compact"] { --row: 44px; --gap: .25rem; --pad: .75rem; font-size: 93.75%; }
 
-body { font-family: var(--font); line-height: var(--leading); background: var(--bg); color: var(--text); }
+body { font-family: var(--font); font-size: var(--font-size); line-height: var(--leading); background: var(--bg); color: var(--text); }
 h1, h2, h3 { line-height: 1.2; }
 /* the look's heading face (a serif in look A) for page titles only: sheet, section and bar titles stay in the text face */
 h1 { font-family: var(--font-head); }
 button, input, select { font: inherit; color: inherit; }
-button { min-height: var(--tap); padding: 0 var(--pad); cursor: pointer; border-radius: var(--control-r); }
-button, select { background: var(--surface); border: var(--border) solid var(--line); }
+button { display: inline-flex; align-items: center; justify-content: center; gap: .4em; box-sizing: border-box; min-height: var(--button-h);
+  padding: 0 var(--pad); cursor: pointer; font-family: var(--font-ui); color: var(--button-text); border-radius: var(--radius-button); }
+button, select { background: var(--button-bg); border: var(--border) solid var(--line); }
+button[hidden] { display: none; }   /* (the rule above would otherwise show a hidden button) */
+/* two kinds of button: plain (the default) and filled (the accent); a link-style one has no box at all */
+:where(.ui-fill) { background: var(--fill); color: var(--on-fill); border-color: var(--fill); }
+:where(.ui-plain) { background: none; border-color: transparent; color: var(--link); }
 /* form controls a finger can hit, in the theme's colours (zero specificity: a page's own rules win). A select draws
    its own chevron (two gradients, no image) with room so the words never run under it. */
-select { min-height: var(--tap); padding: 0 2rem 0 var(--gap); border-radius: var(--control-r); -webkit-appearance: none;
+select { min-height: var(--tap); padding: 0 2rem 0 var(--gap); border-radius: var(--radius-input); -webkit-appearance: none;
   appearance: none; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
   linear-gradient(135deg, currentColor 50%, transparent 50%); background-repeat: no-repeat;
   background-position: calc(100% - 1rem) 50%, calc(100% - .7rem) 50%; background-size: .3rem .3rem; cursor: pointer; }
 :where(input:not([type]), input[type="text"], input[type="search"], input[type="email"], input[type="number"],
   input[type="tel"], input[type="url"], input[type="password"], input[type="date"], input[type="time"], textarea) {
   min-height: var(--tap); padding: 0 var(--gap); box-sizing: border-box; background: var(--surface);
-  border: var(--border) solid var(--line); border-radius: var(--radius); }
+  border: var(--border) solid var(--line); border-radius: var(--radius-input); }
 :where(textarea) { padding: var(--gap); }
 :where(input[type="checkbox"], input[type="radio"]) { width: 1.375rem; height: 1.375rem; margin: 0; accent-color: var(--accent); }
 input[type="color"] { min-height: var(--tap); min-width: var(--tap); padding: 2px; border: var(--border) solid var(--line);
