@@ -73,5 +73,5 @@ test('feedback: a member sends, an admin reads and marks it done', async ({ phon
   await b.click('#open-feedback');
   await expect(b.locator('#feedback-items li', { hasText: text })).toBeVisible();
   await b.locator('#feedback-items li', { hasText: text }).getByRole('button', { name: 'Done' }).click();
-  await expect(b.locator('#feedback-items li', { hasText: `✓ ${text}` })).toBeVisible();
+  await expect(b.locator('#feedback-items li', { hasText: `Done: ${text}` })).toBeVisible();
 });
