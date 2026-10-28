@@ -16,8 +16,10 @@ const surface = page => page.evaluate(() => {
   return c;
 });
 
-test('glass by default; Solid in the switch takes it off, kept on reload and before the modules run', async ({ phone }) => {
+test('glass by default (look A); Solid in the switch takes it off, kept on reload and before the modules run', async ({ phone }) => {
   const page = await phone();
+  // notes' own look is D (no glass); these test the glass of look A, which a device can pick
+  await page.addInitScript(() => { if (!localStorage.getItem('core-theme')) localStorage.setItem('core-theme', JSON.stringify({ look: 'a' })); });
   await signIn(page);
   const root = page.locator('html');
   await expect(root).toHaveClass(/\bglass\b/);
@@ -47,6 +49,8 @@ test('glass by default; Solid in the switch takes it off, kept on reload and bef
 // (Playwright can't emulate prefers-reduced-transparency; glass.css turns glass down for it in the same query)
 test('asked for more contrast: solid card colour, no blur', async ({ phone }) => {
   const page = await phone();
+  // notes' own look is D (no glass); these test the glass of look A, which a device can pick
+  await page.addInitScript(() => { if (!localStorage.getItem('core-theme')) localStorage.setItem('core-theme', JSON.stringify({ look: 'a' })); });
   await page.emulateMedia({ contrast: 'more' });
   await signIn(page);
   await expect(page.locator('html')).toHaveClass(/\bglass\b/);
@@ -76,7 +80,7 @@ test('the sample in light, dark, OLED and Solid: axe on the tab bar, a toast and
     await page.getByLabel('Theme').selectOption(pick.theme);
     await page.getByLabel('Dark style').selectOption(pick.dark);
     await page.getByLabel('Bars and sheets').selectOption(pick.material);
-    await page.click('#settings-close');
+    await page.evaluate(() => document.getElementById('tab-notes').click());
     await expect(page.locator('#settings')).toBeHidden();
     // (dismiss the last mode's toast first: its 4 s timer would otherwise end mid-check and move this one under axe)
     await page.evaluate(() => document.querySelectorAll('.toast button').forEach(b => /** @type {HTMLElement} */ (b).click()));

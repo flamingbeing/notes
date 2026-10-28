@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { zipSync, unzipSync } from 'fflate';
-import { test, expect, signIn, add, openNote, synced, uniq, drawer, details } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, uniq, drawer, details, toNotes } from './fixtures.mjs';
 
 const VAULT = path.resolve('e2e/fixtures/vault');
 const PNG = path.join(VAULT, 'Ideas/img/sprout.png');
@@ -60,6 +60,7 @@ test('a note moves with its attachments', async ({ phone }) => {
   await a.click('#edit-move-go');
   await a.getByRole('button', { name: 'Move', exact: true }).last().click();
   await expect(a.locator('#edit')).toBeHidden({ timeout: 15_000 });
+  await toNotes(a);
   await a.selectOption('#space', { label: name });
   await openNote(a, t);
   await expect(a.locator('#edit-files li')).toHaveCount(1, { timeout: 15_000 });

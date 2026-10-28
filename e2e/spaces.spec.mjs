@@ -1,7 +1,7 @@
 // Shared spaces with two or three made-up accounts: invite (in the app now, or at a first sign-in), roles (a viewer
 // only reads), taking someone out (the space's notes leave their device), moving a note, and [[Space/Note]] links.
 // (Reads by someone not in a space are refused by the rules: app/test/rules.test.mjs.)
-import { test, expect, signIn, add, openNote, synced, serverHas, notePathOf, uniq, APP, drawer, details } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, serverHas, notePathOf, uniq, APP, drawer, details, toNotes } from './fixtures.mjs';
 
 // a new space by name; the owner opens it from the switcher
 async function newSpace(page, name) {
@@ -13,6 +13,7 @@ async function newSpace(page, name) {
 }
 const open = async (page, label) => {
   await expect(page.locator('#space option', { hasText: label })).toHaveCount(1, { timeout: 15_000 });
+  await toNotes(page);
   await page.selectOption('#space', { label });
   await expect(page.locator('#space-open')).toHaveJSProperty('hidden', false);
 };
@@ -123,6 +124,7 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   // invited again but not opening it: the space is only watched in the background (for links, kept in memory); taken
   // out, nothing of it is on the device
   await invite(a, bob.email, 'edit');
+  await toNotes(b);
   await expect(b.locator('#space')).toBeVisible({ timeout: 15_000 });
   await a.locator('#space-people li', { hasText: bob.email }).getByRole('button', { name: 'Remove' }).click();
   await a.getByRole('button', { name: 'Remove', exact: true }).last().click();
@@ -170,6 +172,7 @@ test('a note moves from the vault to a space in one go; a [[Space/Note]] link op
   await open(a, name);
   await invite(a, bob.email, 'edit');
   await a.click('#space-close');
+  await toNotes(a);
   await a.selectOption('#space', { label: 'My notes' });
   await expect(a.locator('#space-open')).toHaveJSProperty('hidden', true);
   await add(a, t);
@@ -189,6 +192,7 @@ test('a note moves from the vault to a space in one go; a [[Space/Note]] link op
   await expect(b.locator('#items')).toContainText(t, { timeout: 15_000 });
 
   // the link in a's vault note opens the space, then the note
+  await toNotes(a);
   await a.selectOption('#space', { label: 'My notes' });
   await openNote(a, home);
   await details(a);

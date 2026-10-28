@@ -114,10 +114,11 @@ test('a delete elsewhere keeps a draft in the note sheet; saving it adds it back
 
 test('check for updates: a new version takes over at once', async ({ phone }) => {
   const page = await phone();
-  await page.goto(APP + '&sw');
+  await signIn(page, 'member', { path: APP + '&sw' });
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 30_000 }).toBe(true);
   await page.evaluate(() => { window.__same = true; });
   await page.request.get('/__test/bump');
-  await page.click('#check-update');
+  await page.click('#open-settings');
+  await page.click('.ui-check-update');
   await expect.poll(() => page.evaluate(() => window.__same).catch(() => undefined), { timeout: 30_000 }).toBeUndefined();
 });

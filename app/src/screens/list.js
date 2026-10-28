@@ -1,6 +1,6 @@
 // The notes list (#list-view, the kit's adaptive shell): every note in the person's vault in the list pane, with a search
 // box (@core/search over title, body and tags, with tag: and path: operators). Folders and tags are the side bar's
-// (tablet and laptop) and, on a phone, the Folders sheet's (#drawer): one folder or tag at a time. A note opens on its
+// (tablet and laptop) and, on a phone, the Folders tab's page (#folders): one folder or tag at a time. A note opens on its
 // own page (note-page.js): full screen on a phone, beside the list from 600 px. Hold or right-click a row for its menu;
 // Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
 // notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
@@ -56,7 +56,7 @@ export function listScreen(app, kit) {
   };
   // the drawer's choice: '' (all notes), 'tag:<tag>' or 'path:<folder>'
   let shown = '';
-  const drawer = dialog('drawer');
+  const foldersPage = $('folders');
   const side = /** @type {HTMLElement} */ ($('list-view').querySelector('.ui-sidebar'));
   const items = $('items');
   const select = () => kit.selects.get('items');
@@ -80,7 +80,7 @@ export function listScreen(app, kit) {
     const folders = [...new Set(all.flatMap(n => (n.path || '').split('/').map((_, i, a) => a.slice(0, i + 1).join('/'))).filter(Boolean))].sort();
     const folderChoices = (/** @type {boolean} */ inSide) => folders.map(f => choice('path:' + f, f.split('/').pop() + '/', all.filter(n => inFolder(n, f)).length, f.split('/').length - 1, inSide));
     const tagChoices = (/** @type {boolean} */ inSide) => tags.map(t => choice('tag:' + t, '#' + t, all.filter(n => hasTag(n, t)).length, 0, inSide));
-    // both places list the same choices: the Folders sheet (phone) and the side bar (tablet and laptop)
+    // both places list the same choices: the Folders tab (phone) and the side bar (tablet and laptop)
     $('drawer-folders').replaceChildren(...folderChoices(false));
     $('drawer-tags').replaceChildren(...tagChoices(false));
     $('side-folders').replaceChildren(...folderChoices(true));
@@ -88,7 +88,7 @@ export function listScreen(app, kit) {
     $('drawer-folders-box').hidden = $('side-folders-box').hidden = !folders.length;
     $('drawer-tags-box').hidden = $('side-tags-box').hidden = !tags.length;
     if (shown && !(shown.startsWith('tag:') ? tags.includes(shown.slice(4)) : folders.includes(shown.slice(5)))) shown = '';
-    for (const b of drawer.querySelectorAll('button[data-filter]')) b.setAttribute('aria-current', String(/** @type {HTMLElement} */ (b).dataset.filter === shown));
+    for (const b of foldersPage.querySelectorAll('button[data-filter]')) b.setAttribute('aria-current', String(/** @type {HTMLElement} */ (b).dataset.filter === shown));
     for (const b of side.querySelectorAll('button[data-filter]')) {
       if (/** @type {HTMLElement} */ (b).dataset.filter === shown) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     }
@@ -98,19 +98,18 @@ export function listScreen(app, kit) {
   };
   /** @param {string} value */
   const showOnly = value => { shown = value; draw(all, new Set()); };
-  drawer.addEventListener('click', e => {
+  foldersPage.addEventListener('click', e => {
     const b = /** @type {HTMLElement} */ (e.target).closest('button');
     if (!b) return;
-    // every button here leads somewhere else: the drawer closes first (another sheet may open)
-    drawer.close();
-    if (b.dataset.filter !== undefined) showOnly(b.dataset.filter);
-  }, true);
+    // a folder or tag leads back to the list; the other buttons open their own sheets
+    if (b.dataset.filter !== undefined) { showOnly(b.dataset.filter); kit.tabs?.go('#home'); }
+  });
   side.addEventListener('click', e => {
     const b = /** @type {HTMLElement} */ (e.target).closest('button');
     if (b?.dataset.filter !== undefined) showOnly(b.dataset.filter);
   });
-  $('drawer-open').addEventListener('click', () => drawer.showModal());
-  $('tab-notes').addEventListener('click', () => { input('q').value = input('q-w').value = ''; showOnly(''); });
+  // tapping Notes again (not coming back from another tab) shows every note
+  $('tab-notes').addEventListener('click', () => { if (kit.tabs && kit.tabs.current() !== $('home')) return; input('q').value = input('q-w').value = ''; showOnly(''); });
   $('filter-clear').addEventListener('click', () => showOnly(''));
   /** the notes the box and the filter leave in, in the order to show them */
   const visible = () => {
@@ -152,12 +151,12 @@ export function listScreen(app, kit) {
   const inNote = () => !!page.current();
   const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
   const backup = backupSheet(app, msg => toast(msg), () => canWrite);
-  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); backup.reset(); transfer.open(); });
+  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); backup.reset(); transfer.open(); });
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
   const drive = driveSheet(app, msg => toast(msg), () => openSpace);
-  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); drive.open(); });
+  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); drive.open(); });
   const mcp = mcpSheet(app, msg => toast(msg));
-  $('open-mcp').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings')).close(); mcp.open(); });
+  $('open-mcp').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); mcp.open(); });
   // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn, mcpOn)
   const on = (/** @type {string} */ key) => !!app.settings.get(key);
   /** @type {string | undefined} */ let role;
@@ -165,7 +164,7 @@ export function listScreen(app, kit) {
   const bulk = bulkSheet(app, msg => toast(msg));
   const share = shareSheet(app, msg => toast(msg), note => void page.open(note));
   const feedback = feedbackSheet(app, msg => toast(msg), () => role === 'admin');
-  const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings')).close();
+  const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings-panel')).close();
   $('open-bin').addEventListener('click', () => { closeSettings(); bin.open(); });
   $('open-feedback').addEventListener('click', () => { closeSettings(); feedback.open(); });
   const modules = () => {
@@ -216,7 +215,7 @@ export function listScreen(app, kit) {
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
       { id: 'transfer', label: 'Import or export notes', run: transfer.open },
       { id: 'drive', label: 'Google Drive', run: drive.open },
-      { id: 'settings', label: 'Open settings', run: () => $('open-settings').click() },
+      { id: 'settings', label: 'Open settings', run: () => ($('open-settings-w').getClientRects().length ? $('open-settings-w') : $('open-settings')).click() },
     ],
   });
   $('go-to').addEventListener('click', () => pick.switcher());
@@ -246,7 +245,7 @@ export function listScreen(app, kit) {
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
     if (canWrite !== could) draw(all, new Set());
   });
-  const screen = { ...section, hide() { $('drawer-open').hidden = true; drawer.close(); section.hide(); } };
+  const screen = { ...section, hide() { $('drawer-open').hidden = true; section.hide(); } };
 
   /** @type {Map<string, HTMLElement>} id -> its row: a row is kept (with its tick, focus and place) while its note is in the list */
   const rows = new Map();

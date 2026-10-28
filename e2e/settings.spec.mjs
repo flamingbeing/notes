@@ -12,7 +12,7 @@ test('a device value stays on this device; an account value reaches the other on
   await open(a);
   await a.check('#opt-bigRows');
   await a.check('#opt-itemCount');
-  await a.click('#settings-close');
+  await a.evaluate(() => document.getElementById('tab-notes').click());
   await expect(a.locator('#items')).toHaveClass(/big/);
   await expect(a.locator('#count')).toBeVisible();
   await synced(a);
@@ -36,7 +36,7 @@ test('the device value survives sign-out and a reload', async ({ phone }) => {
   const { email } = await signIn(a, 'member');
   await open(a);
   await a.check('#opt-bigRows');
-  await a.click('#settings-close');
+  await a.evaluate(() => document.getElementById('tab-notes').click());
   await open(a);
   await a.click('#sign-out');
   await expect(a.locator('#signed-out')).toBeVisible();

@@ -11,6 +11,8 @@
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
   never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
   export, import back, clean up, as the test user (app-devkit 1.10.3 sends the Referer the web key needs).
+- app-ui 1.0.0-rc.11 (28 Oct): on a phone Folders and Settings are swipeable tab pages (the Folders sheet is gone); the version
+  and Check for updates are in Settings > About (no version header); look D (Slim) is the default look.
 - Reorganised for daily use (decision 0014): slim top bar + list, folders and tags in a drawer, a note is a
   full-screen page with an address and Back, Details panel, + opens a draft in the folder for new notes; code grouped
   by feature under `app/src/`.

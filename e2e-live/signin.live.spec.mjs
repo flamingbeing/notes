@@ -61,7 +61,7 @@ test('the test user signs in on the live site; a note with a picture exports, im
   await expect(page.locator('#list-view')).toBeVisible({ timeout: 30_000 });   // a member sees the list
   await page.click('#open-settings');   // who is signed in sits in the Settings sheet
   await expect(page.locator('#who')).toHaveText(email);
-  await page.click('#settings-close');
+  await page.evaluate(() => document.getElementById('tab-notes').click());
   await expect.poll(() => page.evaluate(() => window.starter.ready), { timeout: 30_000 }).toBe(true);
   await removeSmokeNotes(page);
 

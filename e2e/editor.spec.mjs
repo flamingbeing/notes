@@ -152,7 +152,7 @@ for (const [theme, dark] of [['light', ''], ['dark', ''], ['dark', 'oled']]) {
     await openSettings(page);
     await page.getByLabel('Theme').selectOption(theme);
     if (dark) await page.getByLabel('Dark style').selectOption(dark);
-    await page.click('#settings-close');
+    await page.evaluate(() => document.getElementById('tab-notes').click());
     await expect(page.locator('#settings')).toBeHidden();
     const t = uniq('axe');
     await add(page, t);
