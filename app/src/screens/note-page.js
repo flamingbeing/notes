@@ -157,14 +157,28 @@ export function notePage(app, toast, canWrite, onShow) {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') away(); });
 
   // the editor's options (this device): source mode, line numbers, readable line width
-  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers') });
+  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
   const applyOptions = () => {
     sheet.classList.toggle('wide', !settings.get('readableWidth'));
     ed?.setOptions(options());
   };
-  settings.watch(null, applyOptions);
+  settings.watch(null, () => { applyOptions(); fmtShow(); });
   applyOptions();
 
+  // the formatting bar: shown while editing when the setting is on; the Aa button hides or shows it (and keeps the choice)
+  const fmtShow = () => {
+    const on = !!settings.get('fmtBar');
+    $('edit-fmt').hidden = reading || !ed || !canWrite() || !on;
+    $('edit-fmt-toggle').hidden = reading || !ed || !canWrite();
+    $('edit-fmt-toggle').setAttribute('aria-pressed', String(on));
+    sheet.classList.toggle('with-fmt', !$('edit-fmt').hidden);
+  };
+  $('edit-fmt-toggle').addEventListener('click', () => settings.set('fmtBar', !settings.get('fmtBar')));
+  // on a phone the bar sits just above the keyboard: --kb is how much of the layout viewport the keyboard covers
+  const vv = window.visualViewport;
+  const keyboard = () => { if (vv) document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`); };
+  vv?.addEventListener('resize', keyboard); vv?.addEventListener('scroll', keyboard);
+  keyboard();
   // read view or editing: a viewer starts in the read view
   /** @param {boolean} on */
   const setReading = on => {
@@ -176,7 +190,7 @@ export function notePage(app, toast, canWrite, onShow) {
     $('edit-read').hidden = !reading;
     $('edit-cm').hidden = reading || !ed;
     area().hidden = reading || !!ed;
-    $('edit-fmt').hidden = reading || !ed || !canWrite();
+    fmtShow();
   };
   $('edit-mode').addEventListener('click', () => { setReading(!reading); if (!reading) ed?.focus(); });
 
@@ -270,6 +284,8 @@ export function notePage(app, toast, canWrite, onShow) {
   // the editor, the first time a note opens (the list screen loads none of it)
   /** @type {Promise<void> | null} */
   let loading = null;
+  /** @type {ReturnType<typeof import('../editor/fmt-bar.js').fmtBar> | null} */
+  let bar = null;
   const load = () => (loading ??= (async () => {
     try {
       const [{ createEditor }, { readView }, { fmtBar }] = await Promise.all([import('../editor/index.js'), import('../editor/read-view.js'), import('../editor/fmt-bar.js')]);
@@ -280,8 +296,11 @@ export function notePage(app, toast, canWrite, onShow) {
         onChange: text => { area().value = text; typing(); },
         onBlur: () => void commit(AUTO),
         onLink: t => void go(t),
+        onUpdate: v => bar?.refresh(v),
       });
-      $('edit-fmt').replaceChildren(fmtBar(() => ed?.view || null));
+      bar = fmtBar(() => ed?.view || null);
+      $('edit-fmt').replaceChildren(bar);
+      bar.refresh(ed.view);
       document.documentElement.dataset.editor = 'ready';
     } catch (err) {
       // the textarea stays: the note can still be written

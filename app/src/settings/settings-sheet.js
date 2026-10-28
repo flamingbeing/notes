@@ -18,6 +18,8 @@ const SECTIONS = [
     { key: 'sourceMode', label: 'Source mode', sub: 'Show the Markdown as written' },
     { key: 'lineNumbers', label: 'Line numbers' },
     { key: 'readableWidth', label: 'Readable line width' },
+    { key: 'fmtBar', label: 'Formatting bar', sub: 'Above the keyboard while you write' },
+    { key: 'tickToBottom', label: 'Ticked to-dos go to the bottom' },
   ], mount: folders },
   { title: 'More (this device, each off until you turn it on)', rows: [
     { key: 'binScreen', label: 'Bin', sub: 'Bring back deleted notes' },

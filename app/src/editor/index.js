@@ -9,8 +9,9 @@ import {
 import { notesSyntax } from './syntax.js';
 import { livePreview } from './live-preview.js';
 import { htmlToMarkdown } from '../notes/paste-clean.js';
+import { linkFor } from '../notes/paste-link.js';
 
-/** @typedef {{ source: boolean, lineNumbers: boolean }} EditorOptions */
+/** @typedef {{ source: boolean, lineNumbers: boolean, tickToBottom?: boolean }} EditorOptions */
 
 // Markdown with the notes' [[links]] and #tags (same language data, so Markdown's own commands still apply)
 const parser = /** @type {import('@lezer/markdown').MarkdownParser} */ (markdownLanguage.parser).configure([notesSyntax]);
@@ -36,12 +37,13 @@ const isCodeCopy = html => /white-space:\s*pre/i.test(html) && !/<(h[1-6]|li|tab
  *   parent: HTMLElement, text: string, label: string, readOnly: boolean, options: EditorOptions,
  *   titles: () => { title: string, path?: string }[],
  *   onChange: (text: string) => void, onBlur: () => void, onLink: (target: string) => void,
+ *   onUpdate?: (view: EditorView) => void,   // every update (the formatting bar greys Undo and Redo from it)
  * }} o
  */
 export function createEditor(o) {
   const preview = new Compartment(), numbers = new Compartment(), editable = new Compartment();
   /** @param {EditorOptions} opt */
-  const previewOf = opt => (opt.source ? [] : livePreview({ onLink: o.onLink }));
+  const previewOf = opt => (opt.source ? [] : livePreview({ onLink: o.onLink, tickToBottom: !!opt.tickToBottom }));
   /** @param {EditorOptions} opt */
   const numbersOf = opt => (opt.lineNumbers ? lineNumbers() : []);
   /** @param {boolean} ro */
@@ -76,17 +78,27 @@ export function createEditor(o) {
         EditorView.contentAttributes.of({ 'aria-label': o.label, 'aria-multiline': 'true', spellcheck: 'true', autocapitalize: 'sentences' }),
         EditorView.domEventHandlers({
           paste(e, v) {
+            // a lone web address: a titled link, tracking parameters off (the selected text, if any, is the title)
+            const plain = e.clipboardData?.getData('text/plain') || '';
+            const { from, to } = v.state.selection.main;
+            const md = v.state.readOnly || !/^\s*https?:\/\//i.test(plain) ? null : linkFor(plain, v.state.sliceDoc(from, to));
+            if (md) {
+              e.preventDefault();
+              v.dispatch(v.state.replaceSelection(md), { userEvent: 'input.paste', scrollIntoView: true });
+              return true;
+            }
             const html = e.clipboardData?.getData('text/html');
             if (!html || isCodeCopy(html) || v.state.readOnly) return false;
-            const md = htmlToMarkdown(html);
-            if (!md) return false;
+            const converted = htmlToMarkdown(html);
+            if (!converted) return false;
             e.preventDefault();
-            v.dispatch(v.state.replaceSelection(md), { userEvent: 'input.paste', scrollIntoView: true });
+            v.dispatch(v.state.replaceSelection(converted), { userEvent: 'input.paste', scrollIntoView: true });
             return true;
           },
           blur() { o.onBlur(); return false; },
         }),
         EditorView.updateListener.of(u => {
+          o.onUpdate?.(u.view);
           if (!u.docChanged) return;
           const text = u.state.doc.toString();
           if (text !== quiet) o.onChange(text);
