@@ -23,3 +23,14 @@ test('with no network, the app starts from the service worker and shows the save
   await expect(page.locator('#items')).toContainText(t);
   await page.context().setOffline(false);
 });
+
+// The Ionic trial page (ionic/) sits under the classic page's service worker: the worker answers it with its own page,
+// not the classic one (a page the worker doesn't know gets the classic page, whose files then miss under ionic/: blank)
+test('with the worker in charge, the Ionic page opens as itself', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member', { path: '/app/?emulator&sw' });
+  await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 30_000 }).toBe(true);
+  await page.goto('/app/ionic/?emulator');
+  await expect(page).toHaveTitle('Notes (Ionic)');
+  await expect(page.locator('ion-app')).toBeAttached();
+});
