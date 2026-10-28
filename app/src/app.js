@@ -4,6 +4,7 @@ import { syncChip, plural, startGestures } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
 import { $, dialog } from './shell/dom.js';
 import { screenSwitch } from './shell/screen-switch.js';
+import { tabSlide } from './shell/tab-slide.js';
 import { signedOutScreen } from './screens/signed-out.js';
 import { noAccessScreen } from './screens/no-access.js';
 import { notSetUpScreen } from './screens/not-set-up.js';
@@ -20,6 +21,7 @@ const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchP
 
 // the kit's parts that need script: hold menus, sheets, select mode, large title, tab bar (the adaptive shell is the list's)
 const kit = startGestures();
+tabSlide();
 // the bar's Today / Select / New belong to the notes page: on the Folders or Settings page they leave the bar
 document.addEventListener('ui-tab', e => { $('list-view').dataset.page = /** @type {CustomEvent} */ (e).detail.page.id; });
 // for the tests: add(title, body?) -> '' or why the save was refused
