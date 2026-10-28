@@ -37,6 +37,7 @@ const SHELL = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/icon.svg',
+  'ionic/icon.svg',
   'ionic/index.html',
   'ionic/ionic.css',
   'ionic/ionic.js',
