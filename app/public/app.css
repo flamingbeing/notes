@@ -12,7 +12,7 @@ footer { margin-top: 2rem; }
 /* a note's folder on the list; its links and backlinks in the sheet (a link to no note yet is dashed) */
 #items .path { opacity: .7; font-size: .85em; }
 #edit textarea { width: 100%; box-sizing: border-box; min-height: 12rem; font: inherit; padding: .5rem; }
-#edit input { width: 100%; box-sizing: border-box; }
+#edit input:not([type=checkbox]) { width: 100%; box-sizing: border-box; }
 .links { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: .25rem .5rem; }
 .links button.missing { border-style: dashed; }
 .files { list-style: none; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
@@ -41,9 +41,9 @@ footer { margin-top: 2rem; }
 }
 #edit-form { max-width: 44rem; margin: 0 auto; }
 #edit.wide #edit-form { max-width: none; }
-.page-bar { position: sticky; top: 0; z-index: 1; background: var(--editor-bg); flex-wrap: wrap; gap: .25rem .5rem; padding: .5rem 0; align-items: center; }
+.page-bar { position: sticky; top: 0; z-index: 1; background: var(--editor-bg); flex-wrap: wrap; gap: .25rem; padding: .5rem 0; align-items: center; }
 .page-bar .grow { flex: 1; }
-#edit .title-box { font-family: var(--font-head); font-size: 1.4rem; font-weight: 700; border-color: transparent; background: transparent; padding-inline: 0; margin-bottom: .5rem; }
+#edit .title-box { font-family: var(--font-head); font-size: 1.75rem; letter-spacing: -.01em; font-weight: 700; border-color: transparent; background: transparent; padding-inline: 0; margin-bottom: .5rem; }
 #edit details { margin: 1rem 0; }
 #edit summary { cursor: pointer; padding: .35rem 0; }
 .edit-tools { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .5rem; }
@@ -57,43 +57,46 @@ footer { margin-top: 2rem; }
   #edit.with-fmt { padding-bottom: 5rem; }
 }
 .fmt-bar button { min-width: 2.25rem; }
-#edit-cm .cm-editor { border: var(--border) solid var(--line); border-radius: var(--radius-s); background: var(--editor-bg); min-height: 12rem; }
-#edit-cm .cm-editor.cm-focused { outline: 2px solid var(--focus); outline-offset: 1px; }
-#edit-cm .cm-scroller { font: inherit; line-height: var(--leading); max-height: 60vh; }
-#edit-cm .cm-content { padding: .5rem; caret-color: var(--accent); }
+/* unboxed, like the read view: the page is the editor (focus shows as the caret) */
+#edit-cm .cm-editor { background: transparent; min-height: 50vh; }
+#edit-cm .cm-editor.cm-focused { outline: none; }
+#edit-cm .cm-scroller { font: inherit; line-height: 1.65; }
+#edit-cm .cm-content { padding: .5rem 0; caret-color: var(--accent); }
 #edit-cm .cm-cursor { border-inline-start-color: var(--accent); }
 #edit-cm .cm-selectionBackground, #edit-cm .cm-focused .cm-selectionBackground { background: var(--selection); }
 #edit-cm .cm-placeholder { color: var(--muted); }
 #edit-cm .cm-gutters { background: var(--surface); color: var(--muted); border-inline-end: 1px solid var(--line); }
 #edit-cm .cm-h { font-family: var(--font-head); font-weight: 700; }
-#edit-cm .cm-h1 { font-size: 1.5em; } #edit-cm .cm-h2 { font-size: 1.3em; } #edit-cm .cm-h3 { font-size: 1.15em; }
+#edit-cm .cm-h1 { font-size: 1.75em; } #edit-cm .cm-h2 { font-size: 1.4em; } #edit-cm .cm-h3 { font-size: 1.2em; }
 #edit-cm .cm-strong { font-weight: 700; }
 #edit-cm .cm-em { font-style: italic; }
 #edit-cm .cm-strike { text-decoration: line-through; }
 #edit-cm .cm-code, #edit-cm .cm-codeblock { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
-#edit-cm .cm-codeblock { background: var(--fill); }
+#edit-cm .cm-code, #edit-cm .cm-codeblock { background: color-mix(in srgb, var(--text) 7%, transparent); }
+#edit-cm .cm-code { border-radius: 4px; padding: .1em .3em; }
+#edit-cm .cm-codeblock .cm-code { background: none; padding: 0; }
 #edit-cm .cm-link, #edit-cm .cm-wikilink { color: var(--link); }
 #edit-cm .cm-wikilink { text-decoration: underline; cursor: pointer; }
 #edit-cm .cm-tag { color: var(--link); }
 #edit-cm .cm-meta { color: var(--muted); }
-#edit-cm .cm-quote { border-inline-start: 3px solid var(--line); padding-inline-start: .75rem; color: var(--muted); }
+#edit-cm .cm-quote { border-inline-start: 3px solid var(--accent); padding-inline-start: .75rem; color: var(--muted); }
 #edit-cm .cm-hr { border-bottom: 1px solid var(--line); }
 #edit-cm .cm-task { margin: 0 .35rem 0 0; vertical-align: middle; width: auto; }
 #edit-cm .cm-tooltip { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-s); }
 #edit-cm .cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--accent); color: var(--on-accent); }
 #edit-cm .cm-completionDetail { color: inherit; opacity: .75; font-style: normal; margin-inline-start: .5rem; }
 
-/* the read view (marked + DOMPurify) */
-.read-view { border: 1px solid var(--line); border-radius: var(--radius-s); padding: .25rem .75rem; min-height: 6rem; overflow-wrap: anywhere; }
-.read-view img { max-width: 100%; }
-.read-view pre { overflow-x: auto; background: var(--fill); padding: .5rem; border-radius: var(--radius-s); }
-.read-view blockquote { border-inline-start: 3px solid var(--line); margin-inline: 0; padding-inline-start: .75rem; color: var(--muted); }
+/* the read view (marked + DOMPurify); typography from app-ui prose.css (.ui-prose) */
+.read-view { min-height: 6rem; padding: .25rem 0; overflow-wrap: anywhere; }
 
 /* the quick switcher and command palette */
 .picker { padding: .75rem; }
 #picker-list { list-style: none; padding: 0; margin: .5rem 0 0; max-height: 50vh; overflow-y: auto; }
-#picker-list li { padding: .5rem; border-radius: var(--radius-s); cursor: pointer; }
-#picker-list li[aria-selected=true] { background: var(--accent); color: var(--on-accent); }
+#picker-list li { padding: .5rem .6rem; border-radius: var(--radius-s); cursor: pointer; }
+#picker-list li[aria-selected=true] { background: color-mix(in srgb, var(--accent) 16%, transparent); box-shadow: inset 3px 0 0 var(--accent); }
+#picker-list mark { background: none; color: var(--accent); font-weight: 700; }
+.picker-keys { display: flex; flex-wrap: wrap; gap: .25rem 1rem; margin: .5rem 0 0; color: var(--muted); }
+.picker-keys kbd { font: inherit; font-size: .85em; padding: 0 .35em; border: 1px solid var(--line); border-radius: 4px; }
 #picker-list .path { opacity: .75; font-size: .85em; }
 #settings-body h3 { font-size: 1rem; margin: 1rem 0 .25rem; }
 /* shared spaces: the switcher, and the people in the members sheet */

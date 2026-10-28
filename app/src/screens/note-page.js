@@ -193,6 +193,13 @@ export function notePage(app, toast, canWrite, onShow) {
     fmtShow();
   };
   $('edit-mode').addEventListener('click', () => { setReading(!reading); if (!reading) ed?.focus(); });
+  // Ctrl/Cmd+E flips between editing and the read view (Obsidian's key), while the page is open
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'e') return;
+    if (!sheet.open || $('edit-mode').hidden || document.querySelector('dialog:modal:not(#edit)')) return;
+    e.preventDefault();
+    $('edit-mode').click();
+  });
 
   // Attachments. The list under the text; the file itself opens in a new tab (a picture) or downloads (the Worker says so)
   /** @param {string} target a reference as written */
@@ -335,6 +342,17 @@ export function notePage(app, toast, canWrite, onShow) {
     else clearTimeout(timer);
     // (a new note's save takes a moment: another note may have opened meanwhile)
     if (shown === turn) editing = null;
+  });
+  // a window resized across 600 px with a note open (a tablet turned, a laptop window dragged): the page reopens in
+  // the other mode (over the list, or beside it) and stays open; its close event is caught before any listener sees it
+  const wideMq = matchMedia('(min-width: 600px)');
+  let switching = 0;
+  window.addEventListener('close', e => { if (e.target === sheet && switching) { switching--; e.stopImmediatePropagation(); } }, true);
+  wideMq.addEventListener('change', () => {
+    if (!sheet.open || sheet.matches(':modal') !== wideMq.matches) return;
+    switching++;
+    sheet.close();
+    if (wideMq.matches) sheet.show(); else sheet.showModal();
   });
   const remove = async () => {
     if (!editing) return;

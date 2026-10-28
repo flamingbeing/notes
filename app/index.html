@@ -14,10 +14,10 @@
     "@core/auth": "https://core.anawj.com/sync/1.5.0/auth.js",
     "@core/sync": "https://core.anawj.com/sync/1.5.0/sync.js",
     "@core/update": "https://core.anawj.com/sync/1.5.0/update.js",
-    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.16/ui/index.js",
-    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.16/theme/index.js",
+    "@core/ui": "https://core.anawj.com/ui/1.0.0-rc.18/ui/index.js",
+    "@core/theme": "https://core.anawj.com/ui/1.0.0-rc.18/theme/index.js",
     "@core/files": "./files/index.js",
-    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.16/settings/index.js",
+    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.18/settings/index.js",
     "@core/search": "./search/index.js",
     "@core/backup": "./backup/index.js",
     "@core/drive": "./drive/index.js",
@@ -33,14 +33,14 @@
   }
 }
   </script>
-  <script src="https://core.anawj.com/ui/1.0.0-rc.16/theme/early.js"></script>
+  <script src="https://core.anawj.com/ui/1.0.0-rc.18/theme/early.js"></script>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/app.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/auth.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/sync.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/sync/1.5.0/update.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/index.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/index.js" data-module>
-  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.16/settings/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.18/ui/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.18/theme/index.js" data-module>
+  <link rel="modulepreload" href="https://core.anawj.com/ui/1.0.0-rc.18/settings/index.js" data-module>
   <link rel="modulepreload" href="https://core.anawj.com/update/0.2.0/register.js" data-module>
   <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-app.js" data-module>
   <link rel="modulepreload" href="./vendor/firebase/12.19.0/firebase-auth.js" data-module>
@@ -50,11 +50,12 @@
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://design.flamingbeing.com/v1/tokens.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/theme.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/ui.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/theme/glass.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/gestures.css">
-  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.16/ui/shell/shell.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/theme/theme.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/ui/ui.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/theme/glass.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/ui/prose.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/ui/gestures.css">
+  <link rel="stylesheet" href="https://core.anawj.com/ui/1.0.0-rc.18/ui/shell/shell.css">
   <link rel="stylesheet" href="app.css">
   <script type="module" src="src/app.js"></script>
 </head>
@@ -86,9 +87,9 @@
       <h2 class="ui-bar-title" aria-hidden="true">Notes</h2>
       <span class="bar-end">
         <span id="sync-chip"></span>
-        <button id="daily" type="button" hidden>Today</button>
+        <button id="daily" type="button" class="ui-icon-btn" aria-label="Today" title="Today's note" hidden><span data-icon="calendar"></span></button>
         <button id="select" type="button" data-edit-for="#items" hidden>Select</button>
-        <button id="new" type="button" class="ui-primary" hidden>New</button>
+        <button id="new" type="button" class="ui-primary ui-icon-btn" aria-label="New" title="New note" hidden><span data-icon="squarePen"></span></button>
       </span>
     </header>
 
@@ -207,16 +208,16 @@
   <dialog id="edit" class="page" aria-labelledby="edit-title">
     <form method="dialog" id="edit-form">
       <div class="row page-bar">
-        <button value="close" formnovalidate><span aria-hidden="true" data-icon="arrowLeft"></span> Close</button>
+        <button value="close" class="ui-icon-btn" aria-label="Close" title="Close" formnovalidate><span aria-hidden="true" data-icon="arrowLeft"></span></button>
         <h2 id="edit-title" class="sr-only">Note</h2>
         <span class="grow"></span>
-        <button id="edit-mode" type="button" aria-pressed="false" hidden>Read view</button>
-        <button id="edit-fmt-toggle" type="button" aria-pressed="true" aria-label="Formatting bar" title="Formatting bar" hidden>Aa</button>
+        <button id="edit-mode" type="button" class="ui-icon-btn" aria-pressed="false" aria-label="Read view" title="Read view (Ctrl+E)" aria-keyshortcuts="Control+E Meta+E" hidden><span data-icon="bookOpen"></span></button>
+        <button id="edit-fmt-toggle" type="button" aria-pressed="true" aria-label="Formatting bar" title="Formatting bar" class="ui-icon-btn" hidden><span data-icon="type"></span></button>
         <span id="edit-attach-box" hidden>
-          <button id="edit-attach" type="button">Attach…</button>
+          <button id="edit-attach" type="button" class="ui-icon-btn" aria-label="Attach…" title="Attach files"><span data-icon="paperclip"></span></button>
           <input id="edit-attach-input" type="file" multiple hidden aria-label="Files to attach">
         </span>
-        <button id="edit-save" value="save">Save</button>
+        <button id="edit-save" value="save" class="ui-icon-btn" aria-label="Save" title="Save and close"><span data-icon="check"></span></button>
       </div>
       <label for="edit-text" class="sr-only">Title</label>
       <input id="edit-text" class="title-box" maxlength="200" placeholder="Title" autocomplete="off">
@@ -225,7 +226,7 @@
         <div id="edit-fmt" hidden></div>
       </div>
       <div id="edit-cm" hidden></div>
-      <div id="edit-read" class="read-view" hidden></div>
+      <div id="edit-read" class="read-view ui-prose" hidden></div>
       <textarea id="edit-body" rows="12" spellcheck="true"></textarea>
       <p id="edit-size" class="small" role="status"></p>
       <p id="edit-live" class="small" role="status"></p>
@@ -394,6 +395,7 @@
     <input id="picker-q" type="text" role="combobox" aria-expanded="true" aria-controls="picker-list" aria-autocomplete="list" aria-labelledby="picker-title" autocomplete="off" spellcheck="false">
     <ul id="picker-list" role="listbox" aria-labelledby="picker-title"></ul>
     <p id="picker-empty" class="small" hidden>Nothing found.</p>
+    <p class="picker-keys small" aria-hidden="true"><span><kbd>Up</kbd> <kbd>Down</kbd> move</span> <span><kbd>Enter</kbd> open</span> <span><kbd>Esc</kbd> close</span></p>
   </dialog>
 </body>
 </html>
