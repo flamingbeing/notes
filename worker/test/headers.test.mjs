@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { csp, securityHeaders, KIT, IMPORT_MAP } from '../headers.js';
+import { csp, securityHeaders, KIT, IMPORT_MAP, IONIC_MAP } from '../headers.js';
 
 const parse = s => Object.fromEntries(s.split('; ').map(d => { const [k, ...v] = d.split(' '); return [k, v]; }));
 
@@ -47,6 +47,17 @@ test('CSP: the page\'s one import map is allowed by its hash (change the map, an
   assert.equal(maps.length, 1);
   assert.equal(IMPORT_MAP, `'sha256-${crypto.createHash('sha256').update(maps[0][1]).digest('base64')}'`);
   assert.ok(parse(csp())['script-src'].includes(IMPORT_MAP));
+});
+
+test('CSP: the Ionic trial page\'s import map is allowed by its hash', () => {
+  const html = fs.readFileSync(new URL('../../app/ionic/index.html', import.meta.url), 'utf8');
+  const maps = [...html.matchAll(/<script type="importmap">([\s\S]*?)<\/script>/g)];
+  assert.equal(maps.length, 1);
+  assert.equal(IONIC_MAP, `'sha256-${crypto.createHash('sha256').update(maps[0][1]).digest('base64')}'`);
+  assert.ok(parse(csp({ ionic: true }))['script-src'].includes(IONIC_MAP));
+  // the classic page's policy allows none of the trial's extras
+  assert.ok(!parse(csp())['script-src'].includes(IONIC_MAP));
+  assert.ok(!parse(csp())['style-src'].includes("'unsafe-inline'"));
 });
 
 test('CSP reports go to /api/csp (report-uri, and report-to with its Reporting-Endpoints header)', () => {

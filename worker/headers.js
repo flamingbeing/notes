@@ -12,6 +12,11 @@ export const CSP_ENFORCE = false;
 // The page's import map (app/index.html), the one inline script, allowed by its hash (worker/test/headers.test.mjs
 // says the new one when the map changes).
 export const IMPORT_MAP = "'sha256-htJvLIEh6P7XwnmCH1Q0yQtxf5uosc2NehGImNR3w6I='";
+// The Ionic trial's page (app/ionic/, docs/decisions/0020-ionic-trial.md) only: its own import map, Ionic's components,
+// styles and icons from a CDN at one exact version (the path, not the whole CDN), and inline styles (Ionic's components
+// add <style> elements as they load). The classic page's policy has none of these.
+export const IONIC_MAP = "'sha256-Ko/oA2tM5bhc+z2YQW9KDWO2y9Ss2iYENI+4Jc5h6qs='";
+export const IONIC = 'https://cdn.jsdelivr.net/npm/@ionic/core@9.0.9/';
 // Shared modules (app-sync, app-update, app-ui: its scripts and style sheets) are served at exact versions from here.
 const CORE = 'https://core.anawj.com';
 // Firebase: the SDK is vendored (app/public/vendor/firebase/<ver>/, served as 'self'); Google sign-in, Firestore and
@@ -24,16 +29,17 @@ const REPORTS = '/api/csp';
 
 // local: the page is served from localhost (tests), which talks to the Firebase emulators over http.
 // framedBySelf: the sign-in helper pages, which the app's own page frames from this same address
-export function csp({ kit = KIT, project = '', local = false, framedBySelf = false } = {}) {
+// ionic: a file of the Ionic trial's page (app/ionic/)
+export function csp({ kit = KIT, project = '', local = false, framedBySelf = false, ionic = false } = {}) {
   const emulators = local ? ['http://127.0.0.1:*', 'http://localhost:*', 'ws://127.0.0.1:*'] : [];
   const frames = ["'self'", 'https://accounts.google.com', ...(project ? [`https://${project}.firebaseapp.com`] : []), ...emulators.filter(e => e.startsWith('http:'))];   // (WebKit frames the auth emulator)
   const d = {
     'default-src': ["'self'"],
-    'script-src': ["'self'", IMPORT_MAP, CORE, GOOGLE_API, kit],
-    'style-src': ["'self'", CORE, kit, FONTS_CSS],
+    'script-src': ["'self'", IMPORT_MAP, CORE, GOOGLE_API, kit, ...(ionic ? [IONIC_MAP, IONIC] : [])],
+    'style-src': ["'self'", CORE, kit, FONTS_CSS, ...(ionic ? [IONIC, "'unsafe-inline'"] : [])],
     'font-src': ["'self'", kit, FONTS],
     'img-src': ["'self'", 'data:', 'blob:', kit, 'https://lh3.googleusercontent.com', 'https://www.google.com'],   // (the SDK's connectivity ping)
-    'connect-src': ["'self'", CORE, kit, FONTS_CSS, FONTS, 'https://*.googleapis.com', GOOGLE_API, ...emulators],
+    'connect-src': ["'self'", CORE, kit, FONTS_CSS, FONTS, 'https://*.googleapis.com', GOOGLE_API, ...(ionic ? [IONIC] : []), ...emulators],
     'frame-src': frames,
     'worker-src': ["'self'"],
     'manifest-src': ["'self'"],
@@ -51,10 +57,10 @@ export function csp({ kit = KIT, project = '', local = false, framedBySelf = fal
 // helper: Firebase's sign-in helper pages (/__/auth/, /__/firebase/), passed on from firebaseapp.com. They are
 // Firebase's code, with their own inline script, and Firebase sends no policy for them: the app's policy would block
 // that script once enforced, so they get only the framing rule (and no opener policy).
-export function securityHeaders({ kit = KIT, project = '', local = false, enforce = CSP_ENFORCE, framedBySelf = false, helper = false } = {}) {
+export function securityHeaders({ kit = KIT, project = '', local = false, enforce = CSP_ENFORCE, framedBySelf = false, helper = false, ionic = false } = {}) {
   return [
     ...(helper ? [['Content-Security-Policy', `frame-ancestors ${framedBySelf ? "'self'" : "'none'"}`]]
-      : [[enforce ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only', csp({ kit, project, local, framedBySelf })],
+      : [[enforce ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only', csp({ kit, project, local, framedBySelf, ionic })],
         ['Reporting-Endpoints', `csp="${REPORTS}"`]]),
     ...(local ? [] : [['Strict-Transport-Security', 'max-age=31536000; includeSubDomains']]),
     ['X-Content-Type-Options', 'nosniff'],

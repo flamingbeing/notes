@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" mode="md">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Notes (Ionic)</title>
+  <!-- The Ionic trial (docs/decisions/0020-ionic-trial.md): the same app, data and sign-in as the page one folder up, with
+       its screens built on Ionic's web components (@ionic/core from a CDN at an exact version, no framework, no build).
+       The import map is the main page's, with each local path one folder up. -->
+  <script type="importmap">
+{
+  "imports": {
+    "@core/app": "https://core.anawj.com/sync/1.5.0/app.js",
+    "@core/auth": "https://core.anawj.com/sync/1.5.0/auth.js",
+    "@core/sync": "https://core.anawj.com/sync/1.5.0/sync.js",
+    "@core/update": "https://core.anawj.com/sync/1.5.0/update.js",
+    "@core/files": "../files/index.js",
+    "@core/settings": "https://core.anawj.com/ui/1.0.0-rc.30/settings/index.js",
+    "@core/search": "../search/index.js",
+    "@core/drive": "../drive/index.js",
+    "app-update/register.js": "https://core.anawj.com/update/0.2.0/register.js",
+    "firebase/app": "../vendor/firebase/12.19.0/firebase-app.js",
+    "firebase/auth": "../vendor/firebase/12.19.0/firebase-auth.js",
+    "firebase/firestore": "../vendor/firebase/12.19.0/firebase-firestore.js",
+    "@vendor/codemirror": "../vendor/codemirror/6.43.15/codemirror.js",
+    "marked": "../vendor/marked/18.1.1/marked.esm.js",
+    "dompurify": "../vendor/dompurify/3.4.17/purify.es.js"
+  }
+}
+  </script>
+  <script type="module" src="setup.js"></script>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core@9.0.9/dist/ionic/ionic.esm.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@9.0.9/css/ionic.bundle.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core@9.0.9/css/palettes/dark.class.css">
+  <link rel="stylesheet" href="ionic.css">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icons/icon.svg" type="image/svg+xml">
+  <script type="module" src="ionic.js"></script>
+</head>
+<body>
+  <ion-app>
+    <div class="ion-page" id="gate">
+      <ion-content class="ion-padding">
+        <div class="gate">
+          <img src="../icons/icon.svg" alt="" width="72" height="72">
+          <h1>Notes</h1>
+          <section id="signed-out" hidden>
+            <p>Sign in to see your notes.</p>
+            <ion-button id="sign-in" expand="block">Sign in with Google</ion-button>
+            <p id="sign-in-error" class="error" role="alert"></p>
+            <p class="small">Signing out keeps this phone’s copy and unsent changes for the next sign-in. To clear them:</p>
+            <ion-button id="forget" fill="clear" color="danger">Forget this device</ion-button>
+            <ion-button id="forget-force" fill="clear" color="danger" hidden>Forget anyway, losing the unsent changes</ion-button>
+            <p id="forget-msg" role="status"></p>
+          </section>
+          <section id="no-access" hidden>
+            <p>This account has no access yet. Ask an admin to add it.</p>
+            <p class="small">Account id: <code id="uid"></code></p>
+          </section>
+          <section id="not-set-up" hidden>
+            <p>This app isn’t connected to its Firebase project yet.</p>
+          </section>
+          <p id="sign-out-msg" class="small" role="status"></p>
+          <p class="small"><a href="../">Classic version</a></p>
+        </div>
+      </ion-content>
+    </div>
+
+    <ion-split-pane id="list-view" content-id="nav" when="lg" hidden>
+      <ion-menu content-id="nav" id="menu" type="overlay">
+        <ion-header><ion-toolbar><ion-title>Notes</ion-title></ion-toolbar></ion-header>
+        <ion-content>
+          <ion-list id="menu-list">
+            <ion-menu-toggle auto-hide="false">
+              <ion-item button detail="false" data-filter=""><ion-icon slot="start" name="document-text-outline"></ion-icon><ion-label>All notes</ion-label><ion-note slot="end" id="count-all"></ion-note></ion-item>
+              <ion-item button detail="false" id="menu-daily"><ion-icon slot="start" name="calendar-outline"></ion-icon><ion-label>Today’s note</ion-label></ion-item>
+            </ion-menu-toggle>
+          </ion-list>
+          <ion-list id="menu-folders" hidden><ion-list-header>Folders</ion-list-header></ion-list>
+          <ion-list id="menu-tags" hidden><ion-list-header>Tags</ion-list-header></ion-list>
+          <ion-list id="menu-spaces"><ion-list-header>Spaces</ion-list-header></ion-list>
+          <ion-list>
+            <ion-menu-toggle auto-hide="false">
+              <ion-item button detail="false" id="open-settings"><ion-icon slot="start" name="settings-outline"></ion-icon><ion-label>Settings</ion-label></ion-item>
+              <ion-item href="../" detail="false"><ion-icon slot="start" name="swap-horizontal-outline"></ion-icon><ion-label>Classic version</ion-label></ion-item>
+            </ion-menu-toggle>
+          </ion-list>
+        </ion-content>
+      </ion-menu>
+      <ion-nav id="nav"></ion-nav>
+    </ion-split-pane>
+  </ion-app>
+</body>
+</html>
