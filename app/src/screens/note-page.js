@@ -16,7 +16,7 @@
 // text gets `![[name]]` at the cursor. The read view shows them (images inline). Remove drops the file, not the text.
 // A [[Space/Note]] link to a note in another space the person is in opens that space, then the note; "Move" sends the
 // note to another space they can write (or their own notes).
-import { confirmModal } from '@core/ui';
+import { confirmModal, hoverCard } from '@core/ui';
 import { TOO_BIG } from '../cloud.js';
 import { linksIn } from '../notes/parse.js';
 import { sizeOf } from '../notes/model.js';
@@ -295,8 +295,17 @@ export function notePage(app, toast, canWrite, onShow) {
   let bar = null;
   const load = () => (loading ??= (async () => {
     try {
-      const [{ createEditor }, { readView }, { fmtBar }] = await Promise.all([import('../editor/index.js'), import('../editor/read-view.js'), import('../editor/fmt-bar.js')]);
+      const [{ createEditor }, { readView, toHtml }, { fmtBar }] = await Promise.all([import('../editor/index.js'), import('../editor/read-view.js'), import('../editor/fmt-bar.js')]);
       reader = readView($('edit-read'), t => void go(t), { resolve: t => app.resolveAttachment(t), url: a => app.attachmentUrl(a), open: t => void openFile(t) });
+      // rest the mouse on a [[link]] (read view or editor) for a preview of that note, as in Obsidian
+      hoverCard(sheet, 'a.wikilink[data-note], .cm-wikilink[data-note]', a => {
+        const n = app.find(a.dataset.note || '');
+        if (!n) return null;
+        const head = document.createElement('h3'); head.textContent = n.title;
+        const body = document.createElement('div'); body.innerHTML = toHtml(String(n.body || '').slice(0, 1500));
+        const card = document.createElement('div'); card.className = 'ui-prose link-card'; card.append(head, body);
+        return card;
+      });
       ed = createEditor({
         parent: $('edit-cm'), text: area().value, label: 'Text', readOnly: !canWrite(), options: options(),
         titles: () => app.notes().filter(n => n.id !== editing?.id).map(n => ({ title: n.title, path: n.path })),

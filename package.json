@@ -20,7 +20,7 @@
     "@lezer/markdown": "1.8.1",
     "@playwright/test": "1.56.1",
     "app-sync": "github:flamingbeing/app-sync#v1.5.0",
-    "app-ui": "github:flamingbeing/app-ui#v1.0.0-rc.18",
+    "app-ui": "github:flamingbeing/app-ui#v1.0.0-rc.20",
     "axe-core": "4.14.0",
     "dompurify": "3.4.17",
     "fflate": "0.8.2",
