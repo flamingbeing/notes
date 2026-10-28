@@ -78,3 +78,13 @@ test('the Settings sheet passes axe', async ({ phone }) => {
   await open(a);
   expect(await AxeBuilder(a)).toEqual([]);
 });
+
+test('the toggles in Settings stay switch-sized, not stretched like text boxes', async ({ phone }) => {
+  const a = await phone();
+  await signIn(a, 'member');
+  await a.evaluate(() => /** @type {HTMLElement} */ (document.getElementById('open-settings')).click());
+  const sw = a.locator('#settings-body .ui-switch').first();
+  await expect(sw).toBeVisible();
+  const w = await sw.evaluate(el => el.getBoundingClientRect().width / parseFloat(getComputedStyle(document.documentElement).fontSize));
+  expect(w).toBeLessThan(4);
+});

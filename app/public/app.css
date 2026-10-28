@@ -3,7 +3,7 @@
 .bar h1 { margin-inline-end: auto; }
 h1 { font-size: 1.4rem; }
 button.icon { min-width: 2.75rem; font-size: 1.2rem; line-height: 1; }
-input { padding: .5rem; flex: 1; min-width: 10rem; }
+input:not([type=checkbox]):not([type=radio]) { padding: .5rem; flex: 1; min-width: 10rem; }
 footer { margin-top: 2rem; }
 
 /* a note changed (here or on another device) since the list last showed */
@@ -118,3 +118,4 @@ footer { margin-top: 2rem; }
 
 /* a phone's Folders and Settings pages have no list to add to or select */
 #list-view[data-page]:not([data-page=home]) .bar-end > button { display: none; }
+@media (max-width: 599px) { .toasts { bottom: calc(5rem + env(safe-area-inset-bottom, 0px)); } }
