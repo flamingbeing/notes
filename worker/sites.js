@@ -58,6 +58,8 @@ export default {
     res = new Response(res.body, res);
     // service workers must always be checked fresh, or phones keep an old app for a day
     if (/(^|\/)sw\.js$/.test(file)) res.headers.set('Cache-Control', 'no-cache');
+    // the Ionic trial's page has its own policy (headers.js)
+    if (/^app\/ionic\//.test(file)) return withHeaders(res, { project, local, ionic: true });
     return finish(res);
   },
 };

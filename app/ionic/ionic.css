@@ -1,0 +1,100 @@
+/* The Ionic trial's look: Ionic's own parts, coloured with the main page's default look (its accent, page, surface, text,
+   muted and line colours, light and dark), so a side-by-side shows behaviour, not a different palette. */
+:root {
+  --accent: #7c5cd6; --bg: #ffffff; --surface: #f6f6f6; --text: #1d1d1f; --muted: #5f6368; --line: #8a8a91;
+  --link: #7756d4; --danger: #b3261e; --on-accent: #ffffff; --selection: color-mix(in srgb, var(--accent) 25%, transparent);
+
+  --ion-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --ion-color-primary: #7c5cd6; --ion-color-primary-rgb: 124, 92, 214; --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255; --ion-color-primary-shade: #6d51bc; --ion-color-primary-tint: #8970da;
+  --ion-color-danger: #b3261e; --ion-color-danger-rgb: 179, 38, 30; --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255; --ion-color-danger-shade: #9e211a; --ion-color-danger-tint: #bb3c35;
+  --ion-color-success: #197934; --ion-color-success-rgb: 25, 121, 52; --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255; --ion-color-success-shade: #166a2e; --ion-color-success-tint: #308648;
+  --ion-color-medium: #5f6368; --ion-color-medium-rgb: 95, 99, 104; --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255; --ion-color-medium-shade: #54575c; --ion-color-medium-tint: #6f7377;
+  --ion-background-color: #ffffff; --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #1d1d1f; --ion-text-color-rgb: 29, 29, 31;
+  --ion-toolbar-background: #f6f6f6; --ion-item-background: #ffffff; --ion-tab-bar-background: #f6f6f6;
+  --ion-border-color: color-mix(in srgb, #8a8a91 22%, transparent);
+}
+html.ion-palette-dark, html.ion-palette-dark.md {
+  --accent: #c1b2ec; --bg: #1e1e1e; --surface: #262626; --text: #f2f2f7; --muted: #b8bcc4; --line: #8e8e93;
+  --link: #c1b2ec; --danger: #ff8a80; --on-accent: #111113;
+
+  --ion-color-primary: #c1b2ec; --ion-color-primary-rgb: 193, 178, 236; --ion-color-primary-contrast: #111113;
+  --ion-color-primary-contrast-rgb: 17, 17, 19; --ion-color-primary-shade: #aa9dd0; --ion-color-primary-tint: #c7baee;
+  --ion-color-danger: #ff8a80; --ion-color-danger-rgb: 255, 138, 128; --ion-color-danger-contrast: #111113;
+  --ion-color-danger-contrast-rgb: 17, 17, 19; --ion-color-danger-shade: #e07970; --ion-color-danger-tint: #ff968d;
+  --ion-color-success: #74dd90; --ion-color-success-rgb: 116, 221, 144; --ion-color-success-contrast: #111113;
+  --ion-color-success-contrast-rgb: 17, 17, 19; --ion-color-success-shade: #66c27f; --ion-color-success-tint: #82e09b;
+  --ion-color-medium: #b8bcc4; --ion-color-medium-rgb: 184, 188, 196; --ion-color-medium-contrast: #111113;
+  --ion-color-medium-contrast-rgb: 17, 17, 19; --ion-color-medium-shade: #a2a5ac; --ion-color-medium-tint: #bfc3ca;
+  --ion-background-color: #1e1e1e; --ion-background-color-rgb: 30, 30, 30;
+  --ion-text-color: #f2f2f7; --ion-text-color-rgb: 242, 242, 247;
+  --ion-toolbar-background: #262626; --ion-item-background: #1e1e1e; --ion-tab-bar-background: #262626;
+  --ion-card-background: #262626; --ion-border-color: color-mix(in srgb, #8e8e93 22%, transparent);
+}
+body { background: var(--ion-background-color); }
+
+/* the gate (signed out, no access, not set up) */
+.gate { max-width: 26rem; margin: 12vh auto 0; text-align: center; }
+.gate h1 { margin: .5rem 0 1rem; }
+.small { font-size: .875rem; color: var(--muted); }
+.error { color: var(--danger); }
+[hidden] { display: none !important; }
+
+/* the list */
+#items ion-label p.preview { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; }
+#items ion-label p.path { font-size: .8em; }
+#items.big ion-item { --min-height: 64px; font-size: 1.1rem; }
+.sync { font-size: .8rem; color: var(--muted); padding-inline: .5rem; white-space: nowrap; }
+#search-msg:empty { display: none; }
+#items { padding-bottom: 88px; }   /* room for the + button over the last row */
+.empty { text-align: center; color: var(--muted); padding: 3rem 1rem; }
+.filter-chip { margin: .25rem 1rem; }
+
+/* the note page */
+.note-title { font-size: 1.5rem; font-weight: 700; --padding-start: 0; }
+.note-body { max-width: 44rem; margin: 0 auto; }
+.wide .note-body { max-width: none; }
+.note-text { width: 100%; min-height: 50vh; border: 0; background: transparent; color: inherit; font: inherit; line-height: 1.65; resize: none; outline: none; }
+.read-view { overflow-wrap: anywhere; line-height: 1.6; }
+.read-view img { max-width: 100%; height: auto; }
+.read-view a { color: var(--link); }
+.note-status { margin: 0; }
+.note-status:empty { display: none; }
+
+/* the editor (CodeMirror), coloured from the same variables as the main page's */
+.cm-host .cm-editor { background: transparent; min-height: 50vh; }
+.cm-host .cm-editor.cm-focused { outline: none; }
+.cm-host .cm-editor .cm-scroller { font: inherit; line-height: 1.65; }   /* (beats CodeMirror's own monospace) */
+.cm-host .cm-content { padding: .5rem 0; caret-color: var(--accent); }
+.cm-host .cm-cursor { border-inline-start-color: var(--accent); }
+.cm-host .cm-selectionBackground, .cm-host .cm-focused .cm-selectionBackground { background: var(--selection); }
+.cm-host .cm-placeholder { color: var(--muted); }
+.cm-host .cm-gutters { background: var(--surface); color: var(--muted); border-inline-end: 1px solid var(--line); }
+.cm-host .cm-h { font-weight: 700; }
+.cm-host .cm-h1 { font-size: 1.75em; } .cm-host .cm-h2 { font-size: 1.4em; } .cm-host .cm-h3 { font-size: 1.2em; }
+.cm-host .cm-strong { font-weight: 700; }
+.cm-host .cm-em { font-style: italic; }
+.cm-host .cm-strike { text-decoration: line-through; }
+.cm-host .cm-code, .cm-host .cm-codeblock { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; background: color-mix(in srgb, var(--text) 7%, transparent); }
+.cm-host .cm-code { border-radius: 4px; padding: .1em .3em; }
+.cm-host .cm-codeblock .cm-code { background: none; padding: 0; }
+.cm-host .cm-link, .cm-host .cm-wikilink, .cm-host .cm-tag { color: var(--link); }
+.cm-host .cm-wikilink { text-decoration: underline; cursor: pointer; }
+.cm-host .cm-meta { color: var(--muted); }
+.cm-host .cm-quote { border-inline-start: 3px solid var(--accent); padding-inline-start: .75rem; color: var(--muted); }
+.cm-host .cm-hr { border-bottom: 1px solid var(--line); }
+.cm-host .cm-task { margin: 0 .35rem 0 0; vertical-align: middle; width: auto; accent-color: var(--accent); }
+.read-view input[type=checkbox] { accent-color: var(--accent); }
+.cm-host .cm-tooltip { background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 8px; }
+.cm-host .cm-tooltip-autocomplete > ul > li[aria-selected] { background: var(--accent); color: var(--on-accent); }
+
+/* sheets */
+ion-modal.sheet { --border-radius: 16px; }
+.sheet-links ion-chip { margin: 2px; }
+
+/* the menu's folders, indented by depth */
+.depth-1 { padding-inline-start: 12px; } .depth-2 { padding-inline-start: 24px; } .depth-3 { padding-inline-start: 36px; } .depth-4 { padding-inline-start: 48px; }
