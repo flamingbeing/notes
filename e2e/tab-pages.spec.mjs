@@ -46,7 +46,7 @@ test('a tapped tab slides its page in from its side; Reduce Motion switches with
   const left = await slide('tab-notes', '#home');          // and back to the left
   expect(left[0]).toMatch(/^translateX\(-1\d\dpx\)$/);
   await page.waitForTimeout(400);
-  expect(await page.locator('.ui-screens').evaluate(e => e.classList.contains('is-tab-sliding'))).toBe(false);
+  expect(await page.locator('.ui-screens').evaluate(e => e.classList.contains('is-sliding'))).toBe(false);
 
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await slide('drawer-open', '#folders')).toEqual([]);

@@ -10,7 +10,7 @@
 :root[data-density="comfortable"] [data-dense="extra"] { --row: 44px; --tap: 44px; --tap-s: 36px; --gap: .375rem; --pad: .75rem;
   font-size: 1rem; line-height: var(--leading); }
 [data-dense="extra"] :is(h2, h3) { margin-block: var(--gap); font-size: 1em; }
-[data-dense="extra"] :is(small, .small) { font-size: max(12px, .85em); }
+[data-dense="extra"] :is(small, .ui-small, .small) { font-size: max(12px, .85em); }
 
 /* ---------- grid: equal tiles that wrap; data-cols fixes the count (2, 3, 4 or 6) ---------- */
 .ui-grid { display: grid; gap: var(--gap); grid-template-columns: repeat(auto-fill, minmax(min(var(--grid-min, 9rem), 100%), 1fr)); }
