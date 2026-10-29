@@ -230,6 +230,8 @@ export function listScreen(app, kit) {
     const noSelect = !on('bulkEdit') || !canWrite;
     for (const b of twice('select')) b.hidden = noSelect;
     if (noSelect) select()?.setEditing(false);
+    // a finger's hold starts select mode (the kit's data-hold-select); a right-click still opens the menu
+    items.toggleAttribute('data-hold-select', !noSelect);
     menu();
   };
   // the hold menu (right-click on a computer): what a row can do now
