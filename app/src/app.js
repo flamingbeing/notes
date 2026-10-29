@@ -1,6 +1,6 @@
 // The page's shell: the kit's gestures, sync chip, Settings (with the account), and the screen switch. The
 // screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
-import { syncChip, plural, startGestures, holdMenus } from '@core/ui';
+import { syncChip, syncButton, plural, startGestures, holdMenus } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
 import { fillIcons } from './icons.js';
 import { $, dialog } from './shell/dom.js';
@@ -9,7 +9,6 @@ import { saveSnap, dropSnap, takeOver } from './shell/snap.js';
 import { signedOutScreen } from './screens/signed-out.js';
 import { noAccessScreen } from './screens/no-access.js';
 import { notSetUpScreen } from './screens/not-set-up.js';
-import { syncButton } from './sync-button.js';
 import { listScreen } from './screens/list.js';
 import { settingsSheet } from './settings/settings-sheet.js';
 import { spacesSheet } from './spaces/spaces-sheet.js';
@@ -46,7 +45,7 @@ else {
   });
   // (the chip reads only status$) in the phone's bar and, where there is no bar, at the foot of the side bar
   for (const id of ['sync-chip-w']) syncChip($(id), { sync: /** @type {any} */ ({ status$: chipStatus$ }) });
-  syncButton(/** @type {HTMLButtonElement} */ ($('sync-btn')), { status$: chipStatus$, syncNow: async () => { window.starter.syncTaps = Number(window.starter.syncTaps ?? 0) + 1; app.sync.nudge?.('wake'); await app.sync.flush(); } });
+  syncButton($('sync-btn'), { sync: /** @type {any} */ ({ status$: chipStatus$ }), syncNow: async () => { window.starter.syncTaps = Number(window.starter.syncTaps ?? 0) + 1; app.sync.nudge('wake'); await app.sync.flush(); } });
   chipStatus$(st => { window.starter.status = st.state; });
   settingsSheet(app);
   const list = listScreen(app, kit);
