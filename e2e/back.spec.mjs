@@ -1,5 +1,5 @@
 // Back with tabs (app-ui tabBack): switching tabs adds at most one history step; Back on another tab goes to the
-// first tab; Back on the first tab leaves the app.
+// first tab; Back on the first tab asks once more, then leaves the app.
 import { test, expect, signIn } from './fixtures.mjs';
 
 const tap = (page, id) => page.evaluate(i => /** @type {HTMLElement} */ (document.getElementById(i)).click(), id);
@@ -21,6 +21,10 @@ test('tabs add at most one Back step; Back goes to the first tab, then leaves', 
   await expect.poll(() => current(page)).toBe('tab-notes');
 
   const app = page.url();
+  await tap(page, 'tab-notes');   // Chrome skips the close guard until the first tap
+  await page.goBack();
+  await expect(page.getByText('Press Back again to close')).toBeVisible();
+  expect(page.url()).toBe(app);
   const left = await page.goBack();
   expect(left === null || page.url() !== app).toBe(true);
 });
