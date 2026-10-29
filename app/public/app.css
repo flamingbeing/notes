@@ -59,6 +59,10 @@ footer { margin-top: 2rem; }
 #edit-cm .cm-editor { background: transparent; min-height: 50vh; }
 #edit-cm .cm-editor.cm-focused { outline: none; }
 #edit-cm .cm-scroller { font: inherit; line-height: 1.65; }
+/* line spacing (this device; the formatting bar's last button) */
+#edit[data-spacing=tight] #edit-cm .cm-scroller, #edit[data-spacing=tight] #edit-read, #edit[data-spacing=tight] #edit-body { line-height: 1.4; }
+#edit[data-spacing=roomy] #edit-cm .cm-scroller, #edit[data-spacing=roomy] #edit-read, #edit[data-spacing=roomy] #edit-body { line-height: 1.95; }
+#edit-fmt .spacing { min-width: 4.5rem; font-size: .8rem; }
 #edit-cm .cm-content { padding: .5rem 0; caret-color: var(--accent); }
 #edit-cm .cm-cursor { border-inline-start-color: var(--accent); }
 #edit-cm .cm-selectionBackground, #edit-cm .cm-focused .cm-selectionBackground { background: var(--selection); }

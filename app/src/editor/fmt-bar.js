@@ -13,8 +13,16 @@ function replaceRange(view, a, b, text, sa = a + text.length, sb = sa) {
   view.focus();
 }
 
-/** @param {() => View | null} viewOf  the editor (null until it has loaded) @returns {HTMLElement & { refresh: (view: View) => void }} */
-export function fmtBar(viewOf) {
+const SPACINGS = ['tight', 'normal', 'roomy'];
+const SPACING_LABEL = /** @type {Record<string, string>} */ ({ tight: 'Tight', normal: 'Normal', roomy: 'Roomy' });
+
+/**
+ * @param {() => View | null} viewOf  the editor (null until it has loaded)
+ * @param {{ get: () => string, set: (v: string) => void }} [spacing]  the line spacing (this device's setting): the last
+ *   button steps Tight, Normal, Roomy
+ * @returns {HTMLElement & { refresh: (view: View) => void }}
+ */
+export function fmtBar(viewOf, spacing) {
   /** @param {View} view */
   const sel = view => {
     const { from: a, to: b } = view.state.selection.main, v = view.state.doc.toString();
@@ -82,9 +90,25 @@ export function fmtBar(viewOf) {
     btn('link', 'Link', link), btn('clipboard', 'Paste the copied address as a link', v => void pasteLink(v)),
     btn('undo', 'Undo', v => { undo(v); v.focus(); }), btn('redo', 'Redo', v => { redo(v); v.focus(); }),
   );
+  /** @type {HTMLButtonElement | null} */ let spaceBtn = null;
+  const showSpacing = () => {
+    if (!spaceBtn || !spacing) return;
+    const v = spacing.get();
+    spaceBtn.textContent = SPACING_LABEL[v] ?? 'Normal';
+    spaceBtn.setAttribute('aria-label', `Line spacing: ${SPACING_LABEL[v] ?? 'Normal'}`);
+  };
+  if (spacing) {
+    spaceBtn = document.createElement('button');
+    spaceBtn.type = 'button'; spaceBtn.className = 'small spacing'; spaceBtn.title = 'Line spacing';
+    spaceBtn.addEventListener('mousedown', e => e.preventDefault());
+    spaceBtn.addEventListener('click', () => { spacing.set(SPACINGS[(SPACINGS.indexOf(spacing.get()) + 1) % SPACINGS.length]); showSpacing(); });
+    bar.append(spaceBtn);
+    showSpacing();
+  }
   const [undoBtn, redoBtn] = /** @type {HTMLButtonElement[]} */ ([...bar.querySelectorAll('[aria-label="Undo"], [aria-label="Redo"]')]);
   /** greys Undo and Redo when there is nothing to undo or redo; called on each editor update @param {View} view */
   bar.refresh = view => {
+    showSpacing();
     undoBtn.disabled = undoDepth(view.state) === 0;
     redoBtn.disabled = redoDepth(view.state) === 0;
   };

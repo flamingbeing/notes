@@ -174,10 +174,22 @@ export function notePage(app, toast, canWrite, onShow) {
   const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
   const applyOptions = () => {
     sheet.classList.toggle('wide', !settings.get('readableWidth'));
+    sheet.dataset.spacing = String(settings.get('lineSpacing') || 'normal');
     ed?.setOptions(options());
   };
   settings.watch(null, () => { applyOptions(); fmtShow(); });
   applyOptions();
+
+  // a tap on the page's blank space (under or beside the text) puts the cursor at the end of the text, not in Details
+  sheet.addEventListener('click', e => {
+    const t = /** @type {Element} */ (e.target);
+    if (reading || !canWrite() || !t.closest || !(getSelection()?.isCollapsed ?? true)) return;
+    if (t.closest('button, a, input, textarea, select, label, details, .cm-content, .page-bar, #edit-fmt, #edit-live, .row')) return;
+    const view = ed?.view;
+    if (view) { view.focus(); view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true }); return; }
+    const a = area();
+    a.focus(); a.setSelectionRange(a.value.length, a.value.length);
+  });
 
   // read view or editing: a viewer starts in the read view
   /** @param {boolean} on */
@@ -314,7 +326,7 @@ export function notePage(app, toast, canWrite, onShow) {
         onLink: t => void go(t),
         onUpdate: v => bar?.refresh(v),
       });
-      bar = fmtBar(() => ed?.view || null);
+      bar = fmtBar(() => ed?.view || null, { get: () => String(settings.get('lineSpacing') || 'normal'), set: v => settings.set('lineSpacing', v) });
       $('edit-fmt').replaceChildren(bar);
       bar.refresh(ed.view);
       document.documentElement.dataset.editor = 'ready';
