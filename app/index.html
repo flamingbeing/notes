@@ -83,14 +83,11 @@
        opens full screen); a tablet or laptop gets the side bar, the list, and the note beside it. -->
   <div id="list-view" class="ui-shell" hidden>
     <header class="ui-bar">
-      <span data-bar-lead><button type="button" class="ui-bar-menu" aria-label="Folders and tags" aria-controls="side"><span data-icon="menu"></span></button></span>
+      <span class="ui-bar-side" data-bar-lead><button type="button" class="ui-bar-menu" aria-label="Folders and tags" aria-controls="side"><span data-icon="menu"></span></button></span>
       <h2 class="ui-bar-title" aria-hidden="true">Notes</h2>
-      <span class="bar-end">
-        <span id="sync-chip"></span>
-        <button id="daily" type="button" data-swipe-fade class="ui-icon-btn" aria-label="Today" title="Today's note" hidden><span data-icon="calendar"></span></button>
-        <button id="nextday" type="button" data-swipe-fade class="ui-icon-btn" aria-label="Next working day" title="Next working day's note" hidden><span data-icon="calendarNext"></span></button>
+      <span class="ui-bar-side ui-bar-end bar-end">
         <button id="select" type="button" data-swipe-fade class="ui-icon-btn" data-edit-for="#items" aria-label="Select" title="Select notes" hidden><span data-icon="listChecks"></span></button>
-        <button id="new" type="button" data-swipe-fade class="ui-primary ui-icon-btn" aria-label="New" title="New note" hidden><span data-icon="squarePen"></span></button>
+        <button id="sync-btn" type="button" class="ui-icon-btn" data-state="unknown" aria-label="Sync status unknown" title="Sync status unknown"><span data-icon="refreshCw"></span></button>
       </span>
     </header>
 
@@ -136,8 +133,13 @@
           <label for="space" class="sr-only">Space</label>
           <select id="space"></select>
         </div>
-        <label class="ui-search ui-phone-search"><span class="sr-only">Search</span>
-          <input id="q" type="search" autocomplete="off" placeholder="Search, tag:, path:, -word" title="A word, &quot;a phrase&quot;, -leave out, tag:work, path:folder"></label>
+        <div class="ui-phone-search phone-tools">
+          <label class="ui-search"><span class="sr-only">Search</span>
+            <input id="q" type="search" autocomplete="off" placeholder="Search, tag:, path:, -word" title="A word, &quot;a phrase&quot;, -leave out, tag:work, path:folder"></label>
+          <button id="daily" type="button" class="ui-icon-btn" aria-label="Today" title="Today's note" hidden><span data-icon="calendar"></span></button>
+          <button id="nextday" type="button" class="ui-icon-btn" aria-label="Next working day" title="Next working day's note" hidden><span data-icon="calendarNext"></span></button>
+          <button id="new" type="button" class="ui-primary ui-icon-btn" aria-label="New" title="New note" hidden><span data-icon="squarePen"></span></button>
+        </div>
         <p id="search-msg" class="small pad" role="status"></p>
         <div id="refused-list"></div>
         <p id="edit-msg" class="small pad" role="status"></p>

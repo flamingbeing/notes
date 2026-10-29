@@ -20,7 +20,7 @@ async function finger(page) {
 const settled = page => page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
 const shown = page => page.evaluate(() => [...document.querySelectorAll('.ui-screens > .ui-screen')].filter(s => !s.hidden).map(s => s.id));
 const x = (page, id) => page.evaluate(i => Math.round(/** @type {HTMLElement} */ (document.getElementById(i)).getBoundingClientRect().x), id);
-const load = async phone => { const page = await phone(); await page.setViewportSize({ width: 390, height: 840 }); await signIn(page); return page; };
+const load = async phone => { const page = await phone(); await page.setViewportSize({ width: 390, height: 840 }); await signIn(page); await settled(page); return page; };   // (settled: the sign-in's view transition covers the page, and a touch on it goes nowhere)
 
 test('mid-swipe the next page slides in beside the finger; let go past half, it lands', async ({ phone }) => {
   const page = await load(phone);
