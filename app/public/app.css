@@ -153,7 +153,7 @@ footer { margin-top: 2rem; }
 #list-view[data-page]:not([data-page=home]) .bar-end > button:not(#sync-btn) { display: none; }
 
 /* the phone's tools row: the search box shrinks, the buttons keep 44 px touch targets */
-.phone-tools { display: flex; align-items: center; gap: 2px; }
+.phone-tools { display: flex; align-items: center; gap: 2px; padding-top: var(--gap); }
 .phone-tools .ui-search { flex: 1; min-width: 0; }
 .phone-tools > button { flex: none; min-width: var(--tap); min-height: var(--tap); }
 
