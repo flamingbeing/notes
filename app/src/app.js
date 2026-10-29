@@ -63,8 +63,13 @@ else {
       ? `Signed out. ${plural(unsent, 'unsent change')} kept on this device; they send when you sign in again.`
       : 'Signed out. The list is kept on this device for your next sign-in.';
   });
+  // Back after a redirect sign-in comes to the page the sign-in left from, kept whole by the browser (the back/forward
+  // cache) and still on the sign-in screen: load it again, so it opens as it is now (the list)
+  let phase = '';
+  addEventListener('pageshow', e => { if (e.persisted && phase !== 'ready') location.reload(); });
   app.follow({
     onState(s) {
+      phase = s.phase;
       $('who').textContent = s.user ? s.user.email : '';
       for (const id of ['open-settings', 'open-settings-w']) $(id).hidden = !s.user;
       if (s.phase === 'ready') spaces.draw(s);
