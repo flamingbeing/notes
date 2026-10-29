@@ -32,12 +32,14 @@ footer { margin-top: 2rem; }
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
   box-sizing: border-box; padding: 0; overflow: hidden; overscroll-behavior: none; background: var(--editor-bg); }
-/* only the text scrolls (#edit-scroll), so an iOS bounce at either end moves the note, never the header or the format bar */
+/* only the text scrolls (#edit-scroll), so a bounce at either end (app-ui's, which moves the scroller's children) moves the
+   note, never the header or the format bar: both sit outside it (a fixed bar inside a moved part would move with it) */
 #edit-form { height: 100%; display: flex; flex-direction: column; }
 #edit-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
-.page-bar, .page-col { box-sizing: border-box; width: 100%; max-width: 44rem; margin-inline: auto; padding-inline: var(--pad); }
+.page-bar, .page-col, #edit-fmt { box-sizing: border-box; width: 100%; max-width: 44rem; margin-inline: auto; padding-inline: var(--pad); }
 .page-col { padding-bottom: 2rem; }
-#edit.wide .page-bar, #edit.wide .page-col { max-width: none; }
+#edit.wide .page-bar, #edit.wide .page-col, #edit.wide #edit-fmt { max-width: none; }
+#edit-fmt { flex: none; }
 #edit.page::backdrop { background: var(--editor-bg); }
 /* while a swipe right takes the page back, the list shows under it */
 #edit.page.swiping { box-shadow: -8px 0 24px rgb(0 0 0 / .18); }
@@ -150,7 +152,23 @@ footer { margin-top: 2rem; }
 #share-text { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
 
 /* a phone's Folders and Settings pages have no list to add to or select */
-#list-view[data-page]:not([data-page=home]) .bar-end > button { display: none; }
+#list-view[data-page]:not([data-page=home]) .bar-end > button:not(#sync-btn) { display: none; }
+
+/* the phone's tools row: the search box shrinks, the buttons keep 44 px touch targets */
+.phone-tools { display: flex; align-items: center; gap: 2px; padding-top: var(--gap); }
+.phone-tools .ui-search { flex: 1; min-width: 0; }
+.phone-tools > button { flex: none; min-width: var(--tap); min-height: var(--tap); }
+
+/* the bar's sync button: the icon says the state (spins while syncing, struck cloud offline, a dot when attention is needed) */
+#sync-btn { position: relative; min-width: var(--tap); }
+#sync-btn[data-state="synced"] { color: var(--ok); }
+#sync-btn[data-state="syncing"] { color: var(--link); }
+#sync-btn[data-state="syncing"] .ui-icon { animation: ui-spin 1.2s linear infinite; }
+#sync-btn:is([data-state="offline"], [data-state="at-risk"]) { color: var(--warn); }
+#sync-btn[data-state="attention"] { color: var(--danger); }
+#sync-btn[data-state="attention"]::after { content: ''; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+@media (prefers-reduced-motion: reduce) { #sync-btn[data-state="syncing"] .ui-icon { animation: none; } }
+:root[data-motion="still"] #sync-btn[data-state="syncing"] .ui-icon { animation: none; }
 
 /* the app's icon beside its name, and large on the signed-out screen */
 .app-mark { flex: none; border-radius: 22%; vertical-align: middle; }

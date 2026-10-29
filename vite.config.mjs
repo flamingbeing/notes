@@ -20,9 +20,8 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true,
     target: 'es2022',
-    // both pages: the classic one and the Ionic trial's (ionic/, its own import map), as the Worker serves them
     rollupOptions: {
-      input: { main: fileURLToPath(new URL('app/index.html', import.meta.url)), ionic: fileURLToPath(new URL('app/ionic/index.html', import.meta.url)) },
+      input: { main: fileURLToPath(new URL('app/index.html', import.meta.url)) },
       external: id => /^(@core\/|@vendor\/|firebase\/|app-update\/|https:\/\/|marked$|dompurify$|fflate$|xlsx$)/.test(id),
     },
   },

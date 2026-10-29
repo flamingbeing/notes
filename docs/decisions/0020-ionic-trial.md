@@ -1,6 +1,6 @@
 # 0020: Ionic trial at /ionic/
 
-Status: trial, 2026-10-29 (nothing replaced; the main page is unchanged)
+Status: retired 2026-10-29: lessons kept; behaviours being ported into the UI kit
 
 ## Decision
 
