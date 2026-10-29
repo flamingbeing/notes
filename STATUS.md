@@ -11,6 +11,12 @@
 - S4 attachments (button, paste, drop, read view), a note moves with its files, vault import (folder, zip, dry run,
   never overwrites) and zip export (decision 0012). Live smoke test on notes.flamingbeing.com: note + picture,
   export, import back, clean up, as the test user (app-devkit 1.10.3 sends the Referer the web key needs).
+- Notes polish S1 (29 Oct, app-ui 1.0.0-rc.36): swipe feel changed. A swipe on the empty space under a short page now
+  changes tab; a swipe right on a note (not from the screen's edge, mostly sideways, no text selected) takes it back to
+  the list, following the finger, saved; a finger's hold on a note starts select mode (right-click still gives the
+  menu, which had never started before); the tinted bar no longer flashes on a tab change. A tap on a note's blank
+  space types at the end; line spacing Tight/Normal/Roomy on the formatting bar; search results show the matched
+  passage, marked.
 - app-ui 1.0.0-rc.34 (29 Oct): swipe feel changed. The pages follow the finger 1:1 (also with Android's Remove
   animations, which made rc.30 switch with no slide), quick flicks all count, a finger catches a glide; a right swipe on
   Notes pulls the side bar out as a drawer with the finger (swipe left or tap the shade to close; it used to jump to
