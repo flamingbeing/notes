@@ -3,6 +3,7 @@
 // on dist/ too, so the switch stays one small PR. Everything the import map names stays external: the page still
 // loads core, Firebase (vendored) and register.js through the map, at the versions it pins.
 import { defineConfig } from 'vite';
+import { fileURLToPath } from 'node:url';
 
 // Where each local module's source is, for builds that bundle core from source (tools/vite-pieces.mjs); this build
 // keeps them external like the rest of core. `node tools/add.mjs <recipe>` writes the lines after the mark.
@@ -19,6 +20,10 @@ export default defineConfig({
     outDir: '../dist',
     emptyOutDir: true,
     target: 'es2022',
-    rollupOptions: { external: id => /^(@core\/|@vendor\/|firebase\/|app-update\/|https:\/\/|marked$|dompurify$|fflate$|xlsx$)/.test(id) },
+    // both pages: the classic one and the Ionic trial's (ionic/, its own import map), as the Worker serves them
+    rollupOptions: {
+      input: { main: fileURLToPath(new URL('app/index.html', import.meta.url)), ionic: fileURLToPath(new URL('app/ionic/index.html', import.meta.url)) },
+      external: id => /^(@core\/|@vendor\/|firebase\/|app-update\/|https:\/\/|marked$|dompurify$|fflate$|xlsx$)/.test(id),
+    },
   },
 });
