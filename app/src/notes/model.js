@@ -43,6 +43,13 @@ export function nextWorkday(d = new Date()) {
 }
 /** @param {string} iso */
 export const dailyId = iso => 'day-' + iso;
+// the note already there for a date: by its id, else any note marked for that date or titled with it (made by hand or
+// on another device), so Today opens it rather than make a second
+/** @param {Note[]} notes @param {string} iso @returns {Note | undefined} */
+export const findDaily = (notes, iso) => {
+  const live = notes.filter(n => !n._deleted);
+  return live.find(n => n.id === dailyId(iso)) || live.find(n => n.daily === iso) || live.find(n => n.title === iso);
+};
 /** @param {string} iso @param {string} [folder] @returns {Note} */
 export const dailyNote = (iso, folder = '') => withDerived({ id: dailyId(iso), title: iso, path: folder, body: '', daily: iso });
 

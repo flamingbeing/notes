@@ -39,7 +39,7 @@ import * as register from 'app-update/register.js';
 import { firebaseConfig, APP } from './config.js';
 import { emulator, configured, roleOf, needsClaims } from './shell/roles.js';
 import { OPTIONS, SETTINGS_COLL } from './settings/options.js';
-import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote } from './notes/model.js';
+import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote, findDaily } from './notes/model.js';
 import { forgetDrive } from '@core/drive';
 import { noteOf } from './bin/bin.js';
 import { renamePlan, linkIndex } from './notes/links.js';
@@ -393,7 +393,7 @@ export async function start({ canReload = null }) {
     // today's daily note (or the given date's): made if it isn't there, one id per date so two devices make one note
     /** @param {string} iso @param {string} [folder] @returns {Promise<{ note: Note, refused: string }>} */
     async daily(iso, folder = '') {
-      const have = notes.find(x => x.id === dailyNote(iso).id);
+      const have = findDaily(notes, iso);
       if (have) return { note: have, refused: '' };
       const note = dailyNote(iso, folder);
       return { note, refused: await put(note, null) };
