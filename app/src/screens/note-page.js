@@ -19,7 +19,7 @@
 import { confirmModal, hoverCard } from '@core/ui';
 import { TOO_BIG } from '../cloud.js';
 import { linksIn } from '../notes/parse.js';
-import { sizeOf } from '../notes/model.js';
+import { sizeOf, uniqueTitle } from '../notes/model.js';
 import { tidyMarkdown } from '../notes/paste-clean.js';
 import { embedFor, fullPath, isImage, pastedName } from '../notes/attach.js';
 import { $, input, dialog } from '../shell/dom.js';
@@ -73,8 +73,11 @@ export function notePage(app, toast, canWrite, onShow) {
     const note = editing;
     if (!note || !typed() || !canWrite() || (editingGone && !withTitle)) return '';
     const draft = drafts.has(note);
-    const title = (withTitle || draft ? input('edit-text').value.trim() : '') || note.title || untitled();
+    const asked = (withTitle || draft ? input('edit-text').value.trim() : '') || note.title || untitled();
     const body = area().value, path = input('edit-path').value.trim();
+    // a title another note in the folder has gets " 2"; links to the title stay with the first note
+    const title = draft || editingGone || asked !== note.title || path !== (note.path || '') ? uniqueTitle(app.notes(), asked, path, draft || editingGone ? '' : note.id) : asked;
+    if (title !== asked) { input('edit-text').value = title; toast(`Title taken here: saved as “${title}”`); }
     if (!withTitle && body === (note.body || '') && path === (note.path || '')) return '';
     let why = '';
     if (editingGone || draft) {

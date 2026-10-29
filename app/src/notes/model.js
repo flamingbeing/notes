@@ -43,6 +43,15 @@ export function nextWorkday(d = new Date()) {
 }
 /** @param {string} iso */
 export const dailyId = iso => 'day-' + iso;
+// a title no other note in the folder has: "Plan" -> "Plan 2" if "Plan" is taken (case ignored); selfId is the note
+// being titled, which doesn't count against itself
+/** @param {Note[]} notes @param {string} title @param {string} [path] @param {string} [selfId] */
+export const uniqueTitle = (notes, title, path = '', selfId = '') => {
+  const taken = new Set(notes.filter(n => !n._deleted && n.id !== selfId && (n.path || '') === path).map(n => n.title.toLowerCase()));
+  let t = title, i = 1;
+  while (taken.has(t.toLowerCase())) t = `${title} ${++i}`;
+  return t;
+};
 // the note already there for a date: by its id, else any note marked for that date or titled with it (made by hand or
 // on another device), so Today opens it rather than make a second
 /** @param {Note[]} notes @param {string} iso @returns {Note | undefined} */
