@@ -53,10 +53,10 @@ async function routeCoreRetry(context) {
 
 export const test = base.extend({
   // a new phone: its own browser context; CSP reports collected for the check after the test
-  phone: async ({ browser }, use) => {
+  phone: async ({ browser, browserName }, use) => {
     const made = [];
     await use(async () => {
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, ...(browserName === 'firefox' ? {} : { isMobile: true }) });   // (Firefox has no mobile emulation: isMobile throws)
       await context.addInitScript(() => {
         window.__csp = [];
         addEventListener('securitypolicyviolation', e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
