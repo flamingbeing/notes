@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { merge3, MINE_MARK, SPLIT_MARK, THEIRS_MARK } from '../src/notes/merge3.js';
 import { linksIn, tagsIn, linkKeys, keyOf, parts } from '../src/notes/parse.js';
-import { sizeOf, withDerived, dailyId, dailyNote, findDaily, isoDay, nextWorkday, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
+import { sizeOf, withDerived, dailyId, dailyNote, findDaily, uniqueTitle, isoDay, nextWorkday, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
 import { linkIndex, relink, renamePlan } from '../src/notes/links.js';
 
 test('merge3 (the logbook\'s tests)', () => {
@@ -168,4 +168,15 @@ test('Today opens the note there already, whoever made it', () => {
   assert.equal(findDaily([by({ id: 'y', title: 'Renamed', daily: '2026-10-29' })], '2026-10-29')?.id, 'y');
   assert.equal(findDaily([by({ id: 'x', title: '2026-10-29', _deleted: true })], '2026-10-29'), undefined);
   assert.equal(findDaily([by({ id: 'x', title: '2026-10-29' }), by({ id: 'day-2026-10-29', title: '2026-10-29' })], '2026-10-29')?.id, 'day-2026-10-29');
+});
+
+test('a title another note in the folder has gets a number', () => {
+  const by = (/** @type {object} */ o) => withDerived({ body: '', ...o });
+  const all = [by({ id: 'a', title: 'Plan' }), by({ id: 'b', title: 'Plan 2' }), by({ id: 'c', title: 'Plan', path: 'Work' }), by({ id: 'd', title: 'Gone', _deleted: true })];
+  assert.equal(uniqueTitle(all, 'Plan'), 'Plan 3');
+  assert.equal(uniqueTitle(all, 'plan', ''), 'plan 3');
+  assert.equal(uniqueTitle(all, 'Plan', 'Other'), 'Plan');
+  assert.equal(uniqueTitle(all, 'Plan', 'Work'), 'Plan 2');
+  assert.equal(uniqueTitle(all, 'Plan', 'Work', 'c'), 'Plan');
+  assert.equal(uniqueTitle(all, 'Gone'), 'Gone');
 });
