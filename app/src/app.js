@@ -72,8 +72,13 @@ else {
   // (when the page is idle, so a swipe or typing never waits on it)
   const keepSnap = () => { clearTimeout(snapTimer); snapTimer = window.setTimeout(() => (window.requestIdleCallback || setTimeout)(() => saveSnap()), 1000); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(snapTimer); saveSnap(); } });
+  // Back after a redirect sign-in comes to the page the sign-in left from, kept whole by the browser (the back/forward
+  // cache) and still on the sign-in screen: load it again, so it opens as it is now (the list)
+  let phase = '';
+  addEventListener('pageshow', e => { if (e.persisted && phase !== 'ready') location.reload(); });
   app.follow({
     onState(s) {
+      phase = s.phase;
       $('who').textContent = s.user ? s.user.email : '';
       for (const id of ['open-settings', 'open-settings-w']) $(id).hidden = !s.user;
       if (s.phase === 'ready') spaces.draw(s);
