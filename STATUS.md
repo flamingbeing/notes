@@ -2,6 +2,8 @@
 
 ## Now
 
+- Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
+  Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict
   copies, search, rules for vaults and shared spaces.
 - S2 editor: CodeMirror live preview, `[[` autocomplete, paste as Markdown, read view, quick switcher and palette,
@@ -53,6 +55,7 @@
 
 ## Decisions (dated)
 
+- 2026-10-29: Haiku tab: the pasted text is never stored; prompts are notes in `Prompts/` (0021).
 - 2026-10-28: tab swipe follows app-ui's iOS-style paging (rc.30); Notes adds no motion of its own.
 - 2026-10-29: a right swipe on the first tab opens the side bar as a drawer (the kit's `drawer` option), not Folders.
 - 2026-10-27: MCP sign-in by code from Settings (0019); the Google client is optional.

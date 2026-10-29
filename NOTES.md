@@ -39,6 +39,13 @@ Test list (what each part is proved by):
 shapes from `app/src/notes`. Overwrite/delete need `confirm: true`; delete writes the bin entry in the same commit.
 The `.mcpb` is built by `mcp/tools/build-mcpb.mjs` (workflow `notes-mcpb.yml`).
 
+## Haiku tab (decision 0021)
+
+Owner and admins only. `app/src/haiku/` (the tab; `prompts.js` is the pure part, `app/test/haiku.unit.test.mjs`),
+`worker/haiku.js` (`POST /api/haiku`, `worker/test/haiku.test.mjs`, a fake Anthropic), `e2e/haiku.spec.mjs` (the
+canned localhost reply). Prompts are notes in `Prompts/`. The pasted text is never stored anywhere: keep it that way
+(no drafts, no snapshot, no logging). Live needs the `ANTHROPIC_API_KEY` Worker secret.
+
 ## Later
 
 - Orphaned attachments (a deleted note's files stay until removed or the space is deleted); embedding another note (`![[note]]`) shows a link, not its text.

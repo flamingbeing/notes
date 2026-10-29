@@ -21,6 +21,7 @@ import { binSheet } from '../bin/bin-sheet.js';
 import { bulkSheet } from '../bulk/bulk-sheet.js';
 import { shareSheet } from '../share/share-sheet.js';
 import { feedbackSheet } from '../feedback/feedback-sheet.js';
+import { haikuTab } from '../haiku/haiku-tab.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -179,6 +180,7 @@ export function listScreen(app, kit) {
   };
   const toast = toaster($('toasts')).show;
   const page = notePage(app, toast, () => canWrite, note => markOpen(note.id));
+  const haiku = haikuTab(app, toast, note => void page.open(note));
   // a new note: its page opens empty, in the folder for new notes; the first title or text typed makes it
   const newNote = () => {
     for (const d of document.querySelectorAll('dialog[open]')) if (d.id !== 'edit') /** @type {HTMLDialogElement} */ (d).close();
@@ -311,12 +313,14 @@ export function listScreen(app, kit) {
     // writing needs an app role that writes and, in a shared space, owner or edit there
     canWrite = (s.role === 'admin' || s.role === 'member') && (s.space?.role === 'owner' || s.space?.role === 'edit');
     role = s.role;
+    haiku.allow(role === 'admin');
+    if (role !== 'admin' && kit.tabs?.current() === $('haiku')) kit.tabs.go('#home');
     modules();
     for (const b of [...twice('new'), ...twice('daily'), ...twice('nextday')]) b.hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
     if (canWrite !== could && heard) draw(all, new Set());
   });
-  const screen = { ...section, hide() { $('drawer-open').hidden = true; section.hide(); } };
+  const screen = { ...section, hide() { $('drawer-open').hidden = true; haiku.allow(false); section.hide(); } };
 
   // the searched words a row's passage marks: plain words and phrases, for the text (not a leave-out, tag: or path:)
   /** @type {{ text: string, phrase: boolean }[]} */
@@ -367,7 +371,7 @@ export function listScreen(app, kit) {
   $('edit').addEventListener('close', () => markOpen(''));
   /** @param {Note[]} notes @param {Set<string>} changed */
   const draw = (notes, changed) => {
-    all = notes; feed(notes); fillDrawer();
+    all = notes; feed(notes); fillDrawer(); haiku.fill(notes);
     const list = visible();
     terms = searched();
     const want = new Set(list.map(n => n.id));

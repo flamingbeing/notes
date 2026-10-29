@@ -6,7 +6,7 @@ const ROWS = 60;   // more than a tall screen shows
 // filled by the list: their markup is kept (the list's rows trimmed to ROWS)
 const FILLED = ['items', 'count', 'count-side', 'side-folders', 'side-tags'];
 // the page as first drawn: the notes tab, not the one open when it was kept
-const START = { home: false, folders: true, settings: true };
+const START = { home: false, folders: true, settings: true, haiku: true };
 
 /** keep what the list shows now (the list view must be showing) */
 export function saveSnap() {
