@@ -395,8 +395,6 @@ export function listScreen(app, kit) {
     /** @param {Note[]} notes @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
     draw: (notes, changed) => { heard = true; draw(notes, changed); },
     toast,
-    /** the side bar as a phone drawer a swipe pulls out (null from 600 px, where the side bar shows) */
-    drawer: () => shell.drawer,
     /** the open space's attachments changed */
     files: () => page.redrawFiles(),
   };
