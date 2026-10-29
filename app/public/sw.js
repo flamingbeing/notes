@@ -79,6 +79,7 @@ const SHELL = [
   'src/screens/note-page.js',
   'src/screens/picker.js',
   'src/screens/signed-out.js',
+  'src/screens/swipe-back.js',
   'src/settings/options.js',
   'src/settings/settings-sheet.js',
   'src/share/share-in.js',
