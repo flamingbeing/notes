@@ -25,11 +25,11 @@ test('360 px: centred title, sync button last, tools beside the search, no sidew
   }
   expect((await box('#q')).width).toBeGreaterThan(100);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-  await expect(page.locator('#sync-btn')).toHaveAttribute('aria-label', /Synced/);
-  await expect(page.locator('#sync-btn')).toHaveAttribute('title', /Synced/);
+  await expect(page.locator('#sync-btn')).toHaveAttribute('aria-label', /^Saved\. Sync now$/);
+  await expect(page.locator('#sync-btn')).toHaveAttribute('title', /^Saved\. Sync now$/);
 });
 
-test('the sync button: a tap syncs now and the icon spins; offline shows the struck cloud', async ({ phone }) => {
+test('the sync button: a tap syncs now and the icon lifts; offline shows the struck cloud', async ({ phone }) => {
   const page = await phone();
   await page.setViewportSize({ width: 360, height: 740 });
   await signIn(page, 'member');
@@ -39,14 +39,14 @@ test('the sync button: a tap syncs now and the icon spins; offline shows the str
   const before = await page.evaluate(() => Number(window.starter.syncTaps ?? 0));
   await btn.click();
   await expect(btn).toHaveAttribute('data-state', 'syncing');
-  expect(await btn.locator('.ui-icon').evaluate(e => getComputedStyle(e).animationName)).toBe('ui-spin');
+  expect(await btn.locator('.ui-icon').evaluate(e => getComputedStyle(e).animationName)).toBe('ui-sync-lift');
   await expect.poll(() => page.evaluate(() => Number(window.starter.syncTaps ?? 0))).toBe(before + 1);
   await expect(btn).toHaveAttribute('data-state', 'synced');
 
   await page.context().setOffline(true);
   await add(page, uniq('off'));
   await expect(btn).not.toHaveAttribute('data-state', 'synced');
-  await expect(btn).toHaveAttribute('aria-label', /Syncing|Offline|attention|risk/);
+  await expect(btn).toHaveAttribute('aria-label', /Sending|Offline|Needs you|Not saved/);
   await page.context().setOffline(false);
   await synced(page);
   await expect(btn).toHaveAttribute('data-state', 'synced');
