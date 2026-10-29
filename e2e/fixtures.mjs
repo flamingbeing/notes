@@ -42,7 +42,8 @@ async function routeCoreRetry(context) {
   await context.route(/^https:\/\/core\.anawj\.com\//, async route => {
     for (let i = 0; i < 3; i++) {
       let response = null;
-      try { response = await route.fetch({ timeout: 8_000 }); } catch { /* retry */ }
+      // (not zstd, which Firefox asks for: Playwright's fetch can't decode it and would hand the page the compressed bytes)
+      try { response = await route.fetch({ timeout: 8_000, headers: { ...route.request().headers(), 'accept-encoding': 'gzip, deflate, br' } }); } catch { /* retry */ }
       if (response && response.status() < 500) return route.fulfill({ response }).catch(() => {});   // closed page: nothing to serve
       await new Promise(r => setTimeout(r, 300 * (i + 1)));
     }
@@ -52,10 +53,10 @@ async function routeCoreRetry(context) {
 
 export const test = base.extend({
   // a new phone: its own browser context; CSP reports collected for the check after the test
-  phone: async ({ browser }, use) => {
+  phone: async ({ browser, browserName }, use) => {
     const made = [];
     await use(async () => {
-      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+      const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, ...(browserName === 'firefox' ? {} : { isMobile: true }) });   // (Firefox has no mobile emulation: isMobile throws)
       await context.addInitScript(() => {
         window.__csp = [];
         addEventListener('securitypolicyviolation', e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
