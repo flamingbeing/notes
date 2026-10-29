@@ -32,12 +32,14 @@ footer { margin-top: 2rem; }
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
   box-sizing: border-box; padding: 0; overflow: hidden; overscroll-behavior: none; background: var(--editor-bg); }
-/* only the text scrolls (#edit-scroll), so an iOS bounce at either end moves the note, never the header or the format bar */
+/* only the text scrolls (#edit-scroll), so a bounce at either end (app-ui's, which moves the scroller's children) moves the
+   note, never the header or the format bar: both sit outside it (a fixed bar inside a moved part would move with it) */
 #edit-form { height: 100%; display: flex; flex-direction: column; }
 #edit-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
-.page-bar, .page-col { box-sizing: border-box; width: 100%; max-width: 44rem; margin-inline: auto; padding-inline: var(--pad); }
+.page-bar, .page-col, #edit-fmt { box-sizing: border-box; width: 100%; max-width: 44rem; margin-inline: auto; padding-inline: var(--pad); }
 .page-col { padding-bottom: 2rem; }
-#edit.wide .page-bar, #edit.wide .page-col { max-width: none; }
+#edit.wide .page-bar, #edit.wide .page-col, #edit.wide #edit-fmt { max-width: none; }
+#edit-fmt { flex: none; }
 #edit.page::backdrop { background: var(--editor-bg); }
 /* while a swipe right takes the page back, the list shows under it */
 #edit.page.swiping { box-shadow: -8px 0 24px rgb(0 0 0 / .18); }
