@@ -31,7 +31,13 @@ footer { margin-top: 2rem; }
 /* the note editor (src/editor/): CodeMirror's own classes, coloured from the theme. Readable line width (the default)
    keeps the sheet to about 44rem; off (#edit.wide), it takes the screen. */
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
-  box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--editor-bg); }
+  box-sizing: border-box; padding: 0; overflow: hidden; overscroll-behavior: none; background: var(--editor-bg); }
+/* only the text scrolls (#edit-scroll), so an iOS bounce at either end moves the note, never the header or the format bar */
+#edit-form { height: 100%; display: flex; flex-direction: column; }
+#edit-scroll { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; }
+.page-bar, .page-col { box-sizing: border-box; width: 100%; max-width: 44rem; margin-inline: auto; padding-inline: var(--pad); }
+.page-col { padding-bottom: 2rem; }
+#edit.wide .page-bar, #edit.wide .page-col { max-width: none; }
 #edit.page::backdrop { background: var(--editor-bg); }
 /* while a swipe right takes the page back, the list shows under it */
 #edit.page.swiping { box-shadow: -8px 0 24px rgb(0 0 0 / .18); }
@@ -41,9 +47,7 @@ footer { margin-top: 2rem; }
   #edit.page[open] { position: fixed; inset: 0 0 0 calc(var(--shell-side) + var(--shell-list)); width: auto; height: 100dvh; z-index: 5;
     border-inline-start: var(--border) solid var(--line); }
 }
-#edit-form { max-width: 44rem; margin: 0 auto; }
-#edit.wide #edit-form { max-width: none; }
-.page-bar { position: sticky; top: 0; z-index: 1; background: var(--editor-bg); flex-wrap: wrap; gap: .25rem; padding: .5rem 0; align-items: center; }
+.page-bar { flex: none; z-index: 1; background: var(--editor-bg); flex-wrap: wrap; gap: .25rem; padding-block: .5rem; align-items: center; }
 .page-bar .grow { flex: 1; }
 #edit .title-box { font-family: var(--font-head); font-size: 1.75rem; letter-spacing: -.01em; font-weight: 700; border-color: transparent; background: transparent; padding-inline: 0; margin-bottom: .5rem; }
 #edit details { margin: 1rem 0; }
@@ -56,7 +60,7 @@ footer { margin-top: 2rem; }
 @media (max-width: 599px) {
   #edit-fmt { position: fixed; inset-inline: 0; bottom: var(--kb, 0px); z-index: 3; background: var(--editor-bg); border-top: 1px solid var(--line); padding: .25rem var(--pad); }
   #edit-fmt .fmt-bar { flex-wrap: nowrap; overflow-x: auto; }
-  #edit.with-fmt { padding-bottom: 5rem; }
+  #edit.with-fmt .page-col { padding-bottom: 5rem; }
 }
 /* unboxed, like the read view: the page is the editor (focus shows as the caret) */
 #edit-cm .cm-editor { background: transparent; min-height: 50vh; }
