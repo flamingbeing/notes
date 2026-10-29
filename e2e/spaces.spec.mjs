@@ -123,7 +123,8 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   await b.getByRole('button', { name: 'Leave', exact: true }).last().click();
   await expect(b.locator('#space')).toBeHidden({ timeout: 15_000 });
   await expect(a.locator('#items')).toContainText(t);
-  // a's member list follows the leave before a invites again, or its Remove could hit the old row
+  // a's member list (drawn only while the sheet is open) shows the leave before a invites again, or its Remove could hit the old row
+  await drawer(a, '#space-open');
   await expect(a.locator('#space-people')).not.toContainText(bob.email, { timeout: 15_000 });
 
   // invited again but not opening it: the space is only watched in the background (for links, kept in memory); taken
