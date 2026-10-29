@@ -279,3 +279,48 @@ test('resting the mouse on a [[link]] previews that note, in the read view and t
   await page.locator('#edit-read a.wikilink').hover();
   await expect(card.locator('strong')).toHaveText('second');
 });
+
+test('a tap on a new note’s blank space puts the cursor in the text, not in Details or the title', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page);
+  await page.click('#new');
+  await expect(page.locator('#edit-text')).toBeFocused();
+  await ready(page);
+  const below = await page.evaluate(() => Math.round(document.querySelector('#edit-cm .cm-content').getBoundingClientRect().bottom) + 80);
+  await page.touchscreen.tap(200, below);
+  await expect(content(page)).toBeFocused();
+  await page.keyboard.type('Typed after a tap');
+  await expect(content(page)).toContainText('Typed after a tap');
+  expect(await page.locator('#edit-more').evaluate(d => /** @type {HTMLDetailsElement} */ (d).open), 'Details stays as it was').toBe(false);
+  // past the end of the page too (the dialog under the form)
+  await page.locator('#edit-text').focus();
+  await page.touchscreen.tap(200, 760);
+  await expect(content(page)).toBeFocused();
+});
+
+test('line spacing: the formatting bar’s last button steps Tight, Normal, Roomy; this device keeps it after a reload', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page);
+  const title = uniq('Spacing');
+  await add(page, title);
+  await openNote(page, title);
+  await ready(page);
+  await fillBody(page, 'Line one\nLine two\nLine three');
+  const lh = () => page.locator('#edit-cm .cm-scroller').evaluate(el => parseFloat(getComputedStyle(el).lineHeight) / parseFloat(getComputedStyle(el).fontSize));
+  const btn = page.locator('#edit-fmt button.spacing');
+  await expect(btn).toHaveAccessibleName('Line spacing: Normal');
+  expect(await lh()).toBeCloseTo(1.65, 1);
+  await btn.click();
+  await expect(btn).toHaveAccessibleName('Line spacing: Roomy');
+  await expect.poll(lh).toBeCloseTo(1.95, 1);
+  await btn.click();
+  await expect(btn).toHaveAccessibleName('Line spacing: Tight');
+  await expect.poll(lh).toBeCloseTo(1.4, 1);
+  await page.reload();
+  await expect(page.locator('#list-view')).toBeVisible();
+  // (the open note comes back by itself after a reload)
+  if (!await page.locator('#edit').isVisible()) await openNote(page, title);
+  await ready(page);
+  await expect(page.locator('#edit-fmt button.spacing')).toHaveAccessibleName('Line spacing: Tight');
+  await expect.poll(lh).toBeCloseTo(1.4, 1);
+});
