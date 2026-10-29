@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { merge3, MINE_MARK, SPLIT_MARK, THEIRS_MARK } from '../src/notes/merge3.js';
 import { linksIn, tagsIn, linkKeys, keyOf, parts } from '../src/notes/parse.js';
-import { sizeOf, withDerived, dailyId, dailyNote, isoDay, nextWorkday, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
+import { sizeOf, withDerived, dailyId, dailyNote, findDaily, isoDay, nextWorkday, mergeNote, conflictCopy, WARN_BYTES, MAX_BYTES } from '../src/notes/model.js';
 import { linkIndex, relink, renamePlan } from '../src/notes/links.js';
 
 test('merge3 (the logbook\'s tests)', () => {
@@ -159,4 +159,13 @@ test('rename: rewrites links in the space (heading and alias kept, code left), o
   assert.deepEqual(h.map(p => p.record.id), ['3', '6']);
   assert.equal(h[0].record.body, '[[Old/Gamma 1]] `[[Beta]]` [[Missing]]');
   assert.equal(h[1].record.body, '[[Delta]] [[Gamma 1]]');
+});
+
+test('Today opens the note there already, whoever made it', () => {
+  const by = (/** @type {object} */ o) => withDerived({ body: '', ...o });
+  assert.equal(findDaily([by({ id: 'x', title: 'Other' })], '2026-10-29'), undefined);
+  assert.equal(findDaily([by({ id: 'x', title: '2026-10-29' })], '2026-10-29')?.id, 'x');
+  assert.equal(findDaily([by({ id: 'y', title: 'Renamed', daily: '2026-10-29' })], '2026-10-29')?.id, 'y');
+  assert.equal(findDaily([by({ id: 'x', title: '2026-10-29', _deleted: true })], '2026-10-29'), undefined);
+  assert.equal(findDaily([by({ id: 'x', title: '2026-10-29' }), by({ id: 'day-2026-10-29', title: '2026-10-29' })], '2026-10-29')?.id, 'day-2026-10-29');
 });
