@@ -19,6 +19,14 @@ const test = base.extend({
   },
 });
 
+// On a first page the kit's first Back stays and toasts "Press Back again to close"; the second leaves (Chrome skips the
+// guard until the first tap, so the toast may not come).
+async function backPastGuard(page) {
+  const url = page.url();
+  await page.goBack({ waitUntil: 'commit' });
+  if (page.url() === url && await page.getByText('Press Back again to close').isVisible().catch(() => false)) await page.goBack({ waitUntil: 'commit' });
+}
+
 test('Back after signing in never shows the sign-in screen again, and Back from the list leaves', async ({ bfPage: page }) => {
   await page.goto(APP);
   await expect(page.locator('#signed-out')).toBeVisible();
@@ -31,12 +39,12 @@ test('Back after signing in never shows the sign-in screen again, and Back from 
   await expect(page.locator('#list-view')).toBeVisible();
 
   // (a page from the cache fires no load event)
-  await page.goBack({ waitUntil: 'commit' });
+  await backPastGuard(page);
   await expect.poll(() => page.evaluate(() => window.__shown).catch(() => null)).toEqual([false]);   // loaded again
   expect(new URL(page.url()).search).toBe('?emulator');
   await expect(page.locator('#list-view')).toBeVisible();
   await expect(page.locator('#signed-out')).toBeHidden();
 
-  await page.goBack({ waitUntil: 'commit' });
+  await backPastGuard(page);
   await expect.poll(() => page.url()).toBe('about:blank');
 });
