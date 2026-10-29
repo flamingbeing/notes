@@ -53,6 +53,7 @@ export function listScreen(app, kit) {
   });
   /** @type {Note[]} */
   let all = [];
+  let heard = false;   // the list has come at least once (before that a redraw would show "No notes yet")
   /** @type {Map<string, string>} id -> the text as indexed (a new subscription starts with no "changed" ids, so compare) */
   const known = new Map();
   const textOf = (/** @type {Note} */ n) => JSON.stringify([n.title, n.body, n.tags, n.path]);
@@ -313,7 +314,7 @@ export function listScreen(app, kit) {
     modules();
     for (const b of [...twice('new'), ...twice('daily'), ...twice('nextday')]) b.hidden = !canWrite;
     // (a screen change is a view transition, so the list can be drawn before the role arrives)
-    if (canWrite !== could) draw(all, new Set());
+    if (canWrite !== could && heard) draw(all, new Set());
   });
   const screen = { ...section, hide() { $('drawer-open').hidden = true; section.hide(); } };
 
@@ -392,7 +393,7 @@ export function listScreen(app, kit) {
   return {
     ...screen,
     /** @param {Note[]} notes @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
-    draw,
+    draw: (notes, changed) => { heard = true; draw(notes, changed); },
     toast,
     /** the side bar as a phone drawer a swipe pulls out (null from 600 px, where the side bar shows) */
     drawer: () => shell.drawer,
