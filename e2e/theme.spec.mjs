@@ -107,3 +107,16 @@ for (const look of LOOKS) {
     }
   });
 }
+
+test('Haptics: On by default, Off kept on this device; the keyboard resizes the page (interactive-widget)', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page);
+  await openSettings(page);
+  const pick = page.locator('#haptics-pick');
+  await expect(pick).toHaveValue('on');
+  await pick.selectOption('off');
+  await expect(page.locator('html')).toHaveAttribute('data-haptics', 'off');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('data-haptics', 'off');
+  expect(await page.locator('meta[name=viewport]').getAttribute('content')).toContain('interactive-widget=resizes-content');
+});
