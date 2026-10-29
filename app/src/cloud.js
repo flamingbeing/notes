@@ -194,6 +194,9 @@ export async function start({ canReload = null }) {
   /** @type {(() => void) | null} */
   let offFiles = null;
   let seq = 0;
+  // no screen until Auth has answered: before that Firebase's currentUser (and onIdTokenChanged) can say "nobody" or
+  // run ahead of app.auth, and the sign-in screen flashed on every start of a signed-in device
+  let authKnown = false;
   // the token Firestore has been told about: its own token listener (added when the SDK started, so before this one)
   // runs in the same notification and restarts its connection with the new token. A list listen sent before that goes
   // out with the old token, the rules refuse it, and the engine doesn't listen again; so the list waits for this.
@@ -282,7 +285,7 @@ export async function start({ canReload = null }) {
     await show();
   };
   show = async () => {
-    if (!hooks) return;
+    if (!hooks || !authKnown) return;
     const { onState, onList } = hooks;
     const n = ++seq, u = fa.currentUser, me = app.auth.user();
     if (!u || !me || me.uid !== u.uid) { stopList(); offSettings?.(); offSettings = null; stopSpaces(); uid = ''; space = ''; onState({ phase: 'signed-out' }); return; }
@@ -315,7 +318,7 @@ export async function start({ canReload = null }) {
     offFiles ??= app.sync.watch(space, FILES, (/** @type {Attachment[]} */ list) => { atts = list.filter(x => !x._deleted); hooks?.onFiles?.(atts); });
     void copyConflicts();
   };
-  app.auth.onUser(() => { claimsStatus = 0; void show(); });
+  app.auth.onUser(() => { authKnown = true; claimsStatus = 0; void show(); });
 
   /** @param {string} method @param {string} uid @param {unknown} [body] @returns {Promise<string>} */
   const membersCall = async (method, uid, body) => {
