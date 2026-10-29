@@ -58,6 +58,8 @@ const SHELL = [
   'src/editor/syntax.js',
   'src/feedback/feedback-sheet.js',
   'src/feedback/feedback.js',
+  'src/haiku/haiku-tab.js',
+  'src/haiku/prompts.js',
   'src/icons.js',
   'src/mcp/code.js',
   'src/mcp/mcp-sheet.js',

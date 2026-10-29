@@ -109,6 +109,7 @@
         <span id="sync-chip-w"></span>
         <button type="button" class="ui-side-link" data-space-open hidden>Members</button>
         <button type="button" class="ui-side-link" data-space-new hidden>New space</button>
+        <button id="open-haiku-w" type="button" class="ui-side-link" hidden>Haiku</button>
         <button id="open-settings-w" type="button" class="ui-side-link" hidden>Settings</button>
       </div>
     </nav>
@@ -188,11 +189,35 @@
         <h1 class="ui-large-title" id="settings-title">Settings</h1>
         <div id="settings-body"></div>
       </section>
+
+      <!-- The Haiku tab (owner and admins): a prompt from the Prompts folder, and the text in the box replaced by Claude
+           Haiku's reply. The text lives in this page only: never saved (haiku/haiku-tab.js). -->
+      <section class="ui-screen ui-tab-page" id="haiku" aria-labelledby="haiku-title" hidden>
+        <h1 class="ui-large-title" id="haiku-title">Haiku</h1>
+        <div id="haiku-body" class="haiku-body">
+          <div class="row haiku-pick">
+            <label for="haiku-prompt" class="sr-only">Prompt</label><select id="haiku-prompt"></select>
+            <button id="haiku-edit" type="button">Edit</button><button id="haiku-new" type="button">New prompt</button>
+          </div>
+          <label for="haiku-text" class="sr-only">Text</label>
+          <textarea id="haiku-text" rows="14" spellcheck="false" autocomplete="off" placeholder="Paste text here"></textarea>
+          <p class="small haiku-hint">Not saved: the text stays on this page only.</p>
+          <div class="row haiku-actions">
+            <button id="haiku-paste" type="button">Paste</button>
+            <button id="haiku-run" type="button">Run</button>
+            <button id="haiku-undo" type="button" hidden>Undo</button>
+            <button id="haiku-copy" type="button">Copy</button>
+            <span id="haiku-spin" class="haiku-spin" aria-hidden="true" hidden></span>
+          </div>
+          <p id="haiku-msg" class="small" role="status"></p>
+        </div>
+      </section>
     </main>
 
     <nav class="ui-tabbar" data-minimise aria-label="Sections">
       <button type="button" class="ui-tab" data-tab-page="#home" aria-current="page" id="tab-notes"><span class="ui-tab-icon" aria-hidden="true" data-icon="pencil"></span>Notes</button>
       <button id="drawer-open" type="button" class="ui-tab" data-tab-page="#folders"><span class="ui-tab-icon" aria-hidden="true" data-icon="folder"></span>Folders</button>
+      <button id="open-haiku" type="button" class="ui-tab" data-tab-page="#haiku" hidden><span class="ui-tab-icon" aria-hidden="true" data-icon="sparkles"></span>Haiku</button>
       <button id="open-settings" type="button" class="ui-tab" data-tab-page="#settings" hidden><span class="ui-tab-icon" aria-hidden="true" data-icon="settings"></span>Settings</button>
     </nav>
   </div>
@@ -208,6 +233,16 @@
       <button id="settings-close" type="button" data-close>Done</button>
     </div>
     <div class="ui-sheet-body" id="settings-panel-body"></div>
+  </dialog>
+
+  <!-- Haiku on a tablet or laptop: a side panel; the page's #haiku-body moves in while it is open (a phone has the Haiku tab) -->
+  <dialog id="haiku-panel" class="ui-sheet" data-detents="medium large" data-wide="panel" aria-labelledby="haiku-panel-title">
+    <div class="ui-sheet-grabber" aria-label="Expand or collapse"></div>
+    <div class="ui-sheet-head">
+      <h2 id="haiku-panel-title">Haiku</h2>
+      <button id="haiku-close" type="button" data-close>Done</button>
+    </div>
+    <div class="ui-sheet-body" id="haiku-panel-body"></div>
   </dialog>
 
   <dialog id="edit" class="page" aria-labelledby="edit-title">
