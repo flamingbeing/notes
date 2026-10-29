@@ -230,6 +230,27 @@ test('the formatting bar hides with Aa and stays above the bottom edge', async (
   await expect(page.locator('#edit-fmt')).toBeVisible();
 });
 
+test('with the keyboard open the page ends above it, so the end of a long note scrolls into sight', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('kb');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  await page.keyboard.insertText(Array.from({ length: 80 }, (_, i) => `made-up line ${i}`).join('\n'));
+  const view = page.viewportSize();
+  // Android keeps the layout viewport full height under the keyboard: --kb (from visualViewport) is what it covers
+  await page.evaluate(() => document.documentElement.style.setProperty('--kb', '300px'));
+  const sheet = await page.locator('#edit').boundingBox();
+  expect(sheet.y + sheet.height).toBeLessThanOrEqual(view.height - 300 + 1);
+  await page.locator('#edit-scroll').evaluate(el => { el.scrollTop = el.scrollHeight; });
+  const last = await page.locator('#edit-cm .cm-line').last().boundingBox();
+  const fmt = await page.locator('#edit-fmt').boundingBox();
+  expect(last.y + last.height).toBeLessThanOrEqual(fmt.y + 1);
+  expect(fmt.y + fmt.height).toBeLessThanOrEqual(view.height - 300 + 1);
+});
+
 test('only the text scrolls: the header and the formatting bar stay put (no bounce drags them)', async ({ phone }) => {
   const page = await phone();
   await signIn(page, 'member');
