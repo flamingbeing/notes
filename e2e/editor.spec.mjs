@@ -230,6 +230,26 @@ test('the formatting bar hides with Aa and stays above the bottom edge', async (
   await expect(page.locator('#edit-fmt')).toBeVisible();
 });
 
+test('only the text scrolls: the header and the formatting bar stay put (no bounce drags them)', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('scroll');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  await page.keyboard.insertText(Array.from({ length: 80 }, (_, i) => `made-up line ${i}`).join('\n'));
+  const bar = () => page.locator('.page-bar').boundingBox();
+  const fmt = () => page.locator('#edit-fmt').boundingBox();
+  const [b0, f0] = [await bar(), await fmt()];
+  const scrolled = await page.locator('#edit-scroll').evaluate(el => { el.scrollTop = 400; return el.scrollTop; });
+  expect(scrolled).toBeGreaterThan(0);
+  expect(await page.locator('#edit').evaluate(el => [el.scrollTop, getComputedStyle(el).overflowY])).toEqual([0, 'hidden']);
+  expect(await page.locator('#edit-scroll').evaluate(el => getComputedStyle(el).overscrollBehaviorY)).toBe('contain');
+  expect((await bar()).y).toBe(b0.y);
+  expect((await fmt()).y).toBe(f0.y);
+});
+
 test('a pasted address becomes a titled link without tracking parameters', async ({ phone }) => {
   const page = await phone();
   await signIn(page, 'member');
