@@ -32,7 +32,10 @@ async function invite(page, email, role) {
   if (!await page.locator('#space-sheet').isVisible()) await drawer(page, '#space-open');
   await page.fill('#invite-email', email);
   await page.selectOption('#invite-role', role);
+  // wait for the answer: the message is empty before it, so checking it alone passes at once
+  const answer = page.waitForResponse(r => /\/invite$/.test(new URL(r.url()).pathname) && r.request().method() === 'POST');
   await page.click('#space-invite button[type=submit]');
+  await answer;
   await expect(page.locator('#space-msg')).toHaveText('');
 }
 
@@ -120,6 +123,8 @@ test('someone taken out of a space loses it and its notes, here and after a relo
   await b.getByRole('button', { name: 'Leave', exact: true }).last().click();
   await expect(b.locator('#space')).toBeHidden({ timeout: 15_000 });
   await expect(a.locator('#items')).toContainText(t);
+  // a's member list follows the leave before a invites again, or its Remove could hit the old row
+  await expect(a.locator('#space-people')).not.toContainText(bob.email, { timeout: 15_000 });
 
   // invited again but not opening it: the space is only watched in the background (for links, kept in memory); taken
   // out, nothing of it is on the device
