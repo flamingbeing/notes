@@ -91,6 +91,7 @@ const SHELL = [
   'src/shell/screen-switch.js',
   'src/spaces/spaces-sheet.js',
   'src/spaces/spaces.js',
+  'src/sync-button.js',
   'src/transfer/backup-settings.js',
   'src/transfer/backup-sheet.js',
   'src/transfer/transfer-sheet.js',

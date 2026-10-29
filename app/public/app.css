@@ -150,7 +150,23 @@ footer { margin-top: 2rem; }
 #share-text { white-space: pre-wrap; max-height: 12rem; overflow: auto; }
 
 /* a phone's Folders and Settings pages have no list to add to or select */
-#list-view[data-page]:not([data-page=home]) .bar-end > button { display: none; }
+#list-view[data-page]:not([data-page=home]) .bar-end > button:not(#sync-btn) { display: none; }
+
+/* the phone's tools row: the search box shrinks, the buttons keep 44 px touch targets */
+.phone-tools { display: flex; align-items: center; gap: 2px; }
+.phone-tools .ui-search { flex: 1; min-width: 0; }
+.phone-tools > button { flex: none; min-width: var(--tap); min-height: var(--tap); }
+
+/* the bar's sync button: the icon says the state (spins while syncing, struck cloud offline, a dot when attention is needed) */
+#sync-btn { position: relative; min-width: var(--tap); }
+#sync-btn[data-state="synced"] { color: var(--ok); }
+#sync-btn[data-state="syncing"] { color: var(--link); }
+#sync-btn[data-state="syncing"] .ui-icon { animation: ui-spin 1.2s linear infinite; }
+#sync-btn:is([data-state="offline"], [data-state="at-risk"]) { color: var(--warn); }
+#sync-btn[data-state="attention"] { color: var(--danger); }
+#sync-btn[data-state="attention"]::after { content: ''; position: absolute; top: 10px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+@media (prefers-reduced-motion: reduce) { #sync-btn[data-state="syncing"] .ui-icon { animation: none; } }
+:root[data-motion="still"] #sync-btn[data-state="syncing"] .ui-icon { animation: none; }
 
 /* the app's icon beside its name, and large on the signed-out screen */
 .app-mark { flex: none; border-radius: 22%; vertical-align: middle; }
