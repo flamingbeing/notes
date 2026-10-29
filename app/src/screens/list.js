@@ -4,7 +4,7 @@
 // own page (note-page.js): full screen on a phone, beside the list from 600 px. Hold or right-click a row for its menu;
 // Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
 // notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
-import { refusedList, toaster, emptyState, adaptiveShell, confirmModal } from '@core/ui';
+import { refusedList, toaster, emptyState, adaptiveShell, confirmModal, createTransients } from '@core/ui';
 import { createSearch, parseQuery } from '@core/search';
 import { plainLines, snippetOf } from '../notes/snippet.js';
 import { COLL } from '../cloud.js';
@@ -220,6 +220,7 @@ export function listScreen(app, kit) {
   /** @type {string | undefined} */ let role;
   const bin = binSheet(app, msg => toast(msg), () => canWrite);
   const bulk = bulkSheet(app, msg => toast(msg));
+  const transients = createTransients({ history, location, events: window });
   const share = shareSheet(app, msg => toast(msg), note => void page.open(note));
   const feedback = feedbackSheet(app, msg => toast(msg), () => role === 'admin');
   const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings-panel')).close();
@@ -246,6 +247,15 @@ export function listScreen(app, kit) {
   /** the notes ticked in select mode */
   const ticked = () => (select()?.selected() || []).map(r => all.find(n => n.id === r.dataset.id)).filter(/** @returns {n is Note} */ n => !!n);
   $('bulk-edit').addEventListener('click', () => bulk.open(ticked(), () => select()?.setEditing(false)));
+  $('bulk-bin').addEventListener('click', () => void bulk.trash(ticked(), () => select()?.setEditing(false)));
+  // select mode takes one history step, so Back (Android's button or gesture) ends it instead of leaving the app;
+  // Done, Escape or a finished action end it and take the step back
+  /** @type {ReturnType<typeof transients.open> | null} */ let selectStep = null;
+  items.addEventListener('ui-select', () => {
+    const editing = items.classList.contains('is-editing');
+    if (editing && !selectStep?.active) selectStep = transients.open(() => select()?.setEditing(false));
+    else if (!editing && selectStep?.active) { const step = selectStep; selectStep = null; void step.close(); }
+  });
   items.addEventListener('ui-menu', async e => {
     const row = /** @type {HTMLElement} */ (e.target), { action } = /** @type {CustomEvent} */ (e).detail;
     const note = all.find(n => n.id === row.dataset.id);

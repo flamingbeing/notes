@@ -230,6 +230,53 @@ test('the formatting bar hides with Aa and stays above the bottom edge', async (
   await expect(page.locator('#edit-fmt')).toBeVisible();
 });
 
+test('only the text scrolls: the header and the formatting bar stay put (no bounce drags them)', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('scroll');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  await page.keyboard.insertText(Array.from({ length: 80 }, (_, i) => `made-up line ${i}`).join('\n'));
+  const bar = () => page.locator('.page-bar').boundingBox();
+  const fmt = () => page.locator('#edit-fmt').boundingBox();
+  const [b0, f0] = [await bar(), await fmt()];
+  const scrolled = await page.locator('#edit-scroll').evaluate(el => { el.scrollTop = 400; return el.scrollTop; });
+  expect(scrolled).toBeGreaterThan(0);
+  expect(await page.locator('#edit').evaluate(el => [el.scrollTop, getComputedStyle(el).overflowY])).toEqual([0, 'hidden']);
+  expect(await page.locator('#edit-scroll').evaluate(el => getComputedStyle(el).overscrollBehaviorY)).toBe('contain');
+  expect((await bar()).y).toBe(b0.y);
+  expect((await fmt()).y).toBe(f0.y);
+});
+
+test('a pull past either end stretches the text only: the header and the formatting bar stay put mid-pull', async ({ phone }) => {
+  const page = await phone();
+  await signIn(page, 'member');
+  const t = uniq('pull');
+  await add(page, t);
+  await openNote(page, t);
+  await ready(page);
+  await content(page).click();
+  await page.keyboard.insertText(Array.from({ length: 80 }, (_, i) => `made-up line ${i}`).join('\n'));
+  await page.locator('#edit-cm .cm-content').blur();
+  const bar = () => page.locator('.page-bar').boundingBox();
+  const fmt = () => page.locator('#edit-fmt').boundingBox();
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: 200, y }] });
+  for (const [where, from, to] of [['top', 300, 500], ['bottom', 500, 300]]) {
+    await page.locator('#edit-scroll').evaluate((el, w) => { el.scrollTop = w === 'top' ? 0 : el.scrollHeight; }, where);
+    const [b0, f0] = [await bar(), await fmt()];
+    await touch('touchStart', from);
+    for (let i = 1; i <= 10; i++) { await touch('touchMove', from + (to - from) * i / 10); await page.waitForTimeout(16); }
+    expect(await page.locator('#edit-scroll .page-col').evaluate(el => el.style.transform), `${where}: the text stretches`).toMatch(/translateY/);
+    expect((await bar()).y, `${where}: the header stays`).toBe(b0.y);
+    expect((await fmt()).y, `${where}: the bar stays`).toBe(f0.y);
+    await touch('touchEnd', 0);
+    await page.waitForTimeout(600);
+  }
+});
+
 test('a pasted address becomes a titled link without tracking parameters', async ({ phone }) => {
   const page = await phone();
   await signIn(page, 'member');
