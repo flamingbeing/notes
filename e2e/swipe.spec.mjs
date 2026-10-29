@@ -1,7 +1,6 @@
 // Swipe between the tab pages on a phone, with a finger from the DevTools protocol (Chromium): the next page slides in
 // beside the finger mid-swipe, quick flicks one after another all count, a finger can catch the gliding pages, and a
-// right swipe on Notes (the first page) pulls the side bar out as a drawer with the finger; a left swipe or a tap on
-// the shade puts it back. The kit's own tests (app-ui) cover the feel in detail; these check this app wires it.
+// right swipe on Notes (the first page) only stretches it: no drawer comes out (it took swipes meant to change tab). The kit's own tests (app-ui) cover the feel in detail; these check this app wires it.
 import { test, expect, signIn, add, openNote, fillBody, serverHas } from './fixtures.mjs';
 
 const Y = 560;
@@ -55,27 +54,17 @@ test('a finger on the gliding pages holds them where they are', async ({ phone }
   expect(await shown(page)).toEqual(['folders']);
 });
 
-test('a right swipe on Notes pulls the side bar out with the finger; a left swipe or a tap on the shade closes it', async ({ phone }) => {
+test('a right swipe on Notes only stretches it: no drawer, and a left swipe after it still changes tab', async ({ phone }) => {
   const page = await load(phone);
-  const side = page.locator('#side');
   const f = await finger(page);
-  await f.move(60, 260, { lift: false });
-  await expect.poll(async () => { const b = await side.boundingBox(); return b ? Math.round(b.x + b.width) : null; }, 'out by the finger’s travel').toBe(200);
-  expect(await x(page, 'home'), 'Notes stays').toBe(0);
-  await f.lift();
+  await f.move(60, 260);
   await settled(page);
-  await expect(page.locator('#list-view')).toHaveClass(/is-drawer-open/);
+  await expect(page.locator('#list-view')).not.toHaveClass(/is-drawer-(open|moving)/);
+  await expect(page.locator('#side')).toBeHidden();
   expect(await shown(page)).toEqual(['home']);
-  await f.move(350, 120, { steps: 6 });
+  await f.move(300, 80);
   await settled(page);
-  await expect(page.locator('#list-view')).not.toHaveClass(/is-drawer-(open|moving)/);
-  await f.move(60, 300, { steps: 6 });
-  await settled(page);
-  await expect(page.locator('#list-view')).toHaveClass(/is-drawer-open/);
-  await page.locator('.ui-drawer-shade').click({ position: { x: 370, y: 400 } });
-  await settled(page);
-  await expect(page.locator('#list-view')).not.toHaveClass(/is-drawer-(open|moving)/);
-  await expect(side).toBeHidden();
+  expect(await shown(page)).toEqual(['folders']);
 });
 
 // a finger anywhere: a drag from one point to another, or a hold
