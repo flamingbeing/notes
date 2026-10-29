@@ -6,7 +6,7 @@
 set -euo pipefail
 root="$(dirname "$0")/.."
 cd "$root/e2e/fixtures/core"
-grep -o 'core\.anawj\.com/[^"]*' ../../../app/index.html | sed 's|core\.anawj\.com/||; s|/[^/]*$||' | sed -E 's|^(ui\|sync)/([^/]+)/.*|\1/\2|' | sort -u | while read -r d; do
+grep -o 'core\.anawj\.com/[^"]*' ../../../app/index.html | sed 's|core\.anawj\.com/||; s|/[^/]*$||' | sed -E 's|^(sync)/([^/]+)/.*|\1/\2|' | grep '^sync/' | sort -u | while read -r d; do
   [ -d "$d" ] || { echo "no fixture folder for pinned $d" >&2; exit 1; }
 done
 find . -type f | sed 's|^\./||' | while read -r p; do curl -sfS "https://core.anawj.com/$p" -o "$p"; done
