@@ -171,7 +171,15 @@ export function notePage(app, toast, canWrite, onShow) {
   $('edit-fmt-toggle').addEventListener('click', () => settings.set('fmtBar', !settings.get('fmtBar')));
   // on a phone the bar sits just above the keyboard: --kb is how much of the layout viewport the keyboard covers
   const vv = window.visualViewport;
-  const keyboard = () => { if (vv) document.documentElement.style.setProperty('--kb', `${Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop))}px`); };
+  // and when the keyboard opens over the cursor, the text scrolls so the cursor stays in sight
+  let kb = 0;
+  const keyboard = () => {
+    if (!vv) return;
+    const now = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+    document.documentElement.style.setProperty('--kb', `${now}px`);
+    if (now > kb && ed?.view.hasFocus) requestAnimationFrame(() => ed?.view.dispatch({ scrollIntoView: true }));
+    kb = now;
+  };
   vv?.addEventListener('resize', keyboard); vv?.addEventListener('scroll', keyboard);
   keyboard();
   // the editor's options (this device): source mode, line numbers, readable line width

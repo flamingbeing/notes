@@ -60,6 +60,8 @@ footer { margin-top: 2rem; }
 .fmt-bar button:disabled { opacity: .4; }
 /* on a phone the bar is pinned just above the keyboard (--kb from the visual viewport; note-page.js) and the page leaves room for it */
 @media (max-width: 599px) {
+  /* the page ends where the keyboard starts (Android keeps the layout viewport full height under it), so the end of a long note can scroll above it */
+  #edit.page { height: calc(100% - var(--kb, 0px)); }
   #edit-fmt { position: fixed; inset-inline: 0; bottom: var(--kb, 0px); z-index: 3; background: var(--editor-bg); border-top: 1px solid var(--line); padding: .25rem var(--pad); }
   #edit-fmt .fmt-bar { flex-wrap: nowrap; overflow-x: auto; }
   #edit.with-fmt .page-col { padding-bottom: 5rem; }
