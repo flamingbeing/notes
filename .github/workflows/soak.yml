@@ -13,8 +13,6 @@ jobs:
   soak:
     uses: flamingbeing/app-devkit/.github/workflows/soak.yml@v1.14.3
     with:
-      # the kit files the soak runs with (v1.14.2 also keeps only failing batches in the soak-results artifact)
-      kit-ref: v1.14.2
       # cloud{
       emulators: firestore,auth
       # }cloud
