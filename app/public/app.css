@@ -33,6 +33,9 @@ footer { margin-top: 2rem; }
 #edit.page { width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; border-radius: 0;
   box-sizing: border-box; padding: 0 var(--pad) 2rem; background: var(--editor-bg); }
 #edit.page::backdrop { background: var(--editor-bg); }
+/* while a swipe right takes the page back, the list shows under it */
+#edit.page.swiping { box-shadow: -8px 0 24px rgb(0 0 0 / .18); }
+#edit.page.swiping::backdrop { background: transparent; }
 /* from 600 px the page is not modal: it sits over the detail pane, the side bar and the list stay usable */
 @media (min-width: 600px) {
   #edit.page[open] { position: fixed; inset: 0 0 0 calc(var(--shell-side) + var(--shell-list)); width: auto; height: 100dvh; z-index: 5;
@@ -118,6 +121,13 @@ footer { margin-top: 2rem; }
 .side-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding-top: var(--pad); }
 .bar-end { display: flex; align-items: center; gap: var(--gap); }
 /* a phone's bar holds the chip and four buttons: the title gives way (the large title says Notes) rather than the page scrolling sideways */
+/* on a phone the tab pages reach down to the tab bar, so a swipe on the empty space under a short page still changes tab
+   (the space was the page's background, outside the pager) */
+@media (max-width: 599px) {
+  #list-view { display: flex; flex-direction: column; min-height: 100dvh; }
+  #list-view > .ui-screens { flex: 1 0 auto; display: flex; flex-direction: column; }
+  #list-view > .ui-screens > .ui-screen { flex: 1 0 auto; }
+}
 #list-view .ui-bar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .space-bar { padding: 0 var(--pad); }
 #plain { max-width: 40rem; margin: 0 auto; padding: 0 var(--pad) 2rem; }

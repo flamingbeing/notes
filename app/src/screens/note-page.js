@@ -23,6 +23,7 @@ import { sizeOf } from '../notes/model.js';
 import { tidyMarkdown } from '../notes/paste-clean.js';
 import { embedFor, fullPath, isImage, pastedName } from '../notes/attach.js';
 import { $, input, dialog } from '../shell/dom.js';
+import { swipeBack } from './swipe-back.js';
 
 /** @typedef {import('../cloud.js').Note} Note */
 /** @typedef {import('../editor/index.js').Editor} Editor */
@@ -352,6 +353,14 @@ export function notePage(app, toast, canWrite, onShow) {
     const cancel = new Event('cancel', { cancelable: true });
     sheet.dispatchEvent(cancel);
     if (!cancel.defaultPrevented) sheet.close();
+  });
+  // a swipe right goes back to the list, as Esc does (a note too big to save stays)
+  swipeBack(sheet, () => {
+    const cancel = new Event('cancel', { cancelable: true });
+    sheet.dispatchEvent(cancel);
+    if (cancel.defaultPrevented) return false;
+    sheet.close();
+    return true;
   });
   sheet.addEventListener('close', async () => {
     const turn = shown;

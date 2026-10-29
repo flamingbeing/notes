@@ -1,6 +1,6 @@
 // The page's shell: the kit's gestures, sync chip, Settings (with the account), and the screen switch. The
 // screens (screens/) show the notes list and the note sheet; cloud.js holds sign-in and sync.
-import { syncChip, plural, startGestures } from '@core/ui';
+import { syncChip, plural, startGestures, holdMenus } from '@core/ui';
 import { start, usingEmulator, emulatorSignIn } from './cloud.js';
 import { fillIcons } from './icons.js';
 import { $, dialog } from './shell/dom.js';
@@ -24,6 +24,8 @@ const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchP
 /** @type {(() => ReturnType<ReturnType<typeof listScreen>['drawer']>) | null} */
 let sideDrawer = null;   // the list screen's, once it is made
 const kit = startGestures(document, { drawer: () => sideDrawer?.() ?? null });
+// (the kit starts hold menus only when one is on the page at start; the note rows come later)
+if (!kit.menus) holdMenus(document);
 fillIcons();
 // the bar's Today / Select / New belong to the notes page: on the Folders or Settings page they leave the bar
 document.addEventListener('ui-tab', e => { $('list-view').dataset.page = /** @type {CustomEvent} */ (e).detail.page.id; });

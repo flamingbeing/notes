@@ -58,8 +58,8 @@ test('asked for more contrast: solid card colour, no blur', async ({ phone }) =>
   expect(await style(page, '.ui-tabbar', 'background-color')).toBe(await surface(page));
 });
 
-// (the springs finished, so axe and the screenshots see the parts at rest, not mid fade-in)
-const settled = page => page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished)));
+// (the springs finished, so axe and the screenshots see the parts at rest, not mid fade-in; one cancelled on the way counts as done)
+const settled = page => page.evaluate(() => Promise.all(document.getAnimations().map(a => a.finished.catch(() => {}))));
 
 const MODES = [
   ['light', { theme: 'light', dark: 'dark', material: 'glass' }],
