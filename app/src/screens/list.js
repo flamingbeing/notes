@@ -5,7 +5,8 @@
 // Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
 // notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
 import { refusedList, toaster, emptyState, adaptiveShell, confirmModal } from '@core/ui';
-import { createSearch } from '@core/search';
+import { createSearch, parseQuery } from '@core/search';
+import { plainLines, snippetOf } from '../notes/snippet.js';
 import { COLL } from '../cloud.js';
 import { isoDay, nextWorkday } from '../notes/model.js';
 import { $, input, dialog, sectionScreen } from '../shell/dom.js';
@@ -37,7 +38,7 @@ export const inFolder = (n, f) => low(n.path) === bare(f) || low(n.path).startsW
 /** the text under a row's title: the body without its markdown marks, the title line itself left out, at most 3 lines when shown
  * @param {Note} note @param {string} title */
 export function previewOf(note, title) {
-  const lines = String(note.body || '').slice(0, 800).split('\n').map(l => l.replace(/^\s*(?:#{1,6}|[-*+>]|\d+\.)\s+(?:\[[ xX]\]\s+)?/, '').replace(/!?\[\[([^\]|]*)(?:\|[^\]]*)?\]\]/g, '$1').replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*_`~]/g, '').trim()).filter(Boolean);
+  const lines = plainLines(String(note.body || '').slice(0, 800));
   if (lines[0] === title) lines.shift();
   return lines.join(' ').slice(0, 240);
 }
@@ -306,6 +307,10 @@ export function listScreen(app, kit) {
   });
   const screen = { ...section, hide() { $('drawer-open').hidden = true; section.hide(); } };
 
+  // the searched words a row's passage marks: plain words and phrases, for the text (not a leave-out, tag: or path:)
+  /** @type {{ text: string, phrase: boolean }[]} */
+  let terms = [];
+  const searched = () => parseQuery(input('q').value, { fields: ['title', 'body', 'tags', 'tag', 'path'] }).groups.flat().filter(t => !t.neg && (!t.field || t.field === 'body'));
   /** @type {Map<string, HTMLElement>} id -> its row: a row is kept (with its tick, focus and place) while its note is in the list */
   const rows = new Map();
   /** @param {Note} note @param {boolean} changed */
@@ -319,8 +324,11 @@ export function listScreen(app, kit) {
     }
     const name = titleOf(note), path = note.path || '';
     const preview = previewOf(note, name);
-    if (li.dataset.name !== name || (li.dataset.path ?? '') !== path || (li.dataset.preview ?? '') !== preview) {
-      li.dataset.name = name; li.dataset.path = path; li.dataset.preview = preview;
+    // while searching: the first passage with a searched word, the word marked, in place of the preview
+    const snip = terms.length ? snippetOf(String(note.body || ''), terms) : null;
+    const snipKey = snip ? `${snip.before}\u0000${snip.match}\u0000${snip.after}` : '';
+    if (li.dataset.name !== name || (li.dataset.path ?? '') !== path || (li.dataset.preview ?? '') !== preview || (li.dataset.snippet ?? '') !== snipKey) {
+      li.dataset.name = name; li.dataset.path = path; li.dataset.preview = preview; li.dataset.snippet = snipKey;
       const main = document.createElement('span');
       main.className = 'ui-row-main'; main.append(name);
       if (path) {
@@ -328,7 +336,14 @@ export function listScreen(app, kit) {
         sub.className = 'ui-row-sub'; sub.textContent = ` ${path}/`;
         main.append(sub);
       }
-      if (preview) main.dataset.preview = preview;   // drawn by CSS (::after), so the row's text stays the title
+      if (snip) {
+        const passage = document.createElement('span');
+        passage.className = 'row-snippet';
+        const mark = document.createElement('mark');
+        mark.textContent = snip.match;
+        passage.append(snip.before, mark, snip.after);
+        main.append(passage);
+      } else if (preview) main.dataset.preview = preview;   // drawn by CSS (::after), so the row's text stays the title
       li.replaceChildren(main);
     }
     li.classList.toggle('changed', changed);
@@ -343,6 +358,7 @@ export function listScreen(app, kit) {
   const draw = (notes, changed) => {
     all = notes; feed(notes); fillDrawer();
     const list = visible();
+    terms = searched();
     const want = new Set(list.map(n => n.id));
     for (const [id, li] of rows) if (!want.has(id)) { li.remove(); rows.delete(id); }
     // in order, moving only the rows that are out of place

@@ -72,6 +72,7 @@ const SHELL = [
   'src/notes/parse.js',
   'src/notes/paste-clean.js',
   'src/notes/paste-link.js',
+  'src/notes/snippet.js',
   'src/notes/vault.js',
   'src/screens/list.js',
   'src/screens/no-access.js',

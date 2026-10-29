@@ -62,6 +62,10 @@ footer { margin-top: 2rem; }
 #edit-cm .cm-editor { background: transparent; min-height: 50vh; }
 #edit-cm .cm-editor.cm-focused { outline: none; }
 #edit-cm .cm-scroller { font: inherit; line-height: 1.65; }
+/* line spacing (this device; the formatting bar's last button) */
+#edit[data-spacing=tight] #edit-cm .cm-scroller, #edit[data-spacing=tight] #edit-read, #edit[data-spacing=tight] #edit-body { line-height: 1.4; }
+#edit[data-spacing=roomy] #edit-cm .cm-scroller, #edit[data-spacing=roomy] #edit-read, #edit[data-spacing=roomy] #edit-body { line-height: 1.95; }
+#edit-fmt .spacing { min-width: 4.5rem; font-size: .8rem; }
 #edit-cm .cm-content { padding: .5rem 0; caret-color: var(--accent); }
 #edit-cm .cm-cursor { border-inline-start-color: var(--accent); }
 #edit-cm .cm-selectionBackground, #edit-cm .cm-focused .cm-selectionBackground { background: var(--selection); }
@@ -158,6 +162,9 @@ footer { margin-top: 2rem; }
 #folders .ui-list .n { color: var(--muted); font-weight: 400; }
 /* a note's row: the first three lines of its text under the title */
 .ui-row-main[data-preview]::after { content: attr(data-preview); color: var(--muted); font-size: .85rem; font-weight: 400; display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: .15rem; }
+/* a search result: the first passage with a searched word (about two lines), the word marked */
+.row-snippet { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); font-size: .85rem; font-weight: 400; margin-top: .15rem; }
+.row-snippet mark { background: color-mix(in srgb, var(--accent) 28%, transparent); color: var(--text, inherit); border-radius: 3px; padding: 0 .1em; }
 /* the Folders tab as a file explorer: compact rows, each with its icon; a folder's chevron folds away the folders in it.
    The side bar's folders and tags take the same icons */
 .tree-icon { display: inline-flex; flex: none; color: var(--muted); }

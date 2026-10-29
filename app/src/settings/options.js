@@ -17,6 +17,8 @@ export const OPTIONS = {
   readableWidth: { scope: 'device', default: true },
   // the formatting bar (pinned above the keyboard; the Aa button on a note hides it too), and ticking a to-do moves it down
   fmtBar: { scope: 'device', default: true },
+  // the editor's line spacing (a button on the formatting bar): tight, normal or roomy
+  lineSpacing: { scope: 'device', default: 'normal', clean: v => (v === 'tight' || v === 'roomy' ? v : 'normal') },
   tickToBottom: { scope: 'device', default: false },
   // where today's note and a new note go (a folder, such as Daily and Inbox; none: the top)
   dailyFolder: { scope: 'device', default: '', clean: folder },
@@ -34,4 +36,4 @@ export const OPTIONS = {
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */
 export const SWITCHES = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'boolean' && k !== 'driveOn');
-export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string');
+export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string' && k !== 'lineSpacing');
