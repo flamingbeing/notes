@@ -9,10 +9,10 @@ test('the last list paints at once; a tap waits for the app; sign-out forgets it
   await add(page, t);
   await expect.poll(() => page.evaluate(() => localStorage.getItem('notes:snap') || '')).toContain(t);
 
-  // the app's own script held back: the kept list shows anyway, and a tap on its row is kept
+  // the app's own script (or the Vite build's entry) held back: the kept list shows anyway, and a tap on its row is kept
   let release = () => {};
   const held = new Promise(r => { release = r; });
-  await page.route(/\/src\/app\.js$/, async route => { await held; await route.continue(); });
+  await page.route(/\/(src\/app|assets\/main-[^/]+)\.js$/, async route => { await held; await route.continue(); });
   await page.goto(APP, { waitUntil: 'commit' });
   await expect(page.locator('#items .ui-row', { hasText: t })).toBeVisible();
   await expect(page.locator('#signed-out')).toBeHidden();
