@@ -11,9 +11,11 @@ permissions:
   issues: write
 jobs:
   soak:
-    uses: flamingbeing/app-devkit/.github/workflows/soak.yml@v1.13.5
+    uses: flamingbeing/app-devkit/.github/workflows/soak.yml@v1.13.7
     with:
       # cloud{
       emulators: firestore,auth
       # }cloud
       unit-command: node --test 'worker/test/*.test.mjs' 'app/test/*.unit.test.mjs' 'tools/test/*.test.mjs'
+  full:
+    uses: ./.github/workflows/full-checks.yml

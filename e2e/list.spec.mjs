@@ -2,7 +2,7 @@
 import AxeBuilder from './axe.mjs';
 import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody, showOnly, details } from './fixtures.mjs';
 
-test('signed out: the sign-in screen, accessible', async ({ phone }) => {
+test('signed out: the sign-in screen, accessible', { tag: '@smoke' }, async ({ phone }) => {
   const page = await phone();
   await page.goto(APP);
   await expect(page.locator('#signed-out')).toBeVisible();
@@ -16,7 +16,7 @@ test('an account with no role sees no list until an admin adds it', async ({ pho
   await expect(page.locator('#uid')).not.toBeEmpty();
 });
 
-test('a member adds, edits and deletes; the delete lands in the bin', async ({ phone }) => {
+test('a member adds, edits and deletes; the delete lands in the bin', { tag: '@smoke' }, async ({ phone }) => {
   const page = await phone();
   const { uid } = await signIn(page, 'member');
   const t = uniq('note');
