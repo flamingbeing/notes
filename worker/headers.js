@@ -11,7 +11,7 @@ export const CSP_ENFORCE = false;
 
 // The page's import map (app/index.html), the one inline script, allowed by its hash (worker/test/headers.test.mjs
 // says the new one when the map changes).
-export const IMPORT_MAP = "'sha256-htJvLIEh6P7XwnmCH1Q0yQtxf5uosc2NehGImNR3w6I='";
+export const IMPORT_MAP = "'sha256-vvH2C3fhhjRt5r9LLFLfA0xDn3pk/PhRanZzuQNGnuM='";
 // The Ionic trial's page (app/ionic/, docs/decisions/0020-ionic-trial.md) only: its own import map, Ionic's components,
 // styles and icons from a CDN at one exact version (the path, not the whole CDN), and inline styles (Ionic's components
 // add <style> elements as they load). The classic page's policy has none of these.

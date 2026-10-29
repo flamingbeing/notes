@@ -109,6 +109,7 @@ blocks put it there; locally, copy those folders from an app-devkit checkout at 
 
 `SYNC_DIR=<app-sync checkout> npm run e2e` serves that app-sync build in place of `core.anawj.com/sync/<version>/`:
 app-sync's CI runs these tests that way against each candidate (its consumer test) before a release.
+`UI_DIR=<app-ui checkout>` does the same for `core.anawj.com/ui/<version>/` (try an app-ui change here before it is released).
 
 ## Layout
 

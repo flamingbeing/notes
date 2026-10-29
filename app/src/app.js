@@ -20,7 +20,10 @@ const sheetOpen = () => !!document.querySelector('dialog:modal');
 const withSW = 'serviceWorker' in navigator && (!usingEmulator || new URLSearchParams(location.search).has('sw'));
 
 // the kit's parts that need script: hold menus, sheets, select mode, large title, tab bar (the adaptive shell is the list's)
-const kit = startGestures(document, { onPrevMissing: () => kit.tabs?.go('#folders') });   // a right swipe on the first page opens Folders
+// a right swipe on the first page pulls the side bar out as a drawer, with the finger (Android's Back keeps the edges)
+/** @type {(() => ReturnType<ReturnType<typeof listScreen>['drawer']>) | null} */
+let sideDrawer = null;   // the list screen's, once it is made
+const kit = startGestures(document, { drawer: () => sideDrawer?.() ?? null });
 fillIcons();
 // the bar's Today / Select / New belong to the notes page: on the Folders or Settings page they leave the bar
 document.addEventListener('ui-tab', e => { $('list-view').dataset.page = /** @type {CustomEvent} */ (e).detail.page.id; });
@@ -42,6 +45,7 @@ else {
   chipStatus$(st => { window.starter.status = st.state; });
   settingsSheet(app);
   const list = listScreen(app, kit);
+  sideDrawer = list.drawer;
   const spaces = spacesSheet(app, list.toast);
   const show = screenSwitch({
     'signed-out': signedOutScreen(app, { onForget: ok => { if (ok) $('sign-out-msg').textContent = ''; } }),

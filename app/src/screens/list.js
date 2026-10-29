@@ -335,7 +335,7 @@ export function listScreen(app, kit) {
   /** the row of the note open beside the list is the current one @param {string} id */
   const markOpen = id => { for (const [k, li] of rows) { if (k === id) li.setAttribute('aria-current', 'true'); else li.removeAttribute('aria-current'); } };
   // the kit's shell: a row opens its note in the note page (full screen on a phone, beside the list from 600 px)
-  adaptiveShell($('list-view'), { screens: null, render: row => { const n = all.find(x => x.id === row.dataset.id); if (n) void page.open(n); } });
+  const shell = adaptiveShell($('list-view'), { screens: null, render: row => { const n = all.find(x => x.id === row.dataset.id); if (n) void page.open(n); } });
   $('edit').addEventListener('close', () => markOpen(''));
   /** @param {Note[]} notes @param {Set<string>} changed */
   const draw = (notes, changed) => {
@@ -366,6 +366,8 @@ export function listScreen(app, kit) {
     /** @param {Note[]} notes @param {Set<string>} changed  ids changed (here or elsewhere) since the last draw */
     draw,
     toast,
+    /** the side bar as a phone drawer a swipe pulls out (null from 600 px, where the side bar shows) */
+    drawer: () => shell.drawer,
     /** the open space's attachments changed */
     files: () => page.redrawFiles(),
   };

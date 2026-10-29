@@ -22,6 +22,19 @@ async function routeSync(context, served) {
   });
 }
 
+// UI_DIR: a local app-ui checkout served in place of core.anawj.com/ui/<version>/, so a candidate (an unreleased
+// app-ui change) can be tried in this app before it is released
+const UI_DIR = process.env.UI_DIR ? path.resolve(process.env.UI_DIR) : '';
+const TYPES = { '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+async function routeUi(context) {
+  await context.route(/^https:\/\/core\.anawj\.com\/ui\/[^/]+\/(.+)$/, route => {
+    const rel = new URL(route.request().url()).pathname.split('/').slice(3).join('/');
+    const file = path.join(UI_DIR, rel);
+    if (!file.startsWith(UI_DIR + path.sep) || !fs.existsSync(file)) return route.fulfill({ status: 404, body: 'not in UI_DIR' });
+    return route.fulfill({ status: 200, contentType: TYPES[path.extname(file)] ?? 'application/octet-stream', headers: { 'access-control-allow-origin': '*' }, body: fs.readFileSync(file) });
+  });
+}
+
 // The page loads its modules live from core.anawj.com (the import map). One failed fetch there (a 5xx, a reset) leaves the
 // app unbooted, which the tests see as #signed-out staying hidden (3 of 68 phone tests on notes#33, nothing in the code
 // changed). So a failed fetch is tried again; after that the page's own request goes out as it would have.
@@ -50,6 +63,7 @@ export const test = base.extend({
       const served = { n: 0, built: 0 };
       await routeCoreRetry(context);
       if (SYNC_DIR) await routeSync(context, served);   // registered later: wins over the retry route
+      if (UI_DIR) await routeUi(context);
       // APP_DIR (a Vite build, e2e/serve.mjs): count the built bundle's loads, so the run proves it tested dist/
       if (process.env.APP_DIR) context.on('request', r => { if (/\/app\/assets\/[^/]+\.js$/.test(r.url())) served.built++; });
       const page = await context.newPage();
