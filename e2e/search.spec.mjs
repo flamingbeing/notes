@@ -17,7 +17,8 @@ const addOne = async (page, text) => {
   await add(page, text);
   expect(await toasted).toBe(true);
 };
-const shown = page => page.locator('#items .ui-row').allTextContents();
+// each row's title (and folder), without a search result's passage
+const shown = page => page.locator('#items .ui-row').evaluateAll(rows => rows.map(r => [...r.querySelector('.ui-row-main').childNodes].filter(n => !(n instanceof Element && n.matches('.row-snippet'))).map(n => n.textContent).join('')));
 
 test('the search box narrows the list, with phrase, leave-out, operators and a hint', async ({ phone }) => {
   const a = await phone();
@@ -64,4 +65,25 @@ test('"/" focuses the search box; axe passes with a query typed', async ({ phone
   await expect(a.locator('#q')).toBeFocused();
   await a.fill('#q', 'tag:none');
   expect(await AxeBuilder(a)).toEqual([]);
+});
+
+test('a result shows the passage with the searched word, marked, in place of the note’s start', async ({ phone }) => {
+  const a = await phone();
+  await signIn(a, 'member');
+  const tag = uniq('p').replace(/[^a-z]/g, '');
+  const body = `Shopping for the weekend trip. ${'Bread, milk, apples and more. '.repeat(6)}Remember the ${tag}lantern before leaving on Saturday morning.`;
+  expect(await a.evaluate(([t, b]) => window.starter.add(t, b), [`Trip ${tag}`, body])).toBe('');
+  const row = a.locator('#items .ui-row', { hasText: `Trip ${tag}` });
+  await expect(row).toBeVisible();
+  await expect(row.locator('.row-snippet')).toHaveCount(0);
+  await a.locator('#q').fill(`${tag}lan`);
+  const mark = row.locator('.row-snippet mark');
+  await expect(mark).toHaveText(`${tag}lantern`);
+  await expect(row.locator('.row-snippet')).toContainText('Remember the');
+  await expect(row.locator('.row-snippet')).not.toContainText('Shopping');
+  const lines = await row.locator('.row-snippet').evaluate(el => Math.round(el.getBoundingClientRect().height / parseFloat(getComputedStyle(el).lineHeight)));
+  expect(lines).toBeLessThanOrEqual(2);
+  // the box cleared: the note's start again
+  await a.locator('#q').fill('');
+  await expect(row.locator('.row-snippet')).toHaveCount(0);
 });
