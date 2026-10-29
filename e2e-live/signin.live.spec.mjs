@@ -137,7 +137,7 @@ test('signed in at 412 px: no gap above the band, a tapped tab slides, toasts si
   await expect(page.locator('#folders')).toBeVisible();
   // toasts: the stack's bottom edge clears the tab bar's top
   const gap = await page.evaluate(() => {
-    const t = document.getElementById('toasts');
+    const t = document.querySelector('#toasts .toasts');   // the region app-ui's toaster() adds inside the host
     const m = document.createElement('div'); m.className = 'toast'; m.textContent = 'Test toast'; t.append(m);
     const r = m.getBoundingClientRect(), b = document.querySelector('.ui-tabbar').getBoundingClientRect();
     return { toastBottom: r.bottom, tabTop: b.top };
