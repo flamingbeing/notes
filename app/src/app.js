@@ -5,6 +5,7 @@ import { start, usingEmulator, emulatorSignIn } from './cloud.js';
 import { fillIcons } from './icons.js';
 import { $, dialog } from './shell/dom.js';
 import { screenSwitch } from './shell/screen-switch.js';
+import { saveSnap, dropSnap, takeOver } from './shell/snap.js';
 import { signedOutScreen } from './screens/signed-out.js';
 import { noAccessScreen } from './screens/no-access.js';
 import { notSetUpScreen } from './screens/not-set-up.js';
@@ -58,22 +59,33 @@ else {
   $('sign-out').addEventListener('click', async () => {
     dialog('settings-panel').close();
     kit.tabs?.go('#home');
+    dropSnap();
     const unsent = await app.signOut();
     $('sign-out-msg').textContent = unsent
       ? `Signed out. ${plural(unsent, 'unsent change')} kept on this device; they send when you sign in again.`
       : 'Signed out. The list is kept on this device for your next sign-in.';
   });
+  // the list as shown, kept for the next start (public/snap.js paints it at once): a moment after it changes, and on leaving
+  let snapTimer = 0;
+  // (when the page is idle, so a swipe or typing never waits on it)
+  const keepSnap = () => { clearTimeout(snapTimer); snapTimer = window.setTimeout(() => (window.requestIdleCallback || setTimeout)(() => saveSnap()), 1000); };
+  document.addEventListener('visibilitychange', () => { if (document.hidden) { clearTimeout(snapTimer); saveSnap(); } });
   app.follow({
     onState(s) {
       $('who').textContent = s.user ? s.user.email : '';
       for (const id of ['open-settings', 'open-settings-w']) $(id).hidden = !s.user;
       if (s.phase === 'ready') spaces.draw(s);
       if (s.user) $('sign-out-msg').textContent = '';
+      if (s.phase !== 'ready') { takeOver(); dropSnap(); }
       show(s);
     },
     onList(items, changed) {
+      const tapped = takeOver();
       list.draw(items, changed);
       window.starter.ready = true;
+      // (unless a note is open already: the one open before a reload comes back by itself)
+      if (tapped && !dialog('edit').open) /** @type {HTMLElement | null} */ ($('items').querySelector(`li[data-id="${CSS.escape(tapped)}"]`))?.click();
+      keepSnap();
     },
     onFiles() { list.files(); },
     // a clash with another device's edit: the other device's text stays, this device's is kept as its own note

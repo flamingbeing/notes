@@ -317,7 +317,7 @@ test('line spacing: the formatting bar’s last button steps Tight, Normal, Room
   await expect(btn).toHaveAccessibleName('Line spacing: Tight');
   await expect.poll(lh).toBeCloseTo(1.4, 1);
   await page.reload();
-  await expect(page.locator('#list-view')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
   // (the open note comes back by itself after a reload)
   if (!await page.locator('#edit').isVisible()) await openNote(page, title);
   await ready(page);
