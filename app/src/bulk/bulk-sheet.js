@@ -1,6 +1,7 @@
 // Bulk edit's one popup (#bulk): what to do to the notes picked in the list: add a tag, move to a folder, merge into one
-// note, or delete (to the bin). The work on the notes is bulk.js; this runs it through the app's saves.
-import { confirmModal } from '@core/ui';
+// note, or delete (to the bin; the select bar's bin button too). The work on the notes is bulk.js; this runs it
+// through the app's saves.
+import { confirmModal, plural } from '@core/ui';
 import { $, input, dialog } from '../shell/dom.js';
 import { addTag, moveTo, mergeNotes } from './bulk.js';
 
@@ -45,13 +46,22 @@ export function bulkSheet(app, toast) {
     if (refused) return refused;
     return removeAll(m.remove);
   }));
-  $('bulk-delete').addEventListener('click', () => void run(async () => {
-    if (!await confirmModal(`Delete ${notes.length} notes? They go to the bin.`, { title: 'Delete notes', danger: true, yes: 'Delete' })) return 'Not deleted';
-    return removeAll(notes);
-  }));
+  /** @param {Note[]} list -> '' or why not (asked first: they go to the bin) */
+  const trash = async list => {
+    if (!await confirmModal(`Delete ${plural(list.length, 'note')}? They go to the bin.`, { title: 'Delete notes', danger: true, yes: 'Delete' })) return 'Not deleted';
+    return removeAll(list);
+  };
+  $('bulk-delete').addEventListener('click', () => void run(() => trash(notes)));
   $('bulk-close').addEventListener('click', () => sheet.close());
   return {
     /** @param {Note[]} picked @param {() => void} finished  called once an action has gone through */
     open(picked, finished) { notes = picked; done = finished; fill(); sheet.showModal(); },
+    /** the select bar's bin button: the picked notes to the bin, straight from the list @param {Note[]} picked @param {() => void} finished */
+    async trash(picked, finished) {
+      if (!picked.length) return;
+      const why = await trash(picked);
+      toast(why || 'Moved to the bin');
+      if (!why) finished();
+    },
   };
 }

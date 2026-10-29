@@ -55,6 +55,36 @@ test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it
   await expect(a.locator('#items .ui-row', { hasText: z })).toBeVisible();
 });
 
+test('Back ends select mode instead of leaving; the bar\'s bin button sends the picked notes to the bin', async ({ phone }) => {
+  const a = await phone();
+  await signIn(a, 'member');
+  const x = uniq('bx'), y = uniq('by');
+  expect(await add(a, x)).toBe('');
+  expect(await add(a, y)).toBe('');
+  await turnOn(a, 'bulkEdit', 'binScreen');
+  const app = a.url();
+  await a.click('#select');
+  await expect(a.locator('#items')).toHaveClass(/is-editing/);
+  await a.goBack();
+  await expect(a.locator('#items')).not.toHaveClass(/is-editing/);
+  expect(a.url()).toBe(app);
+  // Done takes its history step back too: a later Back is not swallowed
+  await a.click('#select');
+  await a.click('#select');
+  await expect(a.locator('#items')).not.toHaveClass(/is-editing/);
+  await a.click('#select');
+  for (const t of [x, y]) await a.locator('#items .ui-row', { hasText: t }).click();
+  await a.click('#bulk-bin');
+  await a.getByRole('button', { name: 'Delete', exact: true }).click();
+  await expect(a.locator('.toast', { hasText: 'Moved to the bin' })).toBeVisible();
+  await expect(a.locator('#items')).not.toHaveClass(/is-editing/);
+  for (const t of [x, y]) await expect(a.locator('#items .ui-row', { hasText: t })).toHaveCount(0);
+  await synced(a);
+  await a.click('#open-settings');
+  await a.click('#open-bin');
+  for (const t of [x, y]) await expect(a.locator('#bin-items li', { hasText: t })).toBeVisible();
+});
+
 test('feedback: a member sends, an admin reads and marks it done', async ({ phone }) => {
   const a = await phone();
   await signIn(a, 'member');
