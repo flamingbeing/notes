@@ -1,10 +1,10 @@
 // The D2 modules, each off until the device turns it on: bulk edit (tag, merge, delete to the bin), the bin (restore),
 // feedback (a member sends, an admin reads), and share-in's chooser.
-import { test, expect, signIn, synced, uniq, toNotes } from './fixtures.mjs';
+import { test, expect, signIn, synced, uniq, toNotes, reveal } from './fixtures.mjs';
 
 const turnOn = async (page, ...names) => {
   await page.click('#open-settings');
-  for (const n of names) await page.check(`#opt-${n}`);
+  for (const n of names) { await reveal(page, `#opt-${n}`); await page.check(`#opt-${n}`); }
   await page.evaluate(() => document.getElementById('tab-notes').click());
 };
 const add = (page, title, body = 'text') => page.evaluate(([t, b]) => window.starter.add(t, b), [title, body]);
@@ -15,10 +15,14 @@ test('every option starts on: Select, Bin and Feedback are there; each can be sw
   await synced(a);
   await expect(a.locator('#select')).toBeVisible();
   await a.click('#open-settings');
+  await reveal(a, '#open-bin');
   await expect(a.locator('#open-bin')).toBeVisible();
+  await reveal(a, '#open-feedback');
   await expect(a.locator('#open-feedback')).toBeVisible();
-  for (const n of ['binScreen', 'bulkEdit', 'shareIn', 'feedbackOn']) await expect(a.locator(`#opt-${n}`)).toBeChecked();
+  for (const n of ['binScreen', 'bulkEdit', 'shareIn', 'feedbackOn']) { await reveal(a, `#opt-${n}`); await expect(a.locator(`#opt-${n}`)).toBeChecked(); }
+  await reveal(a, '#opt-binScreen');
   await a.uncheck('#opt-binScreen');
+  await reveal(a, '#open-bin');
   await expect(a.locator('#open-bin')).toBeHidden();
 });
 
@@ -46,6 +50,7 @@ test('bulk edit tags and merges, a delete goes to the bin, and the bin brings it
   await synced(a);
   // the merged originals are in the bin; bring one back
   await a.click('#open-settings');
+  await reveal(a, '#open-bin');
   await a.click('#open-bin');
   await expect(a.locator('#bin-items li', { hasText: y })).toBeVisible();
   await a.locator('#bin-items li', { hasText: y }).getByRole('button', { name: 'Restore' }).click();
@@ -81,6 +86,7 @@ test('Back ends select mode instead of leaving; the bar\'s bin button sends the 
   for (const t of [x, y]) await expect(a.locator('#items .ui-row', { hasText: t })).toHaveCount(0);
   await synced(a);
   await a.click('#open-settings');
+  await reveal(a, '#open-bin');
   await a.click('#open-bin');
   for (const t of [x, y]) await expect(a.locator('#bin-items li', { hasText: t })).toBeVisible();
 });
@@ -91,6 +97,7 @@ test('feedback: a member sends, an admin reads and marks it done', async ({ phon
   await turnOn(a, 'feedbackOn');
   const text = uniq('fb');
   await a.click('#open-settings');
+  await reveal(a, '#open-feedback');
   await a.click('#open-feedback');
   await a.fill('#feedback-text', text);
   await a.click('#feedback-send');
@@ -100,6 +107,7 @@ test('feedback: a member sends, an admin reads and marks it done', async ({ phon
   await signIn(b, 'admin');
   await turnOn(b, 'feedbackOn');
   await b.click('#open-settings');
+  await reveal(b, '#open-feedback');
   await b.click('#open-feedback');
   await expect(b.locator('#feedback-items li', { hasText: text })).toBeVisible();
   await b.locator('#feedback-items li', { hasText: text }).getByRole('button', { name: 'Done' }).click();

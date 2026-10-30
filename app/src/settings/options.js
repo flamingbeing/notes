@@ -5,6 +5,15 @@ export const SETTINGS_COLL = 'settings';
 /** a folder as typed -> as kept: no slashes at the ends, at most 200 characters @param {unknown} v */
 function folder(v) { return String(v ?? '').trim().replace(/^\/+|\/+$/g, '').slice(0, 200); }
 
+/** the tab bar as arranged (Settings → Tab bar; the kit's arrangeTabs reads it): the order and the tabs off the bar, as
+ * the kit's cleanTabs keeps them (written out here: the unit tests read this file in Node, without the kit)
+ * @param {unknown} v */
+function tabs(v) {
+  const ids = (/** @type {unknown} */ l) => (Array.isArray(l) ? [...new Set(l.filter(x => typeof x === 'string' && /^[\w-]{1,40}$/.test(x)))].slice(0, 40) : []);
+  const o = /** @type {any} */ (v && typeof v === 'object' ? v : {});
+  return { order: ids(o.order), hidden: ids(o.hidden) };
+}
+
 /** @type {Record<string, import('app-ui/settings/types').OptionSpec>} */
 export const OPTIONS = {
   // this device only: a phone and a computer can differ
@@ -32,6 +41,8 @@ export const OPTIONS = {
   feedbackOn: { scope: 'device', default: true },
   // Advanced: the one-time code for the Notes MCP server (Connect MCP)
   mcpOn: { scope: 'device', default: true },
+  // the tab bar's order and the tabs off it (this device)
+  tabs: { scope: 'device', default: { order: [], hidden: [] }, clean: tabs },
 };
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */

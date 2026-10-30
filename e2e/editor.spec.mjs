@@ -2,7 +2,7 @@
 // [[ offers notes, pasted HTML becomes Markdown, saves happen by themselves, the read view is cleaned, and the quick
 // switcher and command palette reach notes. Made-up notes only.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer , openSettings, closeSettings } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, serverHas, uniq, fillBody, drawer , openSettings, closeSettings, reveal } from './fixtures.mjs';
 
 const VENDOR = /\/vendor\/(codemirror|marked|dompurify)\//;
 const content = page => page.locator('#edit-cm .cm-content');
@@ -152,7 +152,7 @@ for (const [theme, dark] of [['light', ''], ['dark', ''], ['dark', 'oled']]) {
     const page = await phone();
     await signIn(page, 'member');
     await openSettings(page);
-    await page.getByLabel('Theme').selectOption(theme);
+    await reveal(page, '#theme-pick'); await page.getByLabel('Theme').selectOption(theme);
     if (dark) await page.getByLabel('Dark style').selectOption(dark);
     await page.evaluate(() => document.getElementById('tab-notes').click());
     await expect(page.locator('#settings')).toBeHidden();
@@ -317,6 +317,7 @@ test('ticking a to-do moves it below the open ones when the setting is on', asyn
   const page = await phone();
   await signIn(page, 'member');
   await openSettings(page);
+  await reveal(page, '#opt-tickToBottom');
   await page.locator('#opt-tickToBottom').check();
   await closeSettings(page);
   const t = uniq('tick');

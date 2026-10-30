@@ -1,7 +1,7 @@
 // @core/drive on the Drive sheet, against a fake Drive (app/test/fake-drive.mjs answers googleapis.com): off until
 // allowed; one tap writes a Markdown file per note; the next tap sends only what changed; the person's edits in Drive
 // are kept and merged; the open sheet passes axe. The real Drive is checked by hand after a change (STATUS.md).
-import { test, expect, signIn, add, openNote, fillBody } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, fillBody, reveal } from './fixtures.mjs';
 import AxeBuilder from './axe.mjs';
 import { fakeDrive, parseMultipart } from '../app/test/fake-drive.mjs';
 
@@ -16,7 +16,7 @@ async function withDrive(page) {
   });
   return drive;
 }
-const openDrive = async page => { await page.click('#open-settings'); await page.click('#open-drive'); await expect(page.locator('#drive')).toBeVisible(); };
+const openDrive = async page => { await page.click('#open-settings'); await reveal(page, '#open-drive'); await page.click('#open-drive'); await expect(page.locator('#drive')).toBeVisible(); };
 
 test('off until allowed; Sync now writes a file per note, then only what changed', async ({ phone }) => {
   const a = await phone();

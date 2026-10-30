@@ -123,6 +123,21 @@ export async function openSettings(page) {
   await page.click('#open-settings');
   await expect(page.locator('#settings')).toBeVisible();
 }
+// The Settings page holding selector opened (Settings opens on a menu with a page per section, as the logbook's);
+// nothing to do when it shows already or isn't on a page
+export async function reveal(page, selector) {
+  await page.waitForSelector(selector, { state: 'attached' });
+  const at = await page.evaluate(sel => {
+    const g = document.querySelector(sel)?.closest('.ui-settings-group');
+    if (!g || !g.hidden) return null;
+    const open = [...document.querySelectorAll('.ui-settings-group')].some(x => !x.hidden);
+    return { title: g.querySelector('.ui-settings-title')?.textContent || '', open };
+  }, selector);
+  if (!at) return;
+  if (at.open) await page.locator('.ui-settings-group:not([hidden]) .ui-settings-back').click();
+  const esc = at.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  await page.locator('.ui-settings-menu-groups .ui-settings-go').filter({ hasText: new RegExp(`^${esc}`) }).first().click();
+}
 // Back to the Notes tab (a phone's Settings and Folders are tab pages, not sheets)
 export async function closeSettings(page) {
   await toNotes(page);

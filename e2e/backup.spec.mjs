@@ -1,9 +1,9 @@
 // Backup: a space's notes as one file (.json.gz, CSV, Excel) and a restore into another account that only adds; a second
 // restore adds nothing (the dry run says so), and the spreadsheets read back as the same backup.
 import fs from 'node:fs';
-import { test, expect, signIn, add, synced, uniq, serverHas } from './fixtures.mjs';
+import { test, expect, signIn, add, synced, uniq, serverHas, reveal } from './fixtures.mjs';
 
-const OPEN = async page => { await page.click('#open-settings'); await page.click('#open-transfer'); await expect(page.locator('#transfer')).toBeVisible(); };
+const OPEN = async page => { await page.click('#open-settings'); await reveal(page, '#open-transfer'); await page.click('#open-transfer'); await expect(page.locator('#transfer')).toBeVisible(); };
 
 async function saveAs(page, button) {
   const [download] = await Promise.all([page.waitForEvent('download'), page.click(button)]);

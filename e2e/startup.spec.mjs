@@ -1,6 +1,6 @@
 // Startup: the list as last shown paints before any module loads (public/snap.js), a row tapped then opens once the
 // app is ready, and signing out forgets it.
-import { test, expect, signIn, add, openSettings, uniq, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openSettings, uniq, APP, reveal } from './fixtures.mjs';
 
 test('the last list paints at once; a tap waits for the app; sign-out forgets it', async ({ phone }) => {
   const page = await phone();
@@ -26,6 +26,7 @@ test('the last list paints at once; a tap waits for the app; sign-out forgets it
   // signed out: nothing kept, the next start is the sign-in screen with no list behind it
   await page.locator('#edit button[value=close]').click();
   await openSettings(page);
+  await reveal(page, '#sign-out');
   await page.click('#sign-out');
   await expect(page.locator('#signed-out')).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('notes:snap'))).toBeNull();

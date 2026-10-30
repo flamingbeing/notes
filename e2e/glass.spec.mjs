@@ -2,7 +2,7 @@
 // the modules run), solid where the device asks for less transparency or more contrast, axe on glass, the screen
 // switch as a view transition. Screenshots of the sample in light, dark, OLED and Solid go to test-results/ for the PR.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, openSettings, APP } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, openSettings, APP, reveal } from './fixtures.mjs';
 
 /** @param {import('@playwright/test').Page} page @param {string} sel @param {string} prop */
 const style = (page, sel, prop) => page.locator(sel).first().evaluate((e, p) => getComputedStyle(e).getPropertyValue(p), prop);
@@ -26,13 +26,13 @@ test('glass by default (look A); Solid in the switch takes it off, kept on reloa
   expect(await style(page, '.ui-tabbar', 'backdrop-filter')).toContain('blur');
   expect(await style(page, '.ui-tabbar', 'background-color')).toMatch(/color\(srgb .* \/ 0\.\d+\)|rgba\(/);   // see-through
 
-  await openSettings(page);
+  await openSettings(page); await reveal(page, '#theme-pick');
   await page.getByLabel('Bars and sheets').selectOption('solid');
   await expect(root).not.toHaveClass(/\bglass\b/);
   expect(await style(page, '.ui-tabbar', 'backdrop-filter')).toBe('none');
   await page.reload();
   await expect(root).not.toHaveClass(/\bglass\b/);
-  await openSettings(page);
+  await openSettings(page); await reveal(page, '#theme-pick');
   await expect(page.getByLabel('Bars and sheets')).toHaveValue('solid');
 
   // (early.js takes the class off before any module runs: shown with the theme modules kept from loading)
@@ -41,7 +41,7 @@ test('glass by default (look A); Solid in the switch takes it off, kept on reloa
   await expect(root).not.toHaveClass(/\bglass\b/);
   await page.unroute('**/theme/index.js');
   await page.goto(APP);
-  await openSettings(page);
+  await openSettings(page); await reveal(page, '#theme-pick');
   await page.getByLabel('Bars and sheets').selectOption('glass');
   await expect(root).toHaveClass(/\bglass\b/);
 });
@@ -76,7 +76,7 @@ test('the sample in light, dark, OLED and Solid: axe on the tab bar, a toast and
   await expect(page.locator('#items .ui-row', { hasText: /^Sample note 14$/ })).toBeVisible();
   for (const [name, pick] of MODES) {
     await page.evaluate(() => scrollTo(0, 0));   // (the tab bar folds away when scrolled)
-    await openSettings(page);
+    await openSettings(page); await reveal(page, '#theme-pick');
     await page.getByLabel('Theme').selectOption(pick.theme);
     await page.getByLabel('Dark style').selectOption(pick.dark);
     await page.getByLabel('Bars and sheets').selectOption(pick.material);

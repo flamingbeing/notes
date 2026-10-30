@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { zipSync, unzipSync } from 'fflate';
-import { test, expect, signIn, add, openNote, synced, uniq, drawer, details, toNotes } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, uniq, drawer, details, toNotes, reveal } from './fixtures.mjs';
 
 const VAULT = path.resolve('e2e/fixtures/vault');
 const PNG = path.join(VAULT, 'Ideas/img/sprout.png');
@@ -71,6 +71,7 @@ test('import a vault from a folder: a dry run first; a second run adds nothing; 
   const a = await phone();
   await signIn(a, 'member');
   await a.click('#open-settings');
+  await reveal(a, '#open-transfer');
   await a.click('#open-transfer');
   await expect(a.locator('#transfer')).toBeVisible();
   await a.setInputFiles('#transfer-folder', VAULT);
@@ -85,6 +86,7 @@ test('import a vault from a folder: a dry run first; a second run adds nothing; 
 
   // again: everything is there, so nothing would be added
   await a.click('#open-settings');
+  await reveal(a, '#open-transfer');
   await a.click('#open-transfer');
   await a.setInputFiles('#transfer-folder', VAULT);
   await expect(a.locator('#transfer-plan')).toHaveText(/^0 notes, 0 files; 5 skipped \(4 already there, 1 app folder\)$/);
@@ -110,6 +112,7 @@ test('import a vault from a zip (one top folder, a path that tries to leave it i
   const zipPath = path.join(tmp(), 'vault.zip');
   fs.writeFileSync(zipPath, zipSync(files));
   await a.click('#open-settings');
+  await reveal(a, '#open-transfer');
   await a.click('#open-transfer');
   await a.setInputFiles('#transfer-zip', zipPath);
   await expect(a.locator('#transfer-plan')).toHaveText('2 notes, 0 files; 2 skipped (1 unsafe path, 1 app folder)');

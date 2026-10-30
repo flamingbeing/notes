@@ -1,6 +1,6 @@
 // The 1.0 engine features the starter shows: sign-out keeps this device's data, forget wipes it, refused saves wait
 // in a list, the note sheet follows its note live (watchDoc), the list marks what changed, and "Check for updates".
-import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, uniq, db, notePathOf, APP , openSettings } from './fixtures.mjs';
+import { test, expect, signIn, signInAgain, add, openNote, synced, serverHas, uniq, db, notePathOf, APP , openSettings, reveal } from './fixtures.mjs';
 
 const kept = page => page.evaluate(async () => {
   let n = 0;
@@ -27,6 +27,7 @@ test('sign-out keeps the phone’s data and unsent saves; the same account carri
   await page.context().setOffline(true);
   await add(page, t);
   await openSettings(page);
+  await reveal(page, '#sign-out');
   await page.click('#sign-out');
   await expect(page.locator('#signed-out')).toBeVisible();
   await expect(page.locator('#sign-out-msg')).toContainText('kept on this device');
@@ -45,6 +46,7 @@ test('forget this device: refused while unsent, then wipes the phone', async ({ 
   await page.context().setOffline(true);
   await add(page, uniq('unsent'));
   await openSettings(page);
+  await reveal(page, '#sign-out');
   await page.click('#sign-out');
   await page.click('#forget');
   await expect(page.locator('#forget-msg')).toContainText('not sent yet');
@@ -119,6 +121,7 @@ test('check for updates: a new version takes over at once', async ({ phone }) =>
   await page.evaluate(() => { window.__same = true; });
   await page.request.get('/__test/bump');
   await page.click('#open-settings');
+  await reveal(page, '.ui-check-update');
   await page.click('.ui-check-update');
   await expect.poll(() => page.evaluate(() => window.__same).catch(() => undefined), { timeout: 30_000 }).toBeUndefined();
 });
