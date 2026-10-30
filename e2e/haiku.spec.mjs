@@ -37,6 +37,10 @@ test('an admin pastes, runs, undoes and copies; the text is never stored', async
   await page.click('#haiku-undo');
   await expect(page.locator('#haiku-text')).toHaveValue('pt for lap chole, fasted from 0200');
   await expect(page.locator('#haiku-undo')).toBeHidden();
+  await page.click('#haiku-clear');
+  await expect(page.locator('#haiku-text')).toHaveValue('');
+  await page.click('#haiku-undo');
+  await expect(page.locator('#haiku-text')).toHaveValue('pt for lap chole, fasted from 0200');
   await page.click('#haiku-run');
   await page.click('#haiku-copy');
   await expect(page.locator('#toasts')).toContainText('Copied');
