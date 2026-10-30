@@ -4,7 +4,8 @@
 // own page (note-page.js): full screen on a phone, beside the list from 600 px. Hold or right-click a row for its menu;
 // Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
 // notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
-import { refusedList, toaster, emptyState, adaptiveShell, confirmModal, createTransients } from '@core/ui';
+import { refusedList, toaster, emptyState, adaptiveShell, confirmModal } from '@core/ui';
+import { transients as sharedTransients } from '../shell/transients.js';
 import { createSearch, parseQuery } from '@core/search';
 import { plainLines, snippetOf } from '../notes/snippet.js';
 import { COLL } from '../cloud.js';
@@ -222,7 +223,7 @@ export function listScreen(app, kit) {
   /** @type {string | undefined} */ let role;
   const bin = binSheet(app, msg => toast(msg), () => canWrite);
   const bulk = bulkSheet(app, msg => toast(msg));
-  const transients = createTransients({ history, location, events: window });
+  const transients = sharedTransients();
   const share = shareSheet(app, msg => toast(msg), note => void page.open(note));
   const feedback = feedbackSheet(app, msg => toast(msg), () => role === 'admin');
   const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings-panel')).close();

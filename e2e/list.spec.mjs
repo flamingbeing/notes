@@ -1,6 +1,6 @@
 // Sign-in, roles from the role doc, and the notes list: add, edit, delete to the bin; filter by tag and folder; today's note.
 import AxeBuilder from './axe.mjs';
-import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody, showOnly, details } from './fixtures.mjs';
+import { test, expect, signIn, add, openNote, synced, serverHas, serverNotes, db, uniq, APP, fillBody, showOnly, details, reveal } from './fixtures.mjs';
 
 test('signed out: the sign-in screen, accessible', { tag: '@smoke' }, async ({ phone }) => {
   const page = await phone();
@@ -79,8 +79,11 @@ test('a new note: + opens an empty page in the folder for new notes; nothing typ
   const page = await phone();
   await signIn(page, 'member');
   await page.click('#open-settings');
+  await reveal(page, '#opt-newFolder');
   await page.fill('#opt-newFolder', 'Inbox/');
+  await reveal(page, '#opt-newFolder');
   await page.locator('#opt-newFolder').press('Tab');
+  await reveal(page, '#opt-newFolder');
   await expect(page.locator('#opt-newFolder')).toHaveValue('Inbox');
   await page.evaluate(() => document.getElementById('tab-notes').click());
 
