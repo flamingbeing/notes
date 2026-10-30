@@ -40,11 +40,11 @@ jobs:
           # }cloud
       # cloud{
       - run: node .devkit/tools/build-rules.mjs app/firestore.app.rules --check
-      # What the first screen loads before it can draw, gzipped (notes 30 Oct 2026, first run: 380 KiB, 91 requests;
-      # template 266 KiB, 41). Each app keeps its own numbers here. Over budget: load the new screen or extra on first use
+      # What the first screen loads before it can draw, gzipped (notes 30 Oct 2026: 380 KiB, 91 requests; with the note
+      # page and sheets on first use 326 KiB, 59; template 266 KiB, 41). Each app keeps its own numbers here. Over budget: load the new screen or extra on first use
       # (@core/ui lazyModules), don't raise it.
       - name: Startup budget
-        run: node .devkit/tools/startup-size.mjs app/index.html --max 385 --max-files 92
+        run: node .devkit/tools/startup-size.mjs app/index.html --max 330 --max-files 60
       # }cloud
       - name: fill values and app/src/config.js are in their canonical form
         run: node tools/fill.mjs --check

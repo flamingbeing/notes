@@ -40,7 +40,6 @@ import { firebaseConfig, APP } from './config.js';
 import { emulator, configured, roleOf, needsClaims } from './shell/roles.js';
 import { OPTIONS, SETTINGS_COLL } from './settings/options.js';
 import { mergeNote, conflictCopy, withDerived, sizeOf, dailyNote, findDaily } from './notes/model.js';
-import { forgetDrive } from '@core/drive';
 import { noteOf } from './bin/bin.js';
 import { renamePlan, linkIndex } from './notes/links.js';
 import { spacesOf, spacesApi, cachedSpaces } from './spaces/spaces.js';
@@ -113,7 +112,7 @@ const keepOpen = (uid, s) => { try { if (s === uid) localStorage.removeItem(OPEN
 // this device's own lists (switch of account, or "Forget this device")
 const forgetLists = async () => {
   try { for (const k of Object.keys(localStorage)) if (/^notes:(spaces|open):/.test(k)) localStorage.removeItem(k); } catch { /* storage off */ }
-  await forgetDrive();
+  await (await import('@core/drive')).forgetDrive();
 };
 /**
  * @typedef {object} Hooks

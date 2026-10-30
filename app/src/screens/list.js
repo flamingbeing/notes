@@ -4,7 +4,7 @@
 // own page (note-page.js): full screen on a phone, beside the list from 600 px. Hold or right-click a row for its menu;
 // Select (when bulk edit is on) is the kit's select mode. The quick switcher and command palette (picker.js) reach
 // notes and actions from the keyboard. A save the server refused waits in the kit's refused list.
-import { refusedList, toaster, emptyState, adaptiveShell, confirmModal } from '@core/ui';
+import { refusedList, toaster, emptyState, adaptiveShell, confirmModal, lazyModules } from '@core/ui';
 import { transients as sharedTransients } from '../shell/transients.js';
 import { createSearch, parseQuery } from '@core/search';
 import { plainLines, snippetOf } from '../notes/snippet.js';
@@ -12,17 +12,24 @@ import { COLL } from '../cloud.js';
 import { isoDay, nextWorkday } from '../notes/model.js';
 import { $, input, dialog, sectionScreen } from '../shell/dom.js';
 import { iconOf } from '../icons.js';
-import { notePage } from './note-page.js';
 import { picker } from './picker.js';
-import { transferSheet } from '../transfer/transfer-sheet.js';
-import { backupSheet } from '../transfer/backup-sheet.js';
-import { driveSheet } from '../drive/drive-sheet.js';
-import { mcpSheet } from '../mcp/mcp-sheet.js';
-import { binSheet } from '../bin/bin-sheet.js';
-import { bulkSheet } from '../bulk/bulk-sheet.js';
-import { shareSheet } from '../share/share-sheet.js';
-import { feedbackSheet } from '../feedback/feedback-sheet.js';
 import { haikuTab } from '../haiku/haiku-tab.js';
+
+// Loaded the first time they are needed, not with the app, so the list draws sooner; warmUp() fetches the rest once
+// it is up (app-ui's lazyModules). Each a literal import(), so the deploy's bundle splits them off.
+const mods = lazyModules({
+  page: () => import('./note-page.js'),
+  transfer: () => import('../transfer/transfer-sheet.js'),
+  backup: () => import('../transfer/backup-sheet.js'),
+  drive: () => import('../drive/drive-sheet.js'),
+  mcp: () => import('../mcp/mcp-sheet.js'),
+  bin: () => import('../bin/bin-sheet.js'),
+  bulk: () => import('../bulk/bulk-sheet.js'),
+  share: () => import('../share/share-sheet.js'),
+  feedback: () => import('../feedback/feedback-sheet.js'),
+});
+/** a sheet made once, the first time it is wanted @template T @param {() => Promise<T>} make @returns {() => Promise<T>} */
+const once = make => { /** @type {Promise<T> | undefined} */ let made; return () => (made ||= make().catch(e => { made = undefined; throw e; })); };
 
 /** @typedef {import('../cloud.js').Note} Note */
 
@@ -180,7 +187,23 @@ export function listScreen(app, kit) {
     return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
   const toast = toaster($('toasts')).show;
-  const page = notePage(app, toast, () => canWrite, note => markOpen(note.id));
+  // the note page: off the first draw's path, but its module starts loading at once (the app's main page; a note may
+  // be opened, or the network lost, before warmUp), and is made then, so a link or a reload's step opens its note
+  /** @type {ReturnType<typeof import('./note-page.js').notePage> | undefined} */ let pageNow;
+  const pageReady = once(() => mods.withMod('page', m => (pageNow = m.notePage(app, toast, () => canWrite, note => markOpen(note.id)))));
+  const page = {
+    /** @param {Note} note */ open: async note => (await pageReady()).open(note),
+    /** @param {string} folder */ draft: async folder => (await pageReady()).draft(folder),
+    current: () => pageNow?.current() ?? null,
+    recent: () => pageNow?.recent() ?? [],
+    redraw: () => pageNow?.redraw(),
+    drawn: () => pageNow?.drawn(),
+    redrawFiles: () => pageNow?.redrawFiles(),
+    toggleRead: () => pageNow?.toggleRead(),
+    tidy: () => pageNow?.tidy(),
+    remove: () => pageNow?.remove(),
+  };
+  void pageReady();
   const haiku = haikuTab(app, toast, note => void page.open(note));
   // a new note: its page opens empty, in the folder for new notes; the first title or text typed makes it
   const newNote = () => {
@@ -210,25 +233,27 @@ export function listScreen(app, kit) {
   /** @param {string} key */
   const flip = key => () => app.settings.set(key, !app.settings.get(key));
   const inNote = () => !!page.current();
-  const transfer = transferSheet(app, msg => toast(msg), () => canWrite);
-  const backup = backupSheet(app, msg => toast(msg), () => canWrite);
-  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); backup.reset(); transfer.open(); });
+  const transfer = once(() => mods.withMod('transfer', m => m.transferSheet(app, msg => toast(msg), () => canWrite)));
+  const backup = once(() => mods.withMod('backup', m => m.backupSheet(app, msg => toast(msg), () => canWrite)));
+  const openTransfer = async () => { const [t, b] = await Promise.all([transfer(), backup()]); b.reset(); t.open(); };
+  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); void openTransfer(); });
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
-  const drive = driveSheet(app, msg => toast(msg), () => openSpace);
-  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); drive.open(); });
-  const mcp = mcpSheet(app, msg => toast(msg));
-  $('open-mcp').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); mcp.open(); });
+  const drive = once(() => mods.withMod('drive', m => m.driveSheet(app, msg => toast(msg), () => openSpace)));
+  const openDrive = async () => (await drive()).open();
+  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); void openDrive(); });
+  const mcp = once(() => mods.withMod('mcp', m => m.mcpSheet(app, msg => toast(msg))));
+  $('open-mcp').addEventListener('click', async () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); (await mcp()).open(); });
   // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn, mcpOn)
   const on = (/** @type {string} */ key) => !!app.settings.get(key);
   /** @type {string | undefined} */ let role;
-  const bin = binSheet(app, msg => toast(msg), () => canWrite);
-  const bulk = bulkSheet(app, msg => toast(msg));
+  const bin = once(() => mods.withMod('bin', m => m.binSheet(app, msg => toast(msg), () => canWrite)));
+  const bulk = once(() => mods.withMod('bulk', m => m.bulkSheet(app, msg => toast(msg))));
   const transients = sharedTransients();
-  const share = shareSheet(app, msg => toast(msg), note => void page.open(note));
-  const feedback = feedbackSheet(app, msg => toast(msg), () => role === 'admin');
+  const share = once(() => mods.withMod('share', m => m.shareSheet(app, msg => toast(msg), note => void page.open(note))));
+  const feedback = once(() => mods.withMod('feedback', m => m.feedbackSheet(app, msg => toast(msg), () => role === 'admin')));
   const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings-panel')).close();
-  $('open-bin').addEventListener('click', () => { closeSettings(); bin.open(); });
-  $('open-feedback').addEventListener('click', () => { closeSettings(); feedback.open(); });
+  $('open-bin').addEventListener('click', async () => { closeSettings(); (await bin()).open(); });
+  $('open-feedback').addEventListener('click', async () => { closeSettings(); (await feedback()).open(); });
   const modules = () => {
     $('open-bin').hidden = !on('binScreen');
     $('open-mcp').hidden = !on('mcpOn');
@@ -249,8 +274,8 @@ export function listScreen(app, kit) {
   };
   /** the notes ticked in select mode */
   const ticked = () => (select()?.selected() || []).map(r => all.find(n => n.id === r.dataset.id)).filter(/** @returns {n is Note} */ n => !!n);
-  $('bulk-edit').addEventListener('click', () => bulk.open(ticked(), () => select()?.setEditing(false)));
-  $('bulk-bin').addEventListener('click', () => void bulk.trash(ticked(), () => select()?.setEditing(false)));
+  $('bulk-edit').addEventListener('click', async () => { const notes = ticked(); (await bulk()).open(notes, () => select()?.setEditing(false)); });
+  $('bulk-bin').addEventListener('click', async () => { const notes = ticked(); void (await bulk()).trash(notes, () => select()?.setEditing(false)); });
   // select mode takes one history step, so Back (Android's button or gesture) ends it instead of leaving the app;
   // Done, Escape or a finished action end it and take the step back
   /** @type {ReturnType<typeof transients.open> | null} */ let selectStep = null;
@@ -287,8 +312,8 @@ export function listScreen(app, kit) {
       { id: 'source', label: 'Toggle source mode (Markdown as written)', run: flip('sourceMode') },
       { id: 'numbers', label: 'Toggle line numbers', run: flip('lineNumbers') },
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
-      { id: 'transfer', label: 'Import or export notes', run: transfer.open },
-      { id: 'drive', label: 'Google Drive', run: drive.open },
+      { id: 'transfer', label: 'Import or export notes', run: () => void openTransfer() },
+      { id: 'drive', label: 'Google Drive', run: () => void openDrive() },
       { id: 'settings', label: 'Open settings', run: () => ($('open-settings-w').getClientRects().length ? $('open-settings-w') : $('open-settings')).click() },
     ],
   });
@@ -387,8 +412,9 @@ export function listScreen(app, kit) {
     empty.show(notes.length === 0 && canWrite);
     if (!swept && canWrite) {   // once per page: a share that opened it (an empty space too), and the bin's 30-day purge
       swept = true;
-      void share.check();
-      void bin.sweep();
+      if (new URLSearchParams(location.search).has('share')) void share().then(s => s.check());
+      void bin().then(b => b.sweep());
+      mods.warmUp();   // the list is up: the rest load one per idle moment, so a sheet or note opens at once
     }
     page.redraw();
     page.drawn();
