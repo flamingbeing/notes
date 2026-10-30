@@ -1,7 +1,7 @@
 {
   "template": "flamingbeing/app-starter",
   "version": "0.2.0",
-  "commit": "8315b24",
+  "commit": "39f351e",
   "app": {
     "name": "notes",
     "host": "notes.flamingbeing.com",
@@ -24,7 +24,24 @@
       "app/src/screens/list.js",
       "app/firestore.rules",
       "app/firestore.app.rules",
-      "app/test/rules.test.mjs"
+      "app/test/rules.test.mjs",
+      "app/src/hint.js",
+      "app/src/items.js",
+      "app/src/shell.js",
+      "app/src/task-ops.js",
+      "app/src/tasks.js",
+      "app/src/screens/lists.js",
+      "app/src/screens/tasks.js",
+      "app/src/screens/task-sheet.js",
+      "app/test/tasks.unit.test.mjs",
+      "docs/screenshots/*",
+      "e2e/tabs.spec.mjs",
+      "e2e/tasks.spec.mjs",
+      "worker/sites.js",
+      "worker/test/sites.test.mjs",
+      "worker/admin.js",
+      "worker/modules.js",
+      "tools/test/fill.test.mjs"
     ]
   }
 }

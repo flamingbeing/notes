@@ -1,13 +1,13 @@
 // Turns a copy of this template into one app: its name, address, design kit and Firebase project.
 //
-//   node tools/fill.mjs --name <name> --host <host> --kit homedesign|nuhs --project <firebase-project-id>
+//   node tools/fill.mjs --name <name> --host <host> --kit homedesign|nuhs|ntf --project <firebase-project-id>
 //                       [--title "<Title>"] [--accent '#rrggbb'] [--web-config <file.json>] [--commit <template sha>] [--dir <repo>] [--check]
-//   node tools/fill.mjs --static --name <name> --host <host> --kit homedesign|nuhs [...]   a static app: no sign-in, no
+//   node tools/fill.mjs --static --name <name> --host <host> --kit homedesign|nuhs|ntf [...]   a static app: no sign-in, no
 //                       Firebase project (tools/flavour.mjs renders it first; README, "Pick a starter")
 //
 // The values in use now are in .starter.json ("app"); each is replaced by the new one in every text file (the emulator
 // project demo-<name>, the kit's address, the host, the name, the title), app/src/config.js is written afresh (with the
-// default look's colour from --accent, else kept, and the web app's apiKey and appId from --web-config: the JSON
+// default look's colour from --accent, else kept (a kit's own default follows the kit: ntf's wine), and the web app's apiKey and appId from --web-config: the JSON
 // `firebase apps:sdkconfig WEB` prints), and wrangler.jsonc's FIREBASE_PROJECT is set. Running it again with the same
 // values changes nothing. --check changes nothing and exits 1 when a run would. Prints the files it changed. A static app
 // (.starter.json "flavour") keeps its project as it is (unused until `node tools/add.mjs cloud --project <id>`) and has
@@ -19,7 +19,9 @@ import { fileURLToPath } from 'node:url';
 import { renderDir } from './flavour.mjs';
 import { after } from './update-from-starter.mjs';
 
-export const KITS = { homedesign: 'https://design.flamingbeing.com', nuhs: 'https://design.anawj.com' };
+export const KITS = { homedesign: 'https://design.flamingbeing.com', nuhs: 'https://design.anawj.com', ntf: 'https://design.anantf.com' };
+// a kit's own default look colour; a kit with none takes ACCENT
+export const KIT_ACCENT = { ntf: '#633d3c' };
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.devkit', 'test-results', 'playwright-report']);
 // never changed: these three name the placeholders on purpose; the other two are app-devkit's files (CI compares them)
 const KEEP = ['tools/fill.mjs', 'tools/test/fill.test.mjs', 'tools/test/update-from-starter.test.mjs', 'worker/claims.js', 'worker/custom-token.js'];
@@ -81,18 +83,18 @@ export const fixup = (rel, text, app) => rel === 'wrangler.jsonc' ? text.replace
 
 // the default look's colour (@core/theme) when --accent names none and config.js has none yet
 export const ACCENT = '#3a6390';
-const configJs = (app, web, accent) => `// The app's settings. tools/fill.mjs writes the name, host, kit and Firebase project here; --web-config adds the web
+const configJs = (app, web, accent, extra = {}) => `// The app's settings. tools/fill.mjs writes the name, host, kit and Firebase project here; --web-config adds the web
 // app's apiKey and appId (\`firebase apps:sdkconfig WEB\`). A public client config, not a secret: the Firestore rules
 // decide who sees what. Until apiKey is set the app runs only against the local emulators (?emulator on localhost).
 // accent: the default look's colour (@core/theme; boot.js), set with --accent.
-export const APP = ${JSON.stringify({ name: app.name, title: app.title, host: app.host, accent })};
+export const APP = ${JSON.stringify({ name: app.name, title: app.title, host: app.host, accent, ...extra })};
 export const KIT = '${KITS[app.kit]}/v1/';
 export const firebaseConfig = ${JSON.stringify(web, null, 2)};
 `;
-const staticConfigJs = (app, accent) => `// The app's settings. tools/fill.mjs writes the name, title, host and kit here. A static app has no Firebase project:
+const staticConfigJs = (app, accent, extra = {}) => `// The app's settings. tools/fill.mjs writes the name, title, host and kit here. A static app has no Firebase project:
 // its data stays on the device (local.js); \`node tools/add.mjs cloud --project <id>\` adds one.
 // accent: the default look's colour (@core/theme; boot.js), set with --accent.
-export const APP = ${JSON.stringify({ name: app.name, title: app.title, host: app.host, accent })};
+export const APP = ${JSON.stringify({ name: app.name, title: app.title, host: app.host, accent, ...extra })};
 export const KIT = '${KITS[app.kit]}/v1/';
 `;
 
@@ -123,7 +125,13 @@ export function fill({ dir = '.', check = false, static: flat = false, log = () 
   const cfgPath = path.join(dir, 'app/src/config.js');
   const before = fs.readFileSync(cfgPath, 'utf8');
   const kept = JSON.parse(before.match(/export const firebaseConfig = (\{[\s\S]*?\});/)?.[1] || '{}');
-  const accent = (opts.accent ?? JSON.parse(before.match(/export const APP = (\{.*\});/)?.[1] || '{}').accent ?? ACCENT).toLowerCase();
+  // a kept colour that is the old kit's default follows a new kit to its own
+  const keptApp = JSON.parse(before.match(/export const APP = (\{.*\});/)?.[1] || '{}');
+  const keptAccent = keptApp.accent?.toLowerCase();
+  // the app's own APP keys (a look, a surface) stay as they are
+  const extra = Object.fromEntries(Object.entries(keptApp).filter(([k]) => !['name', 'title', 'host', 'accent'].includes(k)));
+  const kitDefault = kit => KIT_ACCENT[kit] ?? ACCENT;
+  const accent = (opts.accent ?? (keptAccent && keptAccent !== kitDefault(old.kit) ? keptAccent : kitDefault(app.kit))).toLowerCase();
   if (!/^#[0-9a-f]{6}$/.test(accent)) throw new Error(`--accent '${accent}': a colour like #3a6390`);
   let web = { projectId: app.project, authDomain: app.host, apiKey: '', appId: '' };
   if (opts['web-config']) {
@@ -134,6 +142,16 @@ export function fill({ dir = '.', check = false, static: flat = false, log = () 
   } else if (kept.projectId === app.project) web = { ...web, ...pick(kept, ['apiKey', 'appId', 'storageBucket', 'messagingSenderId']) };
 
   const swaps = swapsFor(old, app);
+  // a rename swaps the old name and title as words in every file: fine for the template's placeholders, but an app
+  // named after a word its code uses (items, notes, list) would have that word changed too (its collection, rules,
+  // imports). So refuse while the old name or title appears in the code; rename those places by hand first.
+  // (the app's code and rules carry no name of their own: config.js does, and the worker's routes name the app on purpose)
+  const inCode = rel => (rel.startsWith('app/src/') && rel !== 'app/src/config.js') || rel.endsWith('.rules');
+  for (const [key, re] of [['name', wordRe(old.name)], ['title', new RegExp(`(?<![A-Za-z0-9])${esc(old.title)}(?![A-Za-z0-9])`)]]) {
+    if (old[key] === app[key]) continue;
+    const hits = files(dir).filter(rel => inCode(rel) && new RegExp(re.source).test(fs.readFileSync(path.join(dir, rel), 'utf8')));
+    if (hits.length) throw new Error(`--${key}: the current ${key} '${old[key]}' is also a word in the code (${hits.slice(0, 5).join(', ')}${hits.length > 5 ? ', ...' : ''}), which a rename would change too; rename it there by hand first`);
+  }
   const changed = [];
   const write = (rel, text) => {
     const p = path.join(dir, rel);
@@ -148,7 +166,7 @@ export function fill({ dir = '.', check = false, static: flat = false, log = () 
     text = fixup(rel, text, app);
     write(rel, text);
   }
-  write('app/src/config.js', meta.flavour ? staticConfigJs(app, accent) : configJs(app, web, accent));
+  write('app/src/config.js', meta.flavour ? staticConfigJs(app, accent, extra) : configJs(app, web, accent, extra));
   const commit = opts.commit ?? meta.commit;   // the template commit this app started from (the new-app job passes it)
   // the template's own module recipes become the template's at that commit, so add.mjs has a pristine copy to compare
   const modules = meta.modules && commit ? Object.fromEntries(Object.entries(meta.modules).map(([m, s]) =>
