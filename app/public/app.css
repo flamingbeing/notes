@@ -221,7 +221,7 @@ footer { margin-top: 2rem; }
 /* the Haiku tab: the prompt picker, the box (as tall as the screen allows), the buttons; the spinner turns by transform */
 .haiku-body { padding: 0 1rem 1rem; }
 .haiku-pick select { flex: 1; min-width: 0; }
-#haiku-text { width: 100%; box-sizing: border-box; min-height: 14rem; height: 50vh; font: inherit; padding: .5rem; }
+#haiku-text { display: block; width: 100%; box-sizing: border-box; min-height: 14rem; height: 50vh; margin-top: .75rem; resize: vertical; font: inherit; padding: .5rem; }
 .haiku-hint { margin: .25rem 0 .5rem; }
 .haiku-actions { align-items: center; }
 .haiku-spin { width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--text) 20%, transparent); border-top-color: var(--accent); animation: haiku-spin .8s linear infinite; }
