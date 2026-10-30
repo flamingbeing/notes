@@ -187,7 +187,8 @@ export function listScreen(app, kit) {
     return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
   const toast = toaster($('toasts')).show;
-  // the note page: its module loads on the first note opened (at once when the address or a reload names a note)
+  // the note page: off the first draw's path, but its module starts loading at once (the app's main page; a note may
+  // be opened, or the network lost, before warmUp), and is made then, so a link or a reload's step opens its note
   /** @type {ReturnType<typeof import('./note-page.js').notePage> | undefined} */ let pageNow;
   const pageReady = once(() => mods.withMod('page', m => (pageNow = m.notePage(app, toast, () => canWrite, note => markOpen(note.id)))));
   const page = {
@@ -202,7 +203,7 @@ export function listScreen(app, kit) {
     tidy: () => pageNow?.tidy(),
     remove: () => pageNow?.remove(),
   };
-  if (/^#\/note\//.test(location.hash) || history.state?.n) void pageReady();
+  void pageReady();
   const haiku = haikuTab(app, toast, note => void page.open(note));
   // a new note: its page opens empty, in the folder for new notes; the first title or text typed makes it
   const newNote = () => {
