@@ -1,5 +1,5 @@
 // The Haiku tab (#haiku, the owner and admins only): pick a prompt, paste text, Run, and the box's text is replaced by
-// Claude Haiku's reply (POST /api/haiku, worker/haiku.js); Undo puts the text from before back, Copy copies the box.
+// Claude Haiku's reply (POST /api/haiku, worker/haiku.js); Undo puts the text from before back (after a Run or a Clear), Copy copies the box, Clear empties it.
 // The prompts are notes in the Prompts folder (prompts.js), synced and edited like any note. The text itself is never
 // saved: not a note, not the cloud, not this device's storage; it lives in the box until the page goes. Only the last
 // picked prompt is remembered on this device. On a tablet or laptop the side bar's Haiku opens it as a side panel (the
@@ -64,6 +64,10 @@ export function haikuTab(app, toast, openNote) {
   $('haiku-copy').addEventListener('click', async () => {
     if (!box.value) { msg.textContent = 'Nothing to copy yet.'; return; }
     try { await navigator.clipboard.writeText(box.value); toast('Copied'); } catch { box.select(); msg.textContent = 'Copy it by hand: the text is selected.'; }
+  });
+  $('haiku-clear').addEventListener('click', () => {
+    if (!box.value) return;
+    before = box.value; box.value = ''; undo.hidden = false; msg.textContent = ''; box.focus();
   });
   undo.addEventListener('click', () => { box.value = before; undo.hidden = true; msg.textContent = ''; });
 
