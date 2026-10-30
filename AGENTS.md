@@ -36,7 +36,7 @@ repo; never copy anything from there into this repo, a PR or an issue (neutral p
   Never edit those by hand; run it after changing `modules.json`, adding or removing a file the page loads, or bumping
   a core package (CI runs `--check`). app-sync and app-ui (`@core/ui`, `@core/theme`, `@core/settings`) versions come
   from their `package.json` devDependency tags only; change the kit in app-ui, never here
-  ([decision 0011](docs/decisions/0011-ui-kit-served-from-app-ui.md)). Firebase is vendored: bump it with
+  ([decision 0011](https://github.com/flamingbeing/app-starter/blob/main/docs/decisions/0011-ui-kit-served-from-app-ui.md)). Firebase is vendored: bump it with
   `node tools/vendor-firebase.mjs <version>` (never edit `app/public/vendor/`;
   [decision 0007](docs/decisions/0007-vendored-firebase-generated-sw-list.md)).
 - New library, own-host sign-in, live smoke test, template updates: go through
