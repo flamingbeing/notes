@@ -1,20 +1,46 @@
 {
   "module": "backup",
-  "about": "Backup and restore: the data as a .json.gz file, one CSV or an Excel file (SheetJS, loaded only on that tap); a restore only adds what is missing (@core/backup); local here until a second kind of app wants it.",
-  "importMap": { "@core/backup": "./backup/index.js", "xlsx": "./vendor/xlsx/0.20.3/xlsx.mjs" },
-  "vendor": ["app/public/vendor/xlsx/0.20.3"],
-  "files": [
-    { "from": "app/public/backup" },
-    { "from": "app/test/backup.unit.test.mjs" }
-  ],
-  "tsconfigPaths": {
-    "@core/backup": ["./app/public/backup/index.js"],
-    "xlsx": ["./app/public/vendor/xlsx/0.20.3/xlsx.d.ts"]
+  "about": "Backup and restore (@core/backup): the records as a .json.gz file, one CSV or an Excel file (SheetJS, loaded only on that tap); a restore only adds what is missing, with a dry-run line first. Local here until a second kind of app wants it.",
+  "root": "recipes/backup",
+  "modules": {
+    "@core/backup": {
+      "url": "./backup/index.js",
+      "types": "./app/public/backup/index.js",
+      "alias": "./app/public/backup/index.js"
+    }
   },
-  "tsconfigInclude": ["app/public/backup/*.js", "app/public/backup/*.d.ts"],
-  "viteAlias": { "@core/backup": "./app/public/backup/index.js" },
+  "vendor": [
+    "app/public/vendor/xlsx/0.20.3"
+  ],
+  "files": [
+    {
+      "from": "app/public/backup"
+    },
+    {
+      "from": "app/src/screens/backup-settings.js"
+    },
+    {
+      "from": "app/test/backup.unit.test.mjs"
+    },
+    {
+      "from": "e2e/backup.spec.mjs"
+    },
+    {
+      "to": "app/src/modules.js",
+      "after": "// add: imports",
+      "line": "import { backupSettings } from './screens/backup-settings.js';"
+    },
+    {
+      "to": "app/src/modules.js",
+      "after": "// add: settings pages",
+      "line": "    backup: backupSettings,"
+    }
+  ],
+  "tsconfigInclude": [
+    "app/public/backup/*.js",
+    "app/public/backup/*.d.ts"
+  ],
   "docs": [
-    "backup: the module is app/public/backup/index.js (buildBackup, planRestore, restore, packBackup, backupToCsv, backupToXlsx); the notes app's sheet that uses it is app/src/transfer/backup-sheet.js in the notes repo, which is the model for yours.",
-    "backup: add \"xlsx$\" to the external list in vite.config.mjs (it is loaded by import('xlsx') and served from vendor/), and give the app a saveRecords(list) that keeps the records' own ids (notes' addNotes) and serverCopyIn() (app-sync's sync.facts().confirmed)."
+    "backup: the Settings page is app/src/screens/backup-settings.js (its format, fields, columns and clean are the sample tasks': make them the app's own); the API is in app/public/backup/index.js. It needs the app's items(), put(record) and serverCopyIn() (cloud.js)."
   ]
 }
