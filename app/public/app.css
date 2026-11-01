@@ -123,6 +123,9 @@ footer { margin-top: 2rem; }
 .side-nav, #folders .nav { display: flex; flex-direction: column; gap: 2px; }
 .ui-side-link { padding-inline-start: calc(var(--pad) + var(--depth, 0) * 1rem); }
 #folders .nav { list-style: none; padding: 0; margin: 0; }
+/* the first list keeps the page's top gap under the bar (the rule above outweighs app-ui's slim-bar gap; under a large
+   title the two margins meet, one gap) */
+#folders > .ui-large-title + .nav { margin-top: var(--pad); }
 #folders .nav button:not(.tree-toggle) { width: 100%; text-align: left; display: flex; gap: .5rem; margin: .15rem 0; padding-inline-start: calc(.75rem + var(--depth, 0) * 1rem); }
 #folders .nav button[aria-current=true] { border-inline-start: 3px solid var(--accent); font-weight: 700; }
 .n { margin-inline-start: auto; opacity: .7; font-size: .85em; }
@@ -157,7 +160,7 @@ footer { margin-top: 2rem; }
 #list-view[data-page]:not([data-page=home]) .bar-end > button:not(#sync-btn) { display: none; }
 
 /* the phone's tools row: the search box shrinks, the buttons keep 44 px touch targets */
-.phone-tools { display: flex; align-items: center; gap: 2px; padding-top: var(--gap); }
+.phone-tools { display: flex; align-items: center; gap: 2px; }   /* (the gap above: app-ui's .ui-phone-search, as on every page) */
 .phone-tools .ui-search { flex: 1; min-width: 0; }
 .phone-tools > button { flex: none; min-width: var(--tap); min-height: var(--tap); }
 
