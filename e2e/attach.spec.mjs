@@ -88,6 +88,7 @@ test('import a vault from a folder: a dry run first; a second run adds nothing; 
   await a.click('#open-settings');
   await reveal(a, '#open-transfer');
   await a.click('#open-transfer');
+  await expect(a.locator('#transfer')).toBeVisible();   // the sheet loads on first use; open() clears the inputs
   await a.setInputFiles('#transfer-folder', VAULT);
   await expect(a.locator('#transfer-plan')).toHaveText(/^0 notes, 0 files; 5 skipped \(4 already there, 1 app folder\)$/);
   await expect(a.locator('#transfer-go')).toBeHidden();
@@ -114,6 +115,7 @@ test('import a vault from a zip (one top folder, a path that tries to leave it i
   await a.click('#open-settings');
   await reveal(a, '#open-transfer');
   await a.click('#open-transfer');
+  await expect(a.locator('#transfer')).toBeVisible();   // the sheet loads on first use; open() clears the inputs
   await a.setInputFiles('#transfer-zip', zipPath);
   await expect(a.locator('#transfer-plan')).toHaveText('2 notes, 0 files; 2 skipped (1 unsafe path, 1 app folder)');
   await a.click('#transfer-go');
