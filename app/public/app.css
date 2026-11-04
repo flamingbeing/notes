@@ -166,9 +166,8 @@ footer { margin-top: 2rem; }
 
 /* the bar's sync button: the icon says the state (spins while syncing, struck cloud offline, a dot when attention is needed) */
 
-/* the app's icon beside its name, and large on the signed-out screen */
+/* the app's icon beside its name */
 .app-mark { flex: none; border-radius: 22%; vertical-align: middle; }
-.app-mark-big { display: block; margin: 1rem 0 .5rem; }
 .ui-sidebar-name { display: flex; align-items: center; gap: .5rem; }
 
 /* the Folders tab: rows in the kit's list, section labels indented to the row text, a folder's own folders indented under it */

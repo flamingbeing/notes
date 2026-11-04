@@ -36,7 +36,7 @@ const SECTIONS = [
   ] },
 ];
 /** the keys of the rows above, in order (a row's control is #opt-<key>) */
-const KEYS = SECTIONS.flatMap(s => (s.rows || []).map(r => r.key));
+const KEYS = SECTIONS.flatMap(s => (s.rows || []).flatMap(r => ('key' in r ? [r.key] : [])));
 
 // the tab bar's tabs, in the default order (index.html's [data-tab-id]); Settings always stays (the tabs off the bar are
 // listed at the top of its menu). Haiku is a tab only while its module is on (haiku-tab.js shows its button).
