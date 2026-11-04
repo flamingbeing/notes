@@ -124,9 +124,12 @@ export async function openSettings(page) {
   await expect(page.locator('#settings')).toBeVisible();
 }
 // The Settings page holding selector opened (Settings opens on a menu with a page per section, as the logbook's);
-// nothing to do when it shows already or isn't on a page
+// nothing to do when it shows already or isn't on a page. A page moving (app-ui rc.84+: the one leaving stays unhidden
+// while it slides out, as when leaving the tab closes an open page) is waited out first, so a page about to hide isn't
+// read as the open one.
 export async function reveal(page, selector) {
   await page.waitForSelector(selector, { state: 'attached' });
+  await expect(page.locator('.ui-settings.is-sliding')).toHaveCount(0);
   const at = await page.evaluate(sel => {
     const g = document.querySelector(sel)?.closest('.ui-settings-group');
     if (!g || !g.hidden) return null;
