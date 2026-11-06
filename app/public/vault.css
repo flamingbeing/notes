@@ -20,8 +20,8 @@ html[data-layout=vault] {
   --vl-muted: light-dark(#5c5c5c, #a3a3a3);
   --vl-faint: light-dark(#ababab, #666666);
   --vl-line: light-dark(#ebebeb, #363636);
-  --vl-accent: #9873f6;
-  --vl-link: light-dark(#7852ee, #a68af9);
+  --vl-accent: var(--vl-pick, #9873f6);
+  --vl-link: var(--vl-pick, light-dark(#7852ee, #a68af9));
   --vl-red: light-dark(#d42a3f, #ff6b70);
   --vl-green: light-dark(#08b94e, #44cf6e);
   --vl-grabber: light-dark(#a6a6a6, #5a5a5a);
@@ -36,9 +36,13 @@ html[data-layout=vault] {
   --vl-top: env(safe-area-inset-top, 0px);
   --vl-bottom: env(safe-area-inset-bottom, 0px);
   --vl-nav-b: calc(19px + var(--vl-bottom));
+  /* note text: Settings > Appearance > Font size (the kit's text size, data-text) */
+  --vl-fs: 16px;
   --link: var(--vl-link);
   --editor-bg: var(--vl-bg);
 }
+html[data-layout=vault][data-text=large] { --vl-fs: 18px; }
+html[data-layout=vault][data-text=larger] { --vl-fs: 20px; }
 html[data-layout=vault] body { background: var(--vl-bg); color: var(--vl-text); }
 :where(html[data-layout=vault]) .vl-icon { width: 24px; height: 24px; flex: none; }
 html[data-layout=vault] .vl-btn, html[data-layout=vault] .vl-circle, html[data-layout=vault] .vl-title {
@@ -55,7 +59,7 @@ html[data-layout=vault] #edit.page[open] { position: fixed; inset: 0; width: 100
   padding: 0; border: 0; z-index: 5; background: var(--vl-bg); color: var(--vl-text); font-family: var(--vl-font); }
 html[data-layout=vault] #edit .page-bar { display: none; }
 html[data-layout=vault] #edit-scroll { padding-top: calc(var(--vl-top) + 67px); }
-html[data-layout=vault] #edit .page-col { max-width: 44rem; padding-inline: 25px; padding-bottom: 96px; font-size: 16px; line-height: 1.5; }
+html[data-layout=vault] #edit .page-col { max-width: 44rem; padding-inline: 25px; padding-bottom: 96px; font-size: var(--vl-fs); line-height: 1.5; }
 html[data-layout=vault] #edit.wide .page-col { max-width: none; }
 html[data-layout=vault] #edit-cm .cm-scroller { line-height: 1.5; }
 html[data-layout=vault] #edit-cm .cm-content { caret-color: var(--vl-accent); }
@@ -72,7 +76,7 @@ html[data-layout=vault] #edit-size:empty, html[data-layout=vault] #edit-live:emp
 html[data-layout=vault] #edit-fmt { display: none; }
 
 /* ---- the note (S3): Source mode, the read view; text 16px on a 24px line, 25px from the sides */
-html[data-layout=vault] #edit-cm { font-size: 16px; }
+html[data-layout=vault] #edit-cm { font-size: var(--vl-fs); }
 html[data-layout=vault] #edit-cm .cm-editor { min-height: 0; }
 html[data-layout=vault] #edit-cm .cm-content { padding: 0 0 24px; }
 html[data-layout=vault] #edit-cm .cm-line { padding: 0; }
@@ -86,7 +90,7 @@ html[data-layout=vault] #edit-cm .cm-hd1 { font-size: 1.6em; } html[data-layout=
 html[data-layout=vault] #edit-cm .cm-hd3 { font-size: 1.2em; }
 html[data-layout=vault] #edit-cm .cm-hd.cm-meta { color: var(--vl-faint); }
 html[data-layout=vault] #edit-cm .cm-selectionBackground, html[data-layout=vault] #edit-cm .cm-content ::selection { background: color-mix(in srgb, var(--vl-accent) 25%, transparent); }
-html[data-layout=vault] #edit-read { min-height: 0; padding: 0 0 24px; font-size: 16px; line-height: 1.5; color: var(--vl-text); }
+html[data-layout=vault] #edit-read { min-height: 0; padding: 0 0 24px; font-size: var(--vl-fs); line-height: 1.5; color: var(--vl-text); }
 html[data-layout=vault] #edit-read :is(h1, h2, h3, h4, h5, h6) { font-family: var(--vl-font); font-weight: 600; line-height: 1.3; color: var(--vl-text); margin: 24px 0 8px; }
 html[data-layout=vault] #edit-read > :first-child { margin-top: 0; }
 html[data-layout=vault] #edit-read h1 { font-size: 1.6em; } html[data-layout=vault] #edit-read h2 { font-size: 1.4em; }
@@ -329,6 +333,19 @@ html[data-layout=vault] .vl-set-danger { background: light-dark(#fde9ec, rgba(25
 html[data-layout=vault] .vl-set-gear { appearance: none; flex: none; width: 36px; height: 36px; min-height: 0; margin: 0 -4px 0 0; padding: 0; border: 0;
   border-radius: 50%; display: grid; place-items: center; background: none; color: var(--vl-muted); cursor: pointer; }
 .vl-set-gear .vl-icon { width: 20px; height: 20px; }
+/* Appearance: the accent's colour well and the font size's slider, each with a reset */
+.vl-set-ctl { flex: none; display: flex; align-items: center; gap: 10px; }
+html[data-layout=vault] .vl-set-reset { appearance: none; flex: none; width: 36px; height: 36px; min-height: 0; margin: 0; padding: 0; border: 0;
+  border-radius: 50%; display: grid; place-items: center; background: none; color: var(--vl-muted); cursor: pointer; box-shadow: none; }
+html[data-layout=vault] .vl-set-reset[hidden] { display: none; }
+.vl-set-reset .vl-icon { width: 18px; height: 18px; }
+html[data-layout=vault] .vl-set-well { flex: none; width: 36px; min-width: 0; height: 36px; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 50%;
+  background: none; cursor: pointer; overflow: hidden; }
+.vl-set-well::-webkit-color-swatch-wrapper { padding: 0; }
+.vl-set-well::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.vl-set-well::-moz-color-swatch { border: 0; border-radius: 50%; }
+html[data-layout=vault] .vl-set-range { flex: none; width: 128px; min-width: 0; min-height: 0; margin: 0; padding: 0; accent-color: var(--vl-accent); background: none; border: 0; box-shadow: none; }
+.vl-set-ctl .vl-set-value { min-width: 2ch; text-align: end; }
 /* the parts: the theme's pickers, the toolbar's commands, the spaces, the tab arranger */
 .vl-set-theme .theme-switch { display: block; margin: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
 .vl-set-theme .theme-switch > * { background: none; }

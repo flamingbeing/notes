@@ -181,3 +181,49 @@ test('axe: the root and two pages, light and dark', async ({ phone }) => {
     await expect(page.locator('#vl-settings')).toBeHidden();
   }
 });
+
+test('Appearance: base color scheme, accent color and font size; a style picked for Classic never repaints the Vault layout', async ({ phone }) => {
+  const page = await phone(vault);
+  await signIn(page);
+  const root = (/** @type {string} */ name) => page.evaluate(n => getComputedStyle(document.documentElement).getPropertyValue(n).trim(), name);
+  const accent = await root('--accent');
+  // (a Classic style kept on this device: shown there, not here)
+  await page.evaluate(() => localStorage.setItem('core-theme', JSON.stringify({ preset: 'eye' })));
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => window.starter?.ready), { timeout: 20_000 }).toBe(true);
+  expect(await root('--accent')).toBe(accent);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('core-theme') || '{}').preset)).toBe('eye');
+
+  await open(page);
+  await page.click('#vl-set-go-appearance');
+  await settled(page);
+  for (const id of ['#vl-scheme', '#vl-accent', '#vl-font-size', '#opt-layout', '#dark-pick']) await expect(page.locator(id)).toBeAttached();
+  for (const id of ['#preset-pick', '#surface-pick', '#look-pick', '#density-pick', '#text-pick', '#accent-pick']) await expect(page.locator(id)).toHaveCount(0);
+  // Font size: 16 by default; a step up is 18 for the note's text, Reset goes back
+  await expect(page.locator('#vl-font-size-value')).toHaveText('16');
+  await expect(page.locator('#vl-font-reset')).toBeHidden();
+  await page.locator('#vl-font-size').evaluate(e => { /** @type {HTMLInputElement} */ (e).value = '1'; for (const t of ['input', 'change']) e.dispatchEvent(new Event(t, { bubbles: true })); });
+  await expect(page.locator('#vl-font-size-value')).toHaveText('18');
+  await expect.poll(() => root('--vl-fs')).toBe('18px');
+  await page.click('#vl-font-reset');
+  await expect.poll(() => root('--vl-fs')).toBe('16px');
+  // Accent color: the Vault's accent follows it, kept over a reload; Reset takes the purple back
+  await page.locator('#vl-accent').evaluate(e => { /** @type {HTMLInputElement} */ (e).value = '#2f9e44'; e.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect.poll(() => root('--vl-accent')).toBe('#2f9e44');
+  // Base color scheme: dark; a kit picker left here (Dark style) keeps the style pinned
+  await page.locator('#vl-scheme').selectOption('dark');
+  await expect.poll(() => page.evaluate(() => document.documentElement.dataset.theme)).toBe('dark');
+  await page.locator('#dark-pick').selectOption('oled');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('core-theme') || '{}').preset)).toBe('eye');
+  await page.reload();
+  await expect.poll(() => page.evaluate(() => window.starter?.ready), { timeout: 20_000 }).toBe(true);
+  await expect.poll(() => root('--vl-accent')).toBe('#2f9e44');
+  await open(page);
+  await page.click('#vl-set-go-appearance');
+  await settled(page);
+  await page.click('#vl-accent-reset');
+  await expect.poll(() => root('--vl-accent')).toBe('#9873f6');
+  await page.locator('#vl-scheme').selectOption('light');
+  await page.emulateMedia({ colorScheme: 'light' });
+  expect(await problems(page), 'Appearance').toEqual([]);
+});

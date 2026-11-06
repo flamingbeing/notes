@@ -6,7 +6,7 @@
 // #opt-<key> as the Classic Settings name theirs; the buttons that open the app's sheets keep their ids, so list.js
 // opens them (the sheet closes first). It moves only by transform and opacity, on the kit's spring (glide) and drag.
 import { drag, glide, still, tabArranger, installApp, installMode, aboutSheet, LABELS } from '@core/ui';
-import { themeSwitch } from '@core/theme';
+import { themeSwitch, themeChoice, chooseTheme, previewTheme, PRESET_IDS, TEXT_SIZES } from '@core/theme';
 import { transients } from '../shell/transients.js';
 import { available, RULES, repaints } from '../settings/bar.js';
 import { OPTIONS } from '../settings/options.js';
@@ -30,7 +30,20 @@ const el = (tag, props = {}, ...kids) => {
 };
 /** the sheet's buttons that open one of the app's sheets (list.js has them): the sheet closes first */
 const AFTER_CLOSE = new Set(['open-transfer', 'open-drive', 'open-bin', 'open-feedback', 'open-mcp', 'sign-out']);
-const PARALLAX = 0.3;   // how far the page under moves while one slides over it (of the width)
+const PARALLAX = 0.3;
+// The Vault layout's palette, pinned (boot.js pins it the same way at startup): the kit's style, ground, look and
+// density stay the Classic layout's, so a style picked there never repaints the Vault one. Kept on this device as
+// picked; only shown without them here.
+const PIN = { preset: PRESET_IDS[0], surface: '', look: '', density: 'regular' };
+const VAULT_ACCENT = '#9873f6';
+/** a theme change from this page: kept, then shown with the Vault palette pinned @param {Parameters<typeof chooseTheme>[0]} [change] */
+const pickTheme = change => {
+  if (change) chooseTheme(change);
+  previewTheme(PIN);
+  const a = themeChoice().accent;
+  if (a) document.documentElement.style.setProperty('--vl-pick', a); else document.documentElement.style.removeProperty('--vl-pick');
+};
+const FONT_PX = { regular: 16, large: 18, larger: 20 };   // how far the page under moves while one slides over it (of the width)
 
 /**
  * @param {import('../cloud.js').Started} app
@@ -163,9 +176,50 @@ export function settingsHost(app, h) {
       });
       return row(text, el('div', { className: 'vl-set-pills' }, exp, imp, picker), true);
     },
+    scheme: r => {
+      const pick = /** @type {HTMLSelectElement} */ (el('select', { id: 'vl-scheme', className: 'vl-set-select' }));
+      for (const [v, w] of [['auto', 'Adapt to system'], ['light', 'Light'], ['dark', 'Dark']]) pick.add(new Option(w, v));
+      pick.value = themeChoice().theme;
+      pick.addEventListener('change', () => pickTheme({ theme: pick.value }));
+      return row(words(r.label, r.sub, pick.id), el('div', { className: 'vl-set-drop' }, pick, glyph('chevronsUpDown', 'vl-set-chev')), true);
+    },
+    accent: r => {
+      const well = /** @type {HTMLInputElement} */ (el('input', { type: 'color', id: 'vl-accent', className: 'vl-set-well' }));
+      const reset = el('button', { type: 'button', className: 'vl-set-reset', id: 'vl-accent-reset', title: 'Back to the default colour' }, glyph('rotateCcw'));
+      reset.setAttribute('aria-label', 'Back to the default accent colour');
+      const sync = () => { well.value = themeChoice().accent || VAULT_ACCENT; reset.hidden = !themeChoice().accent; };
+      well.addEventListener('change', () => { pickTheme({ accent: well.value }); sync(); });
+      reset.addEventListener('click', () => { pickTheme({ accent: '' }); sync(); well.focus(); });
+      sync();
+      return row(words(r.label, r.sub, well.id), el('div', { className: 'vl-set-ctl' }, reset, well));
+    },
+    fontSize: r => {
+      const slide = /** @type {HTMLInputElement} */ (el('input', { type: 'range', id: 'vl-font-size', className: 'vl-set-range', min: '0', max: String(TEXT_SIZES.length - 1), step: '1' }));
+      const value = el('span', { className: 'vl-set-value', id: 'vl-font-size-value' });
+      const reset = el('button', { type: 'button', className: 'vl-set-reset', id: 'vl-font-reset', title: 'Back to 16' }, glyph('rotateCcw'));
+      reset.setAttribute('aria-label', 'Back to the default font size');
+      const px = (/** @type {string} */ t) => FONT_PX[/** @type {keyof typeof FONT_PX} */ (t)] ?? 16;
+      const sync = () => {
+        const t = themeChoice().text, i = Math.max(0, TEXT_SIZES.indexOf(t));
+        slide.value = String(i);
+        slide.setAttribute('aria-valuetext', `${px(t)} pixels`);
+        value.textContent = String(px(t));
+        reset.hidden = i === 0;
+      };
+      slide.addEventListener('input', () => { value.textContent = String(px(TEXT_SIZES[Number(slide.value)] || 'regular')); });
+      slide.addEventListener('change', () => { pickTheme({ text: TEXT_SIZES[Number(slide.value)] || TEXT_SIZES[0] }); sync(); });
+      reset.addEventListener('click', () => { pickTheme({ text: TEXT_SIZES[0] }); sync(); slide.focus(); });
+      sync();
+      return row(words(r.label, r.sub, slide.id), el('div', { className: 'vl-set-ctl' }, reset, value, slide));
+    },
     theme: () => {
       const host = el('div', { className: 'vl-set-theme' });
       themeSwitch(host);
+      // (the kit's pickers the Vault layout has its own rows for, or pins: Base color scheme, Accent color and Font
+      // size above; look, style, ground and density stay the Classic layout's)
+      for (const id of ['look', 'theme', 'preset', 'surface', 'density', 'text', 'accent']) host.querySelector(`#${id}-pick`)?.closest('label')?.remove();
+      for (const b of host.querySelectorAll('.theme-switch > button')) b.remove();
+      host.querySelector('datalist')?.remove();
       // (each of the kit's pickers as a row: its words over a pill)
       for (const label of host.querySelectorAll('.theme-switch > label')) {
         const lead = label.firstChild;
@@ -174,7 +228,8 @@ export function settingsHost(app, h) {
         if (pick) { pick.classList.add('vl-set-select'); const drop = el('span', { className: 'vl-set-drop' }); pick.before(drop); drop.append(pick, glyph('chevronsUpDown', 'vl-set-chev')); }
         label.classList.add('vl-set-row', 'vl-set-col');
       }
-      for (const b of host.querySelectorAll('.theme-switch > button')) b.classList.add('vl-set-pill');
+      // (a pick there shows the whole choice again: the Vault palette pinned back over it)
+      host.addEventListener('change', () => pickTheme());
       return host;
     },
     commands: () => {
