@@ -1,6 +1,6 @@
 // The Vault layout's own state on this device, one per space (localStorage 'notes:vl:<space>'): the last note open,
 // the tabs, recent notes, bookmarks, new folders not yet holding a note, folded folders, the sidebars' views, sorts and
-// recent searches. Ids, paths and searches only, never a note's text. Cleaned on every read (unknown keys dropped,
+// recent searches, the Search and Tags views' choices. Ids, paths and searches only, never a note's text. Cleaned on every read (unknown keys dropped,
 // lists capped), and dropped with the kept list on sign-out (dropAll). Pure: the storage is handed in.
 
 export const PREFIX = 'notes:vl:';
@@ -8,12 +8,14 @@ const SORTS = ['name-asc', 'name-desc', 'mtime-desc', 'mtime-asc'];
 
 /** @typedef {{ last: string, tabs: string[], active: number, recent: string[], bookmarks: string[], folders: string[],
  *   shut: string[], leftView: string, rightView: string, fileSort: string, searchSort: string, matchCase: boolean,
- *   searchRecent: string[], cmdRecent: string[] }} VaultState */
+ *   searchRecent: string[], cmdRecent: string[], searchCollapse: boolean, searchContext: boolean, tagSort: string,
+ *   tagNested: boolean, tagShut: string[] }} VaultState */
 
 /** @returns {VaultState} */
 export const blank = () => ({
   last: '', tabs: [], active: 0, recent: [], bookmarks: [], folders: [], shut: [], leftView: 'files', rightView: 'backlinks',
   fileSort: 'name-asc', searchSort: 'relevance', matchCase: false, searchRecent: [], cmdRecent: [],
+  searchCollapse: false, searchContext: false, tagSort: 'name', tagNested: true, tagShut: [],
 });
 
 /** strings only, no repeats, each at most `len` long, at most `max` of them @param {unknown} v @param {number} max @param {number} [len] */
@@ -43,6 +45,11 @@ export function clean(raw) {
     matchCase: o.matchCase === true,
     searchRecent: strings(o.searchRecent, 10, 200),
     cmdRecent: strings(o.cmdRecent, 10, 80),
+    searchCollapse: o.searchCollapse === true,
+    searchContext: o.searchContext === true,
+    tagSort: oneOf(o.tagSort, ['name', 'count'], d.tagSort),
+    tagNested: o.tagNested !== false,
+    tagShut: strings(o.tagShut, 500, 200),
   };
 }
 

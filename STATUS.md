@@ -9,7 +9,17 @@
   on the Core plugins page, off in Vault until turned on. Settings, picker, spaces and Haiku now load lazily (startup
   319 KiB / 55 requests, was 327 / 59). Still to come: left sidebar (slice 2), note page (3), right sidebar and
   navigation sheets (4), full Settings (5). No reference frame for the ribbon or tabs sheets yet: check against an
-  owner recording. The sidebar button opens the quick switcher until slice 2.
+  owner recording.
+- Vault layout, slice 2 of 5 (6 Nov): the left sidebar, a drawer that pushes the page (sidebar button, an edge swipe, or
+  mid-screen with the Swipe back extra on). A view picker (Files, Search, Tags, Bookmarks, and Notes with the note list
+  extra on; the choice kept on the device); the space name and counts open the spaces switcher; the gear opens Settings.
+  Files: a folder tree with new note, new folder, sort, collapse all and show the open note; a long-press or right-click
+  menu (open in new tab, rename, move, bookmark, copy path, delete with Undo). Search: the app's search with each
+  note's matching lines, Match case, sort, collapse and more-context options, recent searches. Tags: nested or flat,
+  by name or count, a filter; a tap searches the tag. Each view follows its Core plugin switch. Gaps: bookmarks are kept
+  per device (syncing them needs a rules change, owner's call); folders start open (the reference starts them shut);
+  no bookmark groups yet; long-press menus inside the drawer are this app's own (app-ui's hold menus do not work
+  inside a dialog: worth an option there).
 - Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
   Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict

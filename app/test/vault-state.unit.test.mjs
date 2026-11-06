@@ -22,6 +22,14 @@ test('clean: unknown keys dropped, wrong types back to the defaults', () => {
   assert.equal(clean({ tabs: ['a', 'b'], active: 1 }).active, 1);
 });
 
+test('clean: the Search and Tags views\' choices', () => {
+  const d = clean({});
+  assert.deepEqual([d.searchCollapse, d.searchContext, d.tagSort, d.tagNested, d.tagShut], [false, false, 'name', true, []]);
+  const c = clean({ searchCollapse: true, searchContext: 1, tagSort: 'count', tagNested: false, tagShut: ['a', 'a', 3] });
+  assert.deepEqual([c.searchCollapse, c.searchContext, c.tagSort, c.tagNested, c.tagShut], [true, false, 'count', false, ['a']]);
+  assert.equal(clean({ tagSort: 'size' }).tagSort, 'name');
+});
+
 test('clean: lists capped and without repeats', () => {
   const many = n => Array.from({ length: n }, (_, i) => `id${i}`);
   const c = clean({ tabs: many(30), recent: [...many(50), 'id1'], bookmarks: many(300), folders: many(250), searchRecent: many(15), cmdRecent: many(15) });

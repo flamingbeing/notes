@@ -11,13 +11,18 @@ html[data-layout=vault] {
   --vl-nav-bg: light-dark(#ffffff, #202020);
   --vl-hover: light-dark(#e6e6e6, #333333);
   --vl-shade-sheet: light-dark(rgba(0, 0, 0, .13), rgba(0, 0, 0, .4));
+  --vl-shade-drawer: light-dark(rgba(0, 0, 0, .14), rgba(0, 0, 0, .4));
+  --vl-current: light-dark(#e9e9e9, #333333);
+  --vl-card-border: light-dark(#f1f1f1, #333333);
+  --vl-highlight: light-dark(#fff3a8, rgba(255, 214, 0, .3));
+  --vl-track: light-dark(#dadada, #4a4a4a);
   --vl-text: light-dark(#222222, #dadada);
   --vl-muted: light-dark(#5c5c5c, #a3a3a3);
   --vl-faint: light-dark(#ababab, #666666);
   --vl-line: light-dark(#ebebeb, #363636);
   --vl-accent: #9873f6;
   --vl-link: light-dark(#7852ee, #a68af9);
-  --vl-red: light-dark(#d42a3f, #fb464c);
+  --vl-red: light-dark(#d42a3f, #ff6b70);
   --vl-grabber: light-dark(#a6a6a6, #5a5a5a);
   --vl-sh1: light-dark(rgba(0, 0, 0, .08), transparent);
   --vl-sh2: light-dark(rgba(0, 0, 0, .12), #333333);
@@ -31,7 +36,7 @@ html[data-layout=vault] {
   --editor-bg: var(--vl-bg);
 }
 html[data-layout=vault] body { background: var(--vl-bg); color: var(--vl-text); }
-html[data-layout=vault] .vl-icon { width: 24px; height: 24px; flex: none; }
+:where(html[data-layout=vault]) .vl-icon { width: 24px; height: 24px; flex: none; }
 html[data-layout=vault] .vl-btn, html[data-layout=vault] .vl-circle, html[data-layout=vault] .vl-title {
   appearance: none; border: 0; margin: 0; padding: 0; background: none; color: var(--vl-text); font: inherit; cursor: pointer;
   display: inline-grid; place-items: center; -webkit-tap-highlight-color: transparent; }
@@ -133,6 +138,186 @@ dialog.vl-settings[open] { display: flex; }
 .vl-settings-body input[type=checkbox][role=switch], .vl-settings-body .ui-switch { accent-color: var(--vl-accent); }
 .vl-subhead-sub { margin: 2px 0 0; font-size: 12px; font-weight: 400; color: var(--vl-muted); }
 
+/* ---- the left sidebar (S6): a drawer from the left, the note and the nav pill pushed aside; its views; the bottom block */
+.vl-drawer-shade { position: fixed; inset: 0; z-index: 35; background: var(--vl-shade-drawer); opacity: 0; visibility: hidden; pointer-events: none; }
+.vl-drawer-shade.on { visibility: visible; }
+dialog.vl-drawer { position: fixed; inset: 0 auto 0 0; z-index: 36; width: min(417px, 84vw); height: 100dvh; max-width: none; max-height: none;
+  margin: 0; padding: 0; border: 0; box-sizing: border-box; background: var(--vl-bg); color: var(--vl-text); font-family: var(--vl-font);
+  overflow: hidden; outline: none; transform: translateX(-100%); display: none; touch-action: pan-y; }
+dialog.vl-drawer-right { inset: 0 0 0 auto; transform: translateX(100%); }
+dialog.vl-drawer[open] { display: flex; }
+dialog.vl-drawer::backdrop { background: transparent; }
+html.vl-drawer-on #vl-nav { transition: none; }
+/* (the theme's buttons and fields are 44 tall and centred: these rows set their own) */
+#vl-left button, #vl-left input, #vl-left select, #vl-prompt button { min-height: 0; }
+:is(.vl-view-row, .vl-tree-row, .vl-tag-row, .vl-title-row, .vl-recent-row, .vl-mark-row) { justify-content: flex-start; }
+:is(.vl-note-row, .vl-space) { justify-content: stretch; }
+.vl-left-in { display: flex; flex-direction: column; width: 100%; height: 100%; padding-top: var(--vl-top); box-sizing: border-box; }
+.vl-views { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 12px 0 8px; }
+.vl-view[hidden] { display: none; }
+.vl-left-foot { flex: none; padding: 0 12px calc(14px + var(--vl-bottom)); }
+.vl-tools { display: flex; justify-content: center; align-items: center; height: 44px; margin-bottom: 4px; }
+.vl-tools[hidden] { display: none; }
+html[data-layout=vault] .vl-tool { appearance: none; border: 0; margin: 0; padding: 0; width: 53px; height: 44px; display: grid; place-items: center; flex: none;
+  background: none; color: var(--vl-muted); cursor: pointer; border-radius: 10px; -webkit-tap-highlight-color: transparent; }
+.vl-tool .vl-icon { width: 20px; height: 20px; }
+.vl-tool[hidden] { display: none; }
+.vl-tool:disabled { opacity: .4; cursor: default; }
+.vl-tool[aria-pressed=true] { color: var(--vl-link); }
+.vl-tool:not(:disabled):active { background: var(--vl-hover); }
+html[data-layout=vault] :is(.vl-tool, .vl-view-pill, .vl-view-row, .vl-space, .vl-gear, .vl-tree-row, .vl-mark-row, .vl-tag-row, .vl-title-row,
+  .vl-group-title, .vl-group-chev, .vl-snippet, .vl-recent-row, .vl-note-row, .vl-switch-row, .vl-search-case, .vl-search-clear, .vl-more-results,
+  .vl-prompt-btn):focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
+
+/* the view picker: the pill, and the card of views that rises from it (covering it; the pill shows faint at its foot) */
+.vl-pill-wrap { position: relative; }
+.vl-view-pill { appearance: none; border: 0; margin: 0; width: 100%; height: 52px; padding: 0 18px; box-sizing: border-box; border-radius: 999px;
+  display: flex; align-items: center; gap: 10px; background: var(--vl-bg-2); color: var(--vl-text); font: 600 16px var(--vl-font); cursor: pointer; }
+.vl-view-pill .vl-pill-icon .vl-icon { width: 20px; height: 20px; display: block; }
+.vl-pill-label { flex: 1; text-align: start; }
+.vl-pill-chev { color: var(--vl-faint); width: 20px; height: 20px; }
+.vl-view-card { position: absolute; z-index: 2; left: 0; right: 0; bottom: 0; padding: 8px 8px 0; border-radius: 20px; background: var(--vl-card);
+  box-shadow: 0 6px 28px light-dark(rgba(0, 0, 0, .14), rgba(0, 0, 0, .5)), 0 0 .5px .5px var(--vl-sh2); transform-origin: 50% 100%; }
+.vl-view-card[hidden] { display: none; }
+.vl-view-row { appearance: none; border: 0; margin: 0; width: 100%; height: 40px; padding: 0 12px; display: flex; align-items: center; gap: 12px;
+  border-radius: 12px; background: none; color: var(--vl-text); font: 600 16px var(--vl-font); text-align: start; cursor: pointer; }
+.vl-view-row .vl-icon { width: 24px; height: 24px; }
+.vl-view-row[aria-checked=true] { background: var(--vl-current); }
+.vl-view-ghost { height: 52px; padding: 0 10px; display: flex; align-items: center; gap: 10px; font: 600 16px var(--vl-font); opacity: .45; }
+.vl-view-ghost .vl-icon { width: 20px; height: 20px; }
+.vl-view-ghost span { flex: 1; }
+
+/* the space row: its name and counts (a tap switches), and Settings */
+.vl-vault-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding-left: 6px; }
+.vl-space { appearance: none; border: 0; margin: 0; padding: 4px 6px; min-width: 0; display: grid; gap: 1px; justify-items: start;
+  background: none; color: var(--vl-text); font-family: var(--vl-font); text-align: start; cursor: pointer; border-radius: 10px; }
+.vl-space-top { display: flex; align-items: center; gap: 4px; max-width: 100%; font-size: 19px; font-weight: 700; line-height: 1.25; }
+.vl-space-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-space-chev { width: 18px; height: 18px; color: var(--vl-muted); }
+.vl-space-count { font-size: 12px; color: var(--vl-muted); }
+.vl-gear { appearance: none; border: 0; margin: 0; padding: 0; width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 999px;
+  background: var(--vl-card); color: var(--vl-text); box-shadow: var(--vl-shadow); cursor: pointer; }
+.vl-gear .vl-icon { width: 22px; height: 22px; }
+
+/* Files: the tree (rows 36, names at 37 px plus 17 a level; folders' chevrons faint, turned while open), bookmarks on top */
+.vl-tree-row { appearance: none; border: 0; margin: 0 8px; width: calc(100% - 16px); height: 36px; position: relative; display: flex; align-items: center;
+  padding: 0 12px 0 calc(29px + var(--d, 0) * 17px); box-sizing: border-box; border-radius: 8px; background: none; color: var(--vl-text);
+  font: 16px var(--vl-font); text-align: start; cursor: pointer; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; user-select: none; }
+.vl-tree-row:active, .vl-tag-row:active, .vl-note-row:active, .vl-mark-row:active, .vl-title-row:active, .vl-recent-row:active { background: var(--vl-hover); }
+.vl-tree-row.vl-on, .vl-note-row.vl-on { background: var(--vl-hover); }
+.vl-tree-name, .vl-tag-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-tree-row .vl-chev { position: absolute; left: calc(7px + var(--d, 0) * 17px); top: 9px; width: 18px; height: 18px; color: var(--vl-faint); transition: transform 120ms; }
+.vl-folder[aria-expanded=true] .vl-chev { transform: rotate(90deg); }
+.vl-marks { margin: 0 12px 10px; padding: 4px; border-radius: 12px; background: var(--vl-bg-2); }
+.vl-marks[hidden] { display: none; }
+.vl-mark-row { appearance: none; border: 0; margin: 0; width: 100%; height: 40px; padding: 0 10px; display: flex; align-items: center; gap: 10px; border-radius: 9px;
+  background: var(--vl-card); color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer; -webkit-touch-callout: none; user-select: none; }
+.vl-mark-row + .vl-mark-row { margin-top: 2px; }
+.vl-mark-row .vl-icon { width: 18px; height: 18px; color: var(--vl-muted); }
+.vl-mark-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-none { margin: 14px 16px; text-align: center; font-size: 15px; }
+#vl-search-results .vl-none { margin: 6px 4px; text-align: start; font-size: 13px; }
+
+/* a filter box over a list (Tags, Bookmarks) */
+.vl-filter { display: flex; align-items: center; gap: 6px; height: 38px; margin: 0 16px 8px; border-bottom: 1px solid var(--vl-line); color: var(--vl-muted); }
+.vl-filter[hidden] { display: none; }
+.vl-filter .vl-icon { width: 18px; height: 18px; }
+.vl-filter input, #vl-search-input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; outline: none; background: none;
+  color: var(--vl-text); font: 16px var(--vl-font); }
+.vl-filter input::-webkit-search-cancel-button, #vl-search-input::-webkit-search-cancel-button { appearance: none; display: none; }
+.vl-filter input::placeholder, #vl-search-input::placeholder { color: var(--vl-faint); }
+
+/* Search: the box (Match case, clear, options), what it matches, the count and sort, the title matches, a note's lines */
+#vl-search-view { padding: 0 14px; }
+.vl-search-top { display: flex; align-items: center; gap: 2px; }
+.vl-search-field { flex: 1; min-width: 0; height: 40px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--vl-line); }
+.vl-search-glyph { width: 18px; height: 18px; color: var(--vl-muted); }
+.vl-search-top .vl-tool { width: 40px; }
+.vl-search-case { appearance: none; border: 0; margin: 0; width: 32px; height: 30px; border-radius: 6px; background: none; color: var(--vl-muted);
+  font: 600 14px var(--vl-font); cursor: pointer; }
+.vl-search-case[aria-pressed=true] { color: var(--vl-link); background: light-dark(#eee8fe, #2e2640); }
+.vl-search-clear { appearance: none; border: 0; margin: 0; padding: 0; width: 30px; height: 30px; display: grid; place-items: center; background: none; cursor: pointer; }
+.vl-search-clear[hidden] { display: none; }
+.vl-search-clear .vl-icon { width: 18px; height: 18px; }
+.vl-filled { fill: var(--vl-faint); stroke: var(--vl-bg); }
+.vl-search-options { margin: 8px 0 4px; border-radius: 12px; background: var(--vl-card); box-shadow: var(--vl-shadow); overflow: hidden; }
+.vl-search-options[hidden] { display: none; }
+.vl-switch-row { appearance: none; border: 0; margin: 0; width: 100%; height: 44px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between;
+  background: none; color: var(--vl-text); font: 15px var(--vl-font); cursor: pointer; }
+.vl-switch-row + .vl-switch-row { border-top: 1px solid var(--vl-line); }
+.vl-switch { width: 36px; height: 20px; border-radius: 999px; background: var(--vl-track); position: relative; flex: none; }
+.vl-switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform 120ms; }
+.vl-switch-row[aria-checked=true] .vl-switch { background: var(--vl-accent); }
+.vl-switch-row[aria-checked=true] .vl-switch::after { transform: translateX(16px); }
+.vl-search-matches { margin: 10px 0 0; font-size: 13px; color: var(--vl-muted); overflow-wrap: anywhere; }
+.vl-search-matches[hidden], .vl-search-head[hidden] { display: none; }
+.vl-search-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 6px; font-size: 13px; }
+.vl-search-count { color: var(--vl-text); }
+.vl-select { position: relative; display: inline-flex; align-items: center; min-width: 0; }
+.vl-select select { appearance: none; margin: 0; border: 0; padding: 4px 22px 4px 4px; max-width: 220px; background: none; color: var(--vl-text);
+  font: 13px var(--vl-font); text-overflow: ellipsis; cursor: pointer; }
+.vl-select-chev { position: absolute; right: 2px; width: 16px; height: 16px; color: var(--vl-faint); pointer-events: none; }
+.vl-search-sec { margin: 12px 0 2px; font-size: 13px; font-weight: 500; color: var(--vl-muted); }
+.vl-title-row, .vl-recent-row { appearance: none; border: 0; margin: 0; width: 100%; height: 36px; padding: 0 6px; display: flex; align-items: center; gap: 8px;
+  border-radius: 8px; background: none; color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer; white-space: nowrap; overflow: hidden; }
+.vl-recent-row .vl-icon { width: 16px; height: 16px; color: var(--vl-muted); }
+.vl-group { margin-top: 6px; }
+.vl-group-head { display: flex; align-items: center; gap: 2px; min-height: 36px; }
+.vl-group-chev { appearance: none; border: 0; margin: 0 0 0 -6px; padding: 0; width: 28px; height: 32px; display: grid; place-items: center; flex: none;
+  background: none; color: var(--vl-faint); cursor: pointer; }
+.vl-group-chev .vl-icon { width: 16px; height: 16px; transition: transform 120ms; }
+.vl-group-chev[aria-expanded=false] .vl-icon { transform: rotate(-90deg); }
+.vl-group-title { appearance: none; display: block; border: 0; margin: 0; padding: 4px 0; flex: 1; min-width: 0; background: none; color: var(--vl-text);
+  font: 500 17px var(--vl-font); text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-group-count { flex: none; font-size: 13px; padding-left: 8px; }
+.vl-snippet { appearance: none; display: block; width: 100%; margin: 0 0 6px; padding: 8px 10px; box-sizing: border-box; border: 1px solid var(--vl-card-border);
+  border-radius: 6px; background: var(--vl-bg); color: var(--vl-text); font: 13px/1.45 var(--vl-font); text-align: start; white-space: pre-line;
+  overflow-wrap: anywhere; cursor: pointer; }
+.vl-snippet mark, .vl-title-row mark { background: var(--vl-highlight); color: inherit; border-radius: 2px; }
+.vl-more-results { appearance: none; border: 0; margin: 10px auto; display: block; height: 36px; padding: 0 16px; border-radius: 999px;
+  background: var(--vl-bg-2); color: var(--vl-link); font: 15px var(--vl-font); cursor: pointer; }
+
+/* Tags: a tag and its count, the tags under it folded by its chevron */
+.vl-tag-row { appearance: none; border: 0; margin: 0 8px; width: calc(100% - 16px); height: 36px; position: relative; display: flex; align-items: center; gap: 8px;
+  padding: 0 14px 0 calc(29px + var(--d, 0) * 17px); box-sizing: border-box; border-radius: 8px; background: none; color: var(--vl-text);
+  font: 16px var(--vl-font); text-align: start; cursor: pointer; }
+.vl-chev-btn { position: absolute; left: calc(1px + var(--d, 0) * 17px); top: 0; width: 30px; height: 36px; display: grid; place-items: center; color: var(--vl-faint); }
+.vl-chev-btn .vl-icon { width: 16px; height: 16px; transition: transform 120ms; }
+.vl-tag-row[aria-expanded=false] .vl-chev-btn .vl-icon { transform: rotate(-90deg); }
+.vl-tag-count { flex: none; font-size: 14px; }
+
+/* Notes (the Note list extra): the title, the folder, three lines of it */
+.vl-note-row { appearance: none; border: 0; margin: 0 8px; width: calc(100% - 16px); padding: 10px 12px; box-sizing: border-box; display: grid; gap: 2px;
+  border-radius: 10px; background: none; color: var(--vl-text); font-family: var(--vl-font); text-align: start; cursor: pointer;
+  -webkit-touch-callout: none; user-select: none; }
+.vl-note-title { font-size: 16px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-note-folder { font-size: 12px; color: var(--vl-muted); }
+.vl-note-preview { font-size: 14px; color: var(--vl-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; }
+
+/* the sheets' radio rows and rows that can't be tapped */
+.vl-row .vl-radio { width: 20px; height: 20px; color: var(--vl-faint); }
+.vl-row .vl-radio.on { color: var(--vl-link); }
+.vl-row.vl-disabled { cursor: default; color: var(--vl-muted); }
+.vl-row.vl-disabled.vl-danger { color: light-dark(#b45563, #c98a92); }
+
+/* a name asked for (rename, new folder): a small card near the top */
+dialog.vl-prompt { position: fixed; inset: calc(var(--vl-top) + 72px) 0 auto; margin: 0 auto; width: min(360px, calc(100% - 40px)); box-sizing: border-box;
+  border: 0; border-radius: 20px; padding: 20px; background: var(--vl-card); color: var(--vl-text); font-family: var(--vl-font); box-shadow: var(--vl-nav-shadow); }
+dialog.vl-prompt::backdrop { background: var(--vl-shade-sheet); }
+.vl-prompt-title { margin: 0 0 14px; font-size: 17px; font-weight: 600; }
+.vl-prompt-label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--vl-muted); }
+#vl-prompt-input { width: 100%; height: 42px; box-sizing: border-box; padding: 0 12px; border: 1px solid var(--vl-line); border-radius: 10px; outline: none;
+  background: var(--vl-bg); color: var(--vl-text); font: 16px var(--vl-font); }
+#vl-prompt-input:focus { border-color: var(--vl-accent); }
+.vl-prompt-msg { margin: 8px 0 0; font-size: 13px; color: var(--vl-red); }
+.vl-prompt-msg:empty { display: none; }
+.vl-prompt-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.vl-prompt-btn { appearance: none; border: 0; margin: 0; height: 38px; padding: 0 18px; border-radius: 999px; background: var(--vl-bg-2); color: var(--vl-text);
+  font: 600 15px var(--vl-font); cursor: pointer; }
+.vl-prompt-ok { background: light-dark(#6b45e6, #8a6cf0); color: #fff; }
+
 @media (prefers-reduced-motion: reduce) {
   #vl-nav, html.ui-keyboard-open #vl-nav { transition: opacity 150ms, visibility 0s; transform: none; }
+  .vl-folder .vl-chev, .vl-chev-btn .vl-icon, .vl-group-chev .vl-icon, .vl-switch::after { transition: none; }
 }

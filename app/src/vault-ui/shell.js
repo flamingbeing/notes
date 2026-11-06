@@ -12,6 +12,7 @@ import { featureOn } from './plugins.js';
 import { history as noteSteps, tabs as tabList } from './nav.js';
 import { vaultState } from './state.js';
 import { bottomSheet } from './sheet.js';
+import { sideDrawer } from './drawer.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
 
@@ -59,6 +60,8 @@ export async function vaultShell(app, kit, list, { who }) {
 
   // ---- header
   const side = button('vl-side-btn', 'Open the sidebar', 'panelLeft', 'vl-circle');
+  side.setAttribute('aria-controls', 'vl-left');
+  side.setAttribute('aria-expanded', 'false');
   const title = button('vl-title', '', '', 'vl-title');
   title.removeAttribute('aria-label');
   const titleText = el('span', { className: 'vl-title-text' });
@@ -148,6 +151,7 @@ export async function vaultShell(app, kit, list, { who }) {
     }
     save();
     syncMode();
+    left?.redraw();
   };
   list.pageLayout.onBlank = () => {
     html.classList.add('vl-blank');
@@ -163,6 +167,7 @@ export async function vaultShell(app, kit, list, { who }) {
     if (now !== spaceId) { spaceId = now; state = vaultState(localStorage, spaceId); tabs = tabList(state.get()); paint(); }
     const open = page.current();
     if (open) titled(open);
+    left?.redraw();
   };
   titleBox.addEventListener('input', () => { titleText.textContent = titleBox.value || 'Untitled'; });
   /** the empty page (its tab stays) */
@@ -176,10 +181,9 @@ export async function vaultShell(app, kit, list, { who }) {
     save();
     if (next) await page.open(next); else await toBlank();
   };
-  /** a new note, made at once (through the write queue), in the folder for new notes */
-  const create = async () => {
+  /** a new note, made at once (through the write queue), in the folder for new notes (or the one given) */
+  const create = async (path = String(settings.get('newFolder') || '')) => {
     if (!list.canWrite()) return;
-    const path = String(settings.get('newFolder') || '');
     const { note, refused } = await app.create({ title: uniqueTitle(list.notes(), 'Untitled', path), path });
     if (refused) { list.toast(refused); return; }
     showEdit();
@@ -191,7 +195,47 @@ export async function vaultShell(app, kit, list, { who }) {
   emptyGo.addEventListener('click', () => void list.pick.switcher());
   emptyClose.addEventListener('click', () => void closeTab());
   search.addEventListener('click', () => void list.pick.switcher());
-  side.addEventListener('click', () => void list.pick.switcher());
+
+  // ---- the left sidebar: a drawer the note slides aside for (vault-ui/drawer.js), its views loaded the first time it
+  // opens (vault-ui/left.js; warmed once the start is done)
+  const pushed = () => [edit, nav, html.classList.contains('vl-tabbar') ? document.getElementById('tabbar') : null];
+  /** @typedef {ReturnType<typeof import('./left.js').leftSidebar>} Left */
+  /** @type {Left | null} */
+  let left = null;
+  /** @type {Promise<Left> | undefined} */
+  let leftMade;
+  const leftDrawer = sideDrawer({
+    id: 'vl-left', label: 'Left sidebar', pushed,
+    onOpen: () => { if (left) left.shown(); else void leftReady().then(l => l.shown()); },
+    onChange: open => {
+      side.replaceChildren(glyph(open ? 'panelLeftFilled' : 'panelLeft'));
+      side.setAttribute('aria-expanded', String(open));
+      side.setAttribute('aria-label', open ? 'Close the sidebar' : 'Open the sidebar');
+      if (!open) left?.closed();
+    },
+  });
+  /** (the note open, the drawer first: its Back step goes before the note's own) @param {Note} note */
+  const openFromSide = async note => { await leftDrawer.leave(); showEdit(); await page.open(note); };
+  const leftReady = () => (leftMade ||= import('./left.js').then(m => (left = m.leftSidebar({
+    app, list, on, state: () => state, canWrite: () => list.canWrite(), current: () => page.current(), notes: () => list.notes(),
+    open: openFromSide,
+    openInNewTab: async note => { await leftDrawer.leave(); tabs.open(note.id); save(); showEdit(); await page.open(note); },
+    openSettings: () => openSettings(),
+    toast: (m, o) => list.toast(m, o),
+    create: async path => { await leftDrawer.leave(); await create(path); },
+    // a note about to go (deleted): off the page if it is open (its edits saved first), out of the tabs
+    leave: async id => { if (page.current()?.id === id) await page.blank(); tabs.forget(id); save(); },
+  }, leftDrawer))).catch(e => { leftMade = undefined; throw e; }));
+  side.addEventListener('click', () => { if (leftDrawer.isOpen()) void leftDrawer.close(); else void leftReady().then(() => leftDrawer.open()); });
+  // a swipe right on the note opens it; with the Notes extras' swipe back on, that swipe is the edge's (a third of the
+  // screen) and the drawer's starts past it
+  const backZone = () => (on('xSwipeBack') && on('xNoteList') ? Math.round(innerWidth * 0.3) : 0);
+  let touchX = 0;
+  edit.addEventListener('touchstart', e => { touchX = e.touches[0]?.clientX ?? 0; }, { capture: true, passive: true });
+  leftDrawer.swipeFrom(edit, {
+    can: () => !html.dataset.vlPage && !document.querySelector('dialog:modal'),
+    edge: () => backZone() || leftDrawer.EDGE,
+  });
 
   // ---- the read view and the editing view
   const editMode = /** @type {HTMLButtonElement} */ (document.getElementById('edit-mode'));
@@ -279,7 +323,7 @@ export async function vaultShell(app, kit, list, { who }) {
     pageMode(String(b.dataset.tabId));
   }, true);
   // swipe back from a note: the note list (with the Note list on)
-  list.pageLayout.swipeOn = () => on('xSwipeBack') && on('xNoteList');
+  list.pageLayout.swipeOn = () => on('xSwipeBack') && on('xNoteList') && touchX < backZone();
   list.pageLayout.swipeBack = () => { showPage('notes', '#home'); return true; };
   const syncBtn = /** @type {HTMLElement} */ (document.getElementById('sync-btn'));
   const syncHome = /** @type {{ parent: Node | null, next: Node | null }} */ ({ parent: syncBtn.parentNode, next: syncBtn.nextSibling });
@@ -320,4 +364,7 @@ export async function vaultShell(app, kit, list, { who }) {
   }
   paint();
   syncMode();
+  // (the sidebar's code, ready for the first swipe)
+  const idle = window.requestIdleCallback || (/** @type {(f: () => void) => number} */ f => setTimeout(f, 1500));
+  idle(() => void leftReady().catch(() => { /* offline before it loaded: tried again on the first open */ }));
 }

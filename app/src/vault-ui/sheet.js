@@ -6,8 +6,10 @@ import { transients } from '../shell/transients.js';
 import { glyph } from './icons.js';
 
 /**
- * @typedef {{ id?: string, icon?: string, label: string, run: () => unknown, ticked?: boolean, danger?: boolean, next?: boolean, hint?: string }} Row
- *   ticked: an on-state (a tick at the end); next: opens another list (a chevron); danger: red (a delete)
+ * @typedef {{ id?: string, icon?: string, label: string, run: () => unknown, ticked?: boolean, danger?: boolean, next?: boolean, hint?: string,
+ *   radio?: boolean, disabled?: boolean }} Row
+ *   ticked: an on-state (a tick at the end); next: opens another list (a chevron); danger: red (a delete); radio: one of
+ *   a choice (a radio at the end, filled on the one chosen); disabled: shown, not tappable (the hint says why)
  * @typedef {{ rows: Row[], title?: string }} Card
  */
 
@@ -19,13 +21,15 @@ const shadeEl = () => {
 };
 
 /**
- * @param {{ id: string, label: string, cards: () => Card[] }} o  cards: what it shows, read each time it opens
+ * @param {{ id: string, label: string | (() => string), cards: () => Card[] }} o  cards: what it shows, read each time it
+ *   opens (and label: what it is for, when it changes too)
  */
 export function bottomSheet({ id, label, cards }) {
+  const named = typeof label === 'function' ? label : () => label;
   const d = document.createElement('dialog');
   d.id = id;
   d.className = 'vl-sheet';
-  d.setAttribute('aria-label', label);
+  d.setAttribute('aria-label', named());
   const grab = Object.assign(document.createElement('div'), { className: 'vl-grab' });
   grab.setAttribute('aria-hidden', 'true');
   const body = Object.assign(document.createElement('div'), { className: 'vl-sheet-body' });
@@ -75,6 +79,8 @@ export function bottomSheet({ id, label, cards }) {
     b.append(Object.assign(document.createElement('span'), { className: 'vl-row-label', textContent: r.label }));
     if (r.hint) { const h = Object.assign(document.createElement('span'), { className: 'vl-row-hint', textContent: r.hint }); h.dataset.faint = ''; b.append(h); }
     if (r.ticked !== undefined) { b.setAttribute('aria-pressed', String(r.ticked)); if (r.ticked) b.append(glyph('check', 'vl-tick')); }
+    if (r.radio !== undefined) { b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(r.radio)); b.append(glyph(r.radio ? 'circleDot' : 'circle', `vl-radio${r.radio ? ' on' : ''}`)); }
+    if (r.disabled) { b.disabled = true; b.classList.add('vl-disabled'); }
     if (r.next) b.append(glyph('chevronRight', 'vl-next'));
     // (the sheet goes first, its Back step with it, so what the row opens is on top of the page as it was)
     b.addEventListener('click', async () => { await close(); r.run(); });
@@ -85,6 +91,7 @@ export function bottomSheet({ id, label, cards }) {
       const card = Object.assign(document.createElement('div'), { className: 'vl-card' });
       card.setAttribute('role', 'group');
       if (c.title) card.setAttribute('aria-label', c.title);
+      if (c.rows.some(r => r.radio !== undefined)) card.setAttribute('role', 'radiogroup');
       card.append(...c.rows.map(rowEl));
       return card;
     }));
@@ -92,13 +99,14 @@ export function bottomSheet({ id, label, cards }) {
 
   const open = () => {
     if (d.open && !shut) return;
+    d.setAttribute('aria-label', named());
     fill();
     shadeEl().classList.add('on');
     if (!d.open) d.showModal();
     put(height());
     step = transients().open(() => { step = null; void hide(); });
     void move(0);
-    /** @type {HTMLElement | null} */ (body.querySelector('button'))?.focus({ preventScroll: true });
+    /** @type {HTMLElement | null} */ (body.querySelector('button:not(:disabled)'))?.focus({ preventScroll: true });
   };
   /** closed (its Back step taken back too) -> once it is gone */
   const close = async (v = 0) => {

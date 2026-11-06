@@ -480,6 +480,8 @@ export function listScreen(app, kit) {
     /** a module on for this device (in the Vault layout: with its Notes extra) @param {string} key */
     on,
     notes: () => all,
+    /** the app's search over the notes (the Vault layout's Search view) @param {string} q @param {{ limit?: number }} [o] */
+    search: (q, o) => search.search(q, o),
     canWrite: () => canWrite,
     role: () => role,
     space: () => openSpace,

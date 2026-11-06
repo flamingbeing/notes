@@ -85,5 +85,51 @@
   "aliases": [],
   "links": [],
   "updatedAt": "{{now-540}}"
+ },
+ "spaces/_/notes/seeds": {
+  "path": "Projects/Garden",
+  "title": "Seed list",
+  "body": "# Seed list\n\n- Tomatoes: two kinds\n- Basil, sweet and Thai\n- Runner beans\n\nSow the basil after the last frost. #garden/veg",
+  "tags": [
+   "garden/veg"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-120}}"
+ },
+ "spaces/_/notes/compost": {
+  "path": "Projects/Garden",
+  "title": "Compost notes",
+  "body": "# Compost notes\n\nTurn the pile every two weeks. Greens and browns, about half and half.\n\nSee [[Garden plan]] #garden/soil",
+  "tags": [
+   "garden/soil"
+  ],
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-360}}"
+ },
+ "spaces/_/notes/bread": {
+  "path": "Cooking",
+  "title": "Bread",
+  "body": "# Bread\n\n500 g flour, 350 g water, 10 g salt, a little yeast.\n\nRest overnight, bake hot. A sprig of basil on top is odd but nice. #cooking",
+  "tags": [
+   "cooking"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-60}}"
+ },
+ "spaces/_/notes/pancakes": {
+  "path": "Cooking/Breakfast",
+  "title": "Pancakes",
+  "body": "# Pancakes\n\nFlour, milk, two eggs. Fry thin. #cooking/breakfast",
+  "tags": [
+   "cooking/breakfast"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-400}}"
  }
 }
