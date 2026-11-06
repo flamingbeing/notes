@@ -16,13 +16,14 @@
  "spaces/_/notes/garden": {
   "path": "Projects",
   "title": "Garden plan",
-  "body": "# Garden plan\n\nBeds along the south fence. Tomatoes, basil, beans.\n\n## Tasks\n- [ ] Buy seeds\n- [ ] Build the frame\n\nRelated: [[Reading list]] #garden #plan",
+  "body": "# Garden plan\n\nBeds along the **south fence**. Tomatoes, basil, beans.\n\n## Tasks\n- [ ] Buy seeds\n- [ ] Build the frame\n\n## Beds\n- North bed: see [[Seed list|the seed list]]\n  - Tomatoes at the back\n  - Basil in front\n- South bed: *runner beans*\n\n---\n\nRelated: [[Reading list]] #garden #plan",
   "tags": [
    "garden",
    "plan"
   ],
   "links": [
-   "reading list"
+   "reading list",
+   "seed list"
   ],
   "aliases": [],
   "updatedAt": "{{now-90}}"
@@ -109,6 +110,17 @@
   ],
   "aliases": [],
   "updatedAt": "{{now-360}}"
+ },
+ "spaces/_/notes/spring": {
+  "path": "Projects/Garden",
+  "title": "Spring jobs",
+  "body": "# Spring jobs\n\n## This month\n- Dig over the beds from the [[Garden plan]]\n- **Order compost** before the rain\n\n## Later\n- Stake the tomatoes, as in [[Garden plan#Beds|the bed layout]]",
+  "tags": [],
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-60}}"
  },
  "spaces/_/notes/bread": {
   "path": "Cooking",

@@ -13,6 +13,7 @@ import { history as noteSteps, tabs as tabList } from './nav.js';
 import { vaultState } from './state.js';
 import { bottomSheet } from './sheet.js';
 import { sideDrawer } from './drawer.js';
+import { noteUi } from './note-ui.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
 
@@ -152,6 +153,7 @@ export async function vaultShell(app, kit, list, { who }) {
     save();
     syncMode();
     left?.redraw();
+    ui.shown();
   };
   list.pageLayout.onBlank = () => {
     html.classList.add('vl-blank');
@@ -161,13 +163,15 @@ export async function vaultShell(app, kit, list, { who }) {
     // (the address no longer names the note, so a reload opens this page as it is, and Back from it is the browser's)
     history.replaceState({ ...history.state, note: '' }, '', location.pathname + location.search);
     save();
+    ui.blank();
   };
   list.pageLayout.onList = () => {
     const now = list.space()?.id || '';
     if (now !== spaceId) { spaceId = now; state = vaultState(localStorage, spaceId); tabs = tabList(state.get()); paint(); }
-    const open = page.current();
-    if (open) titled(open);
+    // (the title box's words: a rename being saved has them before the page's note does)
+    if (page.current()) titleText.textContent = titleBox.value.trim() || page.current()?.title || 'Untitled';
     left?.redraw();
+    ui.changed();
   };
   titleBox.addEventListener('input', () => { titleText.textContent = titleBox.value || 'Untitled'; });
   /** the empty page (its tab stays) */
@@ -249,32 +253,13 @@ export async function vaultShell(app, kit, list, { who }) {
   new MutationObserver(syncMode).observe(editMode, { attributes: true, attributeFilter: ['aria-pressed', 'hidden'] });
   mode.addEventListener('click', () => { page.toggleRead(); syncMode(); });
 
-  // ---- the title: tapped, the note's title box shows for a rename (shown always with Inline title on)
-  title.addEventListener('click', () => {
-    if (!page.current() || !list.canWrite()) return;
-    html.classList.add('vl-renaming');
-    titleBox.focus();
-    titleBox.select();
+  // ---- the note page's own parts (vault-ui/note-ui.js): the title renamed in place, the note menu, Find, the mobile
+  // toolbar and the Linked mentions
+  const ui = noteUi({
+    list, page, settings, on, state: () => state, syncMode, closeTab, title, titleText,
+    ctx: () => leftReady().then(l => l.ctx),
   });
-  titleBox.addEventListener('blur', () => html.classList.remove('vl-renaming'));
-
-  // ---- the sheets: More (this note), the ribbon (the app's actions), the open tabs
-  const moreSheet = bottomSheet({ id: 'vl-more-sheet', label: 'More options', cards: () => [
-    { rows: [
-      { id: 'vl-more-close', icon: 'x', label: 'Close', run: () => void closeTab() },
-    ] },
-    { rows: [
-      { id: 'vl-more-read', icon: 'bookOpen', label: 'Reading view', ticked: page.reading(), run: () => { page.toggleRead(); syncMode(); } },
-      { id: 'vl-more-source', icon: 'codeXml', label: 'Source mode', ticked: settings.get('vEditMode') !== 'live', run: () => void settings.set('vEditMode', settings.get('vEditMode') === 'live' ? 'source' : 'live') },
-      ...(on('xDetails') ? [{ id: 'vl-more-details', icon: 'info', label: 'Details…', run: () => {
-        const d = /** @type {HTMLDetailsElement} */ (document.getElementById('edit-more'));
-        d.open = true;
-        d.scrollIntoView({ block: 'start' });
-      } }] : []),
-    ] },
-    { rows: list.canWrite() ? [{ id: 'vl-more-delete', icon: 'trash2', label: 'Delete file', danger: true, run: () => void page.remove() }] : [] },
-  ] });
-  more.addEventListener('click', () => { if (page.current()) moreSheet.open(); else void closeTab(); });
+  more.addEventListener('click', () => void ui.menu());
 
   /** @type {Promise<{ open: () => void, close: () => Promise<void> }> | undefined} */
   let hostMade;
@@ -338,6 +323,7 @@ export async function vaultShell(app, kit, list, { who }) {
     if (on('xSyncButton')) { if (syncBtn.parentNode !== pill) pill.prepend(syncBtn); }
     else if (syncBtn.parentNode === pill) syncHome.parent?.insertBefore(syncBtn, syncHome.next);
     if (!on('xTabBar') && html.dataset.vlPage) void leavePage();
+    ui.options();
   };
   today.addEventListener('click', () => void list.daily());
   nextDay.addEventListener('click', () => void list.daily(nextWorkday()));

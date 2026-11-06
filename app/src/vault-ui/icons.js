@@ -61,6 +61,23 @@ export const GLYPHS = {
   type: [['polyline', { points: '4 7 4 4 20 4 20 7' }], ['line', { x1: '9', x2: '15', y1: '20', y2: '20' }], ['line', { x1: '12', x2: '12', y1: '4', y2: '20' }]],
   // (the sidebar button while the sidebar is open: the panel's left part filled)
   panelLeftFilled: [['rect', { width: '18', height: '18', x: '3', y: '3', rx: '2' }], ['path', { d: 'M5 3h4v18H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z', fill: 'currentColor' }]],
+  // the note page (the mobile toolbar, Linked mentions, the note menu, Find)
+  undo2: [['path', { d: 'M9 14 4 9l5-5' }], ['path', { d: 'M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11' }]],
+  redo2: [['path', { d: 'm15 14 5-5-5-5' }], ['path', { d: 'M20 9H9.5A5.5 5.5 0 0 0 4 14.5A5.5 5.5 0 0 0 9.5 20H13' }]],
+  brackets: [['path', { d: 'M16 3h3a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1h-3' }], ['path', { d: 'M8 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h3' }]],
+  hash: [['line', { x1: '4', x2: '20', y1: '9', y2: '9' }], ['line', { x1: '4', x2: '20', y1: '15', y2: '15' }], ['line', { x1: '10', x2: '8', y1: '3', y2: '21' }], ['line', { x1: '16', x2: '14', y1: '3', y2: '21' }]],
+  paperclip: [['path', { d: 'm16 6-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551' }]],
+  heading: [['path', { d: 'M18 20V4' }], ['path', { d: 'M6 12H18' }], ['path', { d: 'M6 20V4' }]],
+  bold: [['path', { d: 'M6 12h9a4 4 0 010 8H7a1 1 0 01-1-1V5a1 1 0 011-1h7a4 4 0 010 8' }]],
+  italic: [['line', { x1: '19', x2: '10', y1: '4', y2: '4' }], ['line', { x1: '14', x2: '5', y1: '20', y2: '20' }], ['line', { x1: '15', x2: '9', y1: '4', y2: '20' }]],
+  strikethrough: [['path', { d: 'M16 4H9a3 3 0 0 0-2.83 4' }], ['path', { d: 'M14 12a4 4 0 0 1 0 8H6' }], ['line', { x1: '4', x2: '20', y1: '12', y2: '12' }]],
+  highlighter: [['path', { d: 'm9 11-6 6v3h9l3-3' }], ['path', { d: 'm22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4' }]],
+  indentIncrease: [['path', { d: 'M21 5H11' }], ['path', { d: 'M21 12H11' }], ['path', { d: 'M21 19H11' }], ['path', { d: 'm3 8 4 4-4 4' }]],
+  indentDecrease: [['path', { d: 'M21 5H11' }], ['path', { d: 'M21 12H11' }], ['path', { d: 'M21 19H11' }], ['path', { d: 'm7 8-4 4 4 4' }]],
+  keyboardOff: [['path', { d: 'M 20 4 A2 2 0 0 1 22 6' }], ['path', { d: 'M 22 6 L 22 16.41' }], ['path', { d: 'M 7 16 L 16 16' }], ['path', { d: 'M 9.69 4 L 20 4' }], ['path', { d: 'M14 8h.01' }], ['path', { d: 'M18 8h.01' }], ['path', { d: 'm2 2 20 20' }], ['path', { d: 'M20 20H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2' }], ['path', { d: 'M6 8h.01' }], ['path', { d: 'M8 12h.01' }]],
+  arrowUpDown: [['path', { d: 'm21 16-4 4-4-4' }], ['path', { d: 'M17 20V4' }], ['path', { d: 'm3 8 4-4 4 4' }], ['path', { d: 'M7 4v16' }]],
+  arrowUpRight: [['path', { d: 'M7 7h10v10' }], ['path', { d: 'M7 17 17 7' }]],
+  chevronUp: [['path', { d: 'm18 15-6-6-6 6' }]],
 };
 
 /**
