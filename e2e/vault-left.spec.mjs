@@ -253,6 +253,8 @@ test('axe: each view of the sidebar, light and dark', async ({ phone }) => {
     expect(await problems(page), `the view picker (${scheme})`).toEqual([]);
     await page.keyboard.press('Escape');
     await pick(page, 'files');
+    // (folders start folded: Cooking opened once)
+    if (await folder(page, 'Cooking').getAttribute('aria-expanded') === 'false') await folder(page, 'Cooking').click();
     await longPress(page, row(page, 'Bread'));
     await expect(page.locator('#vl-file-menu')).toBeVisible();
     expect(await problems(page), `the file menu (${scheme})`).toEqual([]);
