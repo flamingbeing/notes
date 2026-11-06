@@ -20,6 +20,17 @@
   per device (syncing them needs a rules change, owner's call); folders start open (the reference starts them shut);
   no bookmark groups yet; long-press menus inside the drawer are this app's own (app-ui's hold menus do not work
   inside a dialog: worth an option there).
+- Vault layout, slice 3 of 5 (6 Nov): the note page. Source mode by default (Markdown shown: faint list marks, `#`
+  and brackets, link words in the link colour, headings 1.6/1.4/1.2em); the view button and Ctrl+E go to the read view
+  (underlined links, faint dot bullets, purple task boxes, a light rule). A mobile toolbar sits on the keyboard while
+  editing (undo, redo, link, tag, attach, heading, bold, italic, strike, highlight, bullet, to-do, indent, outdent,
+  hide keyboard; line spacing with that extra), following the toolbar setting. Under the note, Linked mentions: groups
+  per linking note with each line as a card (tap opens it at that line), fold, more context, sort, a filter, and
+  Unlinked mentions on demand. The note menu (Backlinks in document, Reading view, Source mode, Rename, Move with New
+  folder, Bookmark, Find, Copy path, Share, Details, Delete with Undo; viewers get the views, Copy path, Share). A tap
+  on the header title renames in place. Fixed: the drawer's Undo after Delete never found the bin entry. Classic note
+  screenshots are pixel-identical to before. Gaps: Live Preview in Vault is still the Classic live preview; Find is a
+  small bar of its own (the vendored CodeMirror has no search panel); no reference frame of the toolbar itself.
 - Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
   Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict
