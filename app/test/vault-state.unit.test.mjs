@@ -22,11 +22,16 @@ test('clean: unknown keys dropped, wrong types back to the defaults', () => {
   assert.equal(clean({ tabs: ['a', 'b'], active: 1 }).active, 1);
 });
 
-test('clean: the Search and Tags views\' choices', () => {
+test('clean: the Search and Tags views\' choices, the Linked mentions block\'s', () => {
   const d = clean({});
   assert.deepEqual([d.searchCollapse, d.searchContext, d.tagSort, d.tagNested, d.tagShut], [false, false, 'name', true, []]);
   const c = clean({ searchCollapse: true, searchContext: 1, tagSort: 'count', tagNested: false, tagShut: ['a', 'a', 3] });
   assert.deepEqual([c.searchCollapse, c.searchContext, c.tagSort, c.tagNested, c.tagShut], [true, false, 'count', false, ['a']]);
+  assert.deepEqual([d.mentionsOff, d.mentionSort, d.mentionFold, d.mentionContext], [[], 'name-asc', false, false]);
+  const m = clean({ mentionsOff: ['n1', 'n1', 7, 'n2'], mentionSort: 'mtime-desc', mentionFold: true, mentionContext: 'yes' });
+  assert.deepEqual([m.mentionsOff, m.mentionSort, m.mentionFold, m.mentionContext], [['n1', 'n2'], 'mtime-desc', true, false]);
+  assert.equal(clean({ mentionSort: 'relevance' }).mentionSort, 'name-asc');
+  assert.equal(clean({ mentionsOff: Array.from({ length: 300 }, (_, i) => `n${i}`) }).mentionsOff.length, 200);
   assert.equal(clean({ tagSort: 'size' }).tagSort, 'name');
 });
 

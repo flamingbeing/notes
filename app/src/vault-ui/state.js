@@ -9,13 +9,17 @@ const SORTS = ['name-asc', 'name-desc', 'mtime-desc', 'mtime-asc'];
 /** @typedef {{ last: string, tabs: string[], active: number, recent: string[], bookmarks: string[], folders: string[],
  *   shut: string[], leftView: string, rightView: string, fileSort: string, searchSort: string, matchCase: boolean,
  *   searchRecent: string[], cmdRecent: string[], searchCollapse: boolean, searchContext: boolean, tagSort: string,
- *   tagNested: boolean, tagShut: string[] }} VaultState */
+ *   tagNested: boolean, tagShut: string[], mentionsOff: string[], mentionSort: string, mentionFold: boolean,
+ *   mentionContext: boolean }} VaultState
+ * mentionsOff: the notes with "Backlinks in document" turned off (on for every other note); mentionSort, mentionFold,
+ * mentionContext: the Linked mentions block's sort, folded snippets, more context */
 
 /** @returns {VaultState} */
 export const blank = () => ({
   last: '', tabs: [], active: 0, recent: [], bookmarks: [], folders: [], shut: [], leftView: 'files', rightView: 'backlinks',
   fileSort: 'name-asc', searchSort: 'relevance', matchCase: false, searchRecent: [], cmdRecent: [],
   searchCollapse: false, searchContext: false, tagSort: 'name', tagNested: true, tagShut: [],
+  mentionsOff: [], mentionSort: 'name-asc', mentionFold: false, mentionContext: false,
 });
 
 /** strings only, no repeats, each at most `len` long, at most `max` of them @param {unknown} v @param {number} max @param {number} [len] */
@@ -50,6 +54,10 @@ export function clean(raw) {
     tagSort: oneOf(o.tagSort, ['name', 'count'], d.tagSort),
     tagNested: o.tagNested !== false,
     tagShut: strings(o.tagShut, 500, 200),
+    mentionsOff: strings(o.mentionsOff, 200),
+    mentionSort: oneOf(o.mentionSort, SORTS, d.mentionSort),
+    mentionFold: o.mentionFold === true,
+    mentionContext: o.mentionContext === true,
   };
 }
 
