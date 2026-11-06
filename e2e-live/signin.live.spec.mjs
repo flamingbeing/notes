@@ -102,6 +102,14 @@ test('the test user signs in on the live site; a note with a picture exports, im
   const zipPath = test.info().outputPath('export.zip');
   await test.step('export the vault as a zip', async () => {
     await page.click('#open-settings');
+    // Settings opens on a menu with a page per section: open the page holding Import and export first
+    await page.waitForSelector('#open-transfer', { state: 'attached' });
+    await expect(page.locator('.ui-settings.is-sliding')).toHaveCount(0);
+    const section = await page.evaluate(() => {
+      const g = document.querySelector('#open-transfer')?.closest('.ui-settings-group');
+      return g?.hidden ? g.querySelector('.ui-settings-title')?.textContent || '' : null;
+    });
+    if (section) await page.locator('.ui-settings-menu-groups .ui-settings-go').filter({ hasText: section }).first().click();
     await page.click('#open-transfer');
     await expect(page.locator('#transfer')).toBeVisible();
     const [download] = await Promise.all([page.waitForEvent('download'), page.click('#transfer-export')]);
