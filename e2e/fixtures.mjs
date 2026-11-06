@@ -107,6 +107,8 @@ export async function signIn(page, role = 'member', { path = APP } = {}) {
     await db.put(`members/${uid}`, { role, v: 1 });
     await expect(page.locator('#list-view')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
+    // (the sign-in's screen change is a view transition: while it runs every touch lands on its overlay, not the page)
+    await page.waitForFunction(() => !document.getAnimations().some(a => /** @type {KeyframeEffect} */ (a.effect)?.pseudoElement?.includes('view-transition')));
   }
   return { uid, email };
 }
