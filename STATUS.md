@@ -43,6 +43,18 @@
   daily notes. Classic screenshots are pixel-identical to before. Gaps: no Unlinked mentions under Outgoing links and
   no Outline tools (search, collapse) yet; no reference frame for the ribbon menu, the command palette, the tab
   switcher or the pull-down: check against an owner recording.
+- Vault layout, slice 5 of 5 (6 Nov, decision 0022): full Settings. A grey sheet below the status bar: a search
+  across every page, the Options card (General, Appearance, Editor, Files and links, Mobile toolbar, Account and
+  spaces, Core plugins, About) and the Core plugins card (Backlinks, Command palette, Daily notes, and Tab bar, Note
+  list, More, Advanced and Haiku while those extras are on). Pages slide in from the right; Back, an edge swipe or
+  the arrow steps out, the X or a drag down on the root closes. White cards, 52x31 switches, pill choices and
+  buttons, a red Log out. Every option has a page (`vault-ui/settings-map.js`, a unit test checks it); two new device
+  options keep today's behaviour switchable (Backlinks in document, Pull down for the palette, both on). Polish: every
+  Vault screen shot light and dark; reduced motion moves at once; every lazy file opens offline; startup 319 KiB /
+  55 requests. Classic screenshots (list, note, Settings and each page, Folders, Haiku; light and dark) match
+  9b1db67 except the Layout row. Gaps: no Language, hotkeys, fonts or community plugins pages (the app has none);
+  the toolbar's commands are listed, not reorderable; the ribbon menu, tab switcher, palette and pull-down still have
+  no reference frame.
 - Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
   Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict
@@ -86,16 +98,24 @@
 
 ## Waiting on the owner
 
+- A screen recording of the Vault layout's reference in the light theme: the ribbon menu, the tab switcher, the
+  command palette, a long-press menu, headings and tasks in the reading view, and the dark theme; to check slices
+  1-5 against.
 - Live check of Connect MCP: Settings → Connect MCP, paste the code into Claude Desktop.
 - The live smoke test after deploy needs the owner's sign-in click.
 - Settings on each device: "Folder for new notes" = `Inbox`, "Folder for today's notes" = `Daily`.
 
 ## Next
 
+- Vault layout, later: All properties view and properties display, slash commands, templates, PDF export, a
+  toolbar and ribbon you can reorder, Unlinked mentions in the right sidebar, drag to move in the file tree, pinned
+  side panels on tablets, bookmark sync (a rules change: owner's call), Explain search terms, a fading drawer as an
+  Appearance choice.
 - Live smoke test of S4; then restore from the bin.
 
 ## Decisions (dated)
 
+- 2026-11-06: Vault layout, the default per device; Classic kept as it was; every feature a toggle (0022).
 - 2026-10-29: Haiku tab: the pasted text is never stored; prompts are notes in `Prompts/` (0021).
 - 2026-10-28: tab swipe follows app-ui's iOS-style paging (rc.30); Notes adds no motion of its own.
 - 2026-10-29: a right swipe on the first tab opens the side bar as a drawer (the kit's `drawer` option), not Folders.

@@ -53,6 +53,19 @@ never put patient details in it. Made from [app-starter](https://github.com/flam
   Desktop or Claude Code list, search, read, create, append to, overwrite and delete (to the bin) your own notes,
   signed in as you under the same rules. See [mcp/README.md](mcp/README.md).
 
+## Layouts
+
+Two layouts, chosen per device; changing it reloads the app (decision 0022).
+
+- **Vault layout** (the default): the note page is home, with a header, a navigation pill at the bottom (Back, Forward,
+  quick switcher, new tab, tabs, menu), a left sidebar (Files, Search, Tags, Bookmarks), a right sidebar (Backlinks,
+  Outgoing links, Outline, Calendar) and bottom sheets. Settings > Appearance > Layout switches to Classic. Settings >
+  Core plugins turns each part on or off and, under "Notes extras", brings back any Classic feature (tab bar, note
+  list, select mode, Haiku and the rest), each off until turned on. Code in `app/src/vault-ui/`, styles in
+  `app/public/vault.css`; Settings are drawn from `vault-ui/settings-map.js`.
+- **Classic layout**: the tab bar (Notes, Folders, Settings), the list and the note screen. Settings > This device >
+  Layout switches to Vault.
+
 ## Start an app
 
 1. On GitHub, "Use this template" (never a fork), then clone the new repo.
