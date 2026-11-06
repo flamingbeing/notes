@@ -19,11 +19,11 @@ const open = async page => {
   if (!await page.locator('#vl-left').isVisible()) await page.click('#vl-side-btn');   // (it stays open under Settings)
   await expect(page.locator('#vl-left')).toBeVisible();
   await page.click('#vl-gear');
-  await expect(page.locator('#vl-settings')).toBeVisible();
-  await expect(page.locator('#vl-settings [data-page=root]')).toBeVisible();
+  await expect(page.locator('#vl-set')).toBeVisible();
+  await expect(page.locator('#vl-set [data-page=root]')).toBeVisible();
 };
 /** the page showing (the one on top, slid in) */
-const shown = page => page.locator('#vl-settings .vl-set-page:not([hidden])').last();
+const shown = page => page.locator('#vl-set .ui-vault-set-page:not([hidden])').last();
 /** a finger's path on the screen (Chromium's touch events, through the devtools protocol) */
 const touches = async (page, points) => {
   const c = await page.context().newCDPSession(page);
@@ -39,17 +39,17 @@ test('the gear opens Settings: the Options and Core plugins cards; a search find
   const page = await phone(vault);
   await signIn(page);
   await open(page);
-  const root = page.locator('#vl-settings [data-page=root]');
+  const root = page.locator('#vl-set [data-page=root]');
   await expect(root.getByRole('heading', { name: 'Options' })).toBeVisible();
   await expect(root.getByRole('heading', { name: 'Core plugins' })).toBeVisible();
   for (const name of ['General', 'Appearance', 'Editor', 'Files and links', 'Mobile toolbar', 'Account and spaces', 'Core plugins', 'About']) {
-    await expect(page.locator('#vl-settings .vl-set-nav', { hasText: new RegExp(`^${name}$`) }).first()).toBeVisible();
+    await expect(page.locator('#vl-set .ui-vault-set-nav', { hasText: new RegExp(`^${name}$`) }).first()).toBeVisible();
   }
   for (const id of ['backlinks', 'palette', 'daily']) await expect(page.locator(`#vl-set-go-${id}`)).toBeVisible();
   await expect(page.locator('#vl-set-go-tabs')).toBeHidden();   // (the Tab bar extra is off)
 
   await page.fill('#vl-set-q', 'Line numbers');
-  const hit = page.locator('#vl-set-results .vl-set-hit', { hasText: 'Line numbers' });
+  const hit = page.locator('#vl-set-results .is-hit', { hasText: 'Line numbers' });
   await expect(hit).toContainText('Editor');
   await hit.click();
   await expect(page.locator('#vl-set-title-editor')).toBeVisible();
@@ -75,23 +75,23 @@ test('Back steps out page by page, then closes; the X closes from a page', async
   await expect(page.locator('#vl-set-title-daily')).toBeVisible();
   await settled(page);
   await expect(page.locator('#opt-dailyFolder')).toBeVisible();
-  await expect(page.locator('#vl-settings .vl-set-page:not([hidden])')).toHaveCount(1);   // one screen at a time
+  await expect(page.locator('#vl-set .ui-vault-set-page:not([hidden])')).toHaveCount(1);   // one screen at a time
 
   await page.goBack();
   await expect(page.locator('#vl-set-title-plugins')).toBeVisible();
   await expect(page.locator('#vl-set-title-daily')).toBeHidden();
-  await page.locator('#vl-settings [data-page=plugins] .vl-set-back').click();
+  await page.locator('#vl-set [data-page=plugins] .ui-vault-set-back').click();
   await expect(page.locator('#vl-set-title-root')).toBeVisible();
   await page.goBack();
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await expect(page.locator('#vl-set')).toBeHidden();
 
   await open(page);
   await page.click('#vl-set-go-about');
   await settled(page);
-  await page.locator('#vl-settings [data-page=about] .vl-set-close').click();
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await page.locator('#vl-set [data-page=about] .ui-vault-set-circle:not(.ui-vault-set-back)').click();
+  await expect(page.locator('#vl-set')).toBeHidden();
   await page.goBack();   // (no step of Settings left: Back goes on in the app)
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await expect(page.locator('#vl-set')).toBeHidden();
 });
 
 test('a swipe right on a page goes Back; a drag down on the root closes Settings', async ({ phone }) => {
@@ -105,7 +105,7 @@ test('a swipe right on a page goes Back; a drag down on the root closes Settings
   await expect(page.locator('#vl-set-title-root')).toBeVisible();
   await settled(page);
   await touches(page, [[200, 40], [200, 60], [200, 140], [200, 260], [200, 380], [200, 500]]);
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await expect(page.locator('#vl-set')).toBeHidden();
   await page.goBack();   // (its history step went with it: Back stays in the app)
   await expect(page.locator('#vl-left')).toBeHidden();
 });
@@ -121,16 +121,16 @@ test('a Core plugin off takes its view away: Tags view off, no Tags in the sideb
   // (a gear shows only on a plugin that is on)
   await page.locator('#opt-pDaily').click();
   await expect(page.locator('#vl-set-gear-daily')).toBeHidden();
-  await page.locator('#vl-settings [data-page=plugins] .vl-set-back').click();
+  await page.locator('#vl-set [data-page=plugins] .ui-vault-set-back').click();
   await expect(page.locator('#vl-set-go-daily')).toBeHidden();
-  await page.click('#vl-settings-close');
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await page.click('#vl-set-close');
+  await expect(page.locator('#vl-set')).toBeHidden();
 
   await expect(page.locator('#vl-left')).toBeVisible();   // (the sidebar stayed open under Settings)
-  await page.click('#vl-view-pill');
-  await expect(page.locator('#vl-view-menu')).toBeVisible();
-  await expect(page.locator('#vl-view-files')).toBeVisible();
-  await expect(page.locator('#vl-view-tags')).toHaveCount(0);
+  await page.click('#vl-left-pill');
+  await expect(page.locator('#vl-left-menu')).toBeVisible();
+  await expect(page.locator('#vl-left-pick-files')).toBeVisible();
+  await expect(page.locator('#vl-left-pick-tags')).toHaveCount(0);
 });
 
 test('Log out in General signs out', async ({ phone }) => {
@@ -141,7 +141,7 @@ test('Log out in General signs out', async ({ phone }) => {
   await expect(page.locator('#who')).toContainText(email);
   await page.getByRole('button', { name: 'Log out' }).click();
   await expect(page.locator('#signed-out')).toBeVisible();
-  await expect(page.locator('#vl-settings')).toBeHidden();
+  await expect(page.locator('#vl-set')).toBeHidden();
 });
 
 test('Layout to Classic reloads to the tab bar; the Classic Settings keep every section', async ({ phone }) => {
@@ -154,7 +154,7 @@ test('Layout to Classic reloads to the tab bar; the Classic Settings keep every 
   await expect.poll(() => page.evaluate(() => window.starter?.ready), { timeout: 20_000 }).toBe(true);
   await expect(page.locator('#tab-notes')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.layout)).toBe('classic');
-  await expect(page.locator('#vl-settings')).toHaveCount(0);
+  await expect(page.locator('#vl-set')).toHaveCount(0);
   await openSettings(page);
   const menu = page.locator('.ui-settings-menu-groups .ui-settings-go');
   for (const name of ['List', 'Editor', 'More', 'Advanced', 'Tab bar', 'This device', 'Notes and files', 'Account']) {
@@ -173,12 +173,12 @@ test('axe: the root and two pages, light and dark', async ({ phone }) => {
       await page.click(`#vl-set-go-${id}`);
       await settled(page);
       expect(await problems(page), `${id} (${scheme})`).toEqual([]);
-      await page.locator(`#vl-settings [data-page=${id}] .vl-set-back`).click();
+      await page.locator(`#vl-set [data-page=${id}] .ui-vault-set-back`).click();
       await expect(page.locator('#vl-set-title-root')).toBeVisible();
       await settled(page);
     }
-    await page.click('#vl-settings-close');
-    await expect(page.locator('#vl-settings')).toBeHidden();
+    await page.click('#vl-set-close');
+    await expect(page.locator('#vl-set')).toBeHidden();
   }
 });
 

@@ -188,7 +188,7 @@ export function listScreen(app, kit) {
   };
   const toast = toaster($('toasts')).show;
   // Settings (the Classic panel, or the Vault layout's dialog) closes before a sheet it opened shows
-  const closeSettings = () => { for (const id of ['settings-panel', 'vl-settings']) /** @type {HTMLDialogElement | null} */ (document.getElementById(id))?.close(); };
+  const closeSettings = () => { for (const id of ['settings-panel', 'vl-set']) /** @type {HTMLDialogElement | null} */ (document.getElementById(id))?.close(); };
   // the note page: off the first draw's path, but its module starts loading at once (the app's main page; a note may
   // be opened, or the network lost, before warmUp), and is made then, so a link or a reload's step opens its note
   /** @type {ReturnType<typeof import('./note-page.js').notePage> | undefined} */ let pageNow;

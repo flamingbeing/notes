@@ -6,12 +6,12 @@ import { test, expect, signIn, serverHas, serverNotes, uniq, db } from './fixtur
 import axe from './axe.mjs';
 
 const vault = { layout: /** @type {const} */ ('vault') };
-/** axe's serious problems, less the faint words the reference look keeps on purpose ([data-faint]: counts, chevrons) */
+/** axe's serious problems, less the faint words the reference look keeps on purpose ([data-faint]: counts, chevrons; the view picker's faint copy of its pill, hidden from screen readers) */
 const problems = async page => {
   const all = await axe(page);
   const faint = await page.evaluate(lines => lines.map(l => {
     const [rule, target] = [l.slice(0, l.indexOf(':')), l.slice(l.indexOf(':') + 2)];
-    try { return rule === 'color-contrast' && !!document.querySelector(target)?.closest('[data-faint]'); } catch { return false; }
+    try { return rule === 'color-contrast' && !!document.querySelector(target)?.closest('[data-faint], [aria-hidden="true"]'); } catch { return false; }
   }), all);
   return all.filter((_, i) => !faint[i]);
 };
@@ -44,10 +44,10 @@ const row = (page, title) => page.locator('#vl-files .vl-tree-row', { hasText: t
 const folder = (page, path) => page.locator(`#vl-files .vl-folder[data-path="${path}"]`);
 /** a view picked from the pill */
 const pick = async (page, key) => {
-  await page.click('#vl-view-pill');
-  await expect(page.locator('#vl-view-menu')).toBeVisible();
-  await page.click(`#vl-view-${key}`);
-  await expect(page.locator('#vl-view-menu')).toBeHidden();
+  await page.click('#vl-left-pill');
+  await expect(page.locator('#vl-left-menu')).toBeVisible();
+  await page.click(`#vl-left-pick-${key}`);
+  await expect(page.locator('#vl-left-menu')).toBeHidden();
 };
 
 test('the sidebar button opens the drawer (its look filled); a tap on the shade, then Back, close it', async ({ phone }) => {
@@ -92,20 +92,20 @@ test('the view picker switches views; the choice is kept over a reload', async (
   const page = await phone(vault);
   await signIn(page);
   await openLeft(page);
-  await expect(page.locator('#vl-view-pill')).toContainText('Files');
-  await page.click('#vl-view-pill');
-  await expect(page.locator('#vl-view-files')).toHaveAttribute('aria-checked', 'true');
-  for (const key of ['files', 'search', 'tags', 'bookmarks']) await expect(page.locator(`#vl-view-${key}`)).toBeVisible();
-  await expect(page.locator('#vl-view-notes')).toHaveCount(0);   // (the Note list extra is off)
-  await page.click('#vl-view-tags');
+  await expect(page.locator('#vl-left-pill')).toContainText('Files');
+  await page.click('#vl-left-pill');
+  await expect(page.locator('#vl-left-pick-files')).toHaveAttribute('aria-checked', 'true');
+  for (const key of ['files', 'search', 'tags', 'bookmarks']) await expect(page.locator(`#vl-left-pick-${key}`)).toBeVisible();
+  await expect(page.locator('#vl-left-pick-notes')).toHaveCount(0);   // (the Note list extra is off)
+  await page.click('#vl-left-pick-tags');
   await expect(page.locator('#vl-tags')).toBeVisible();
   await expect(page.locator('#vl-files')).toBeHidden();
-  await expect(page.locator('#vl-view-pill')).toContainText('Tags');
+  await expect(page.locator('#vl-left-pill')).toContainText('Tags');
   await page.reload();
   await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
   await openLeft(page);
   await expect(page.locator('#vl-tags')).toBeVisible();
-  await expect(page.locator('#vl-view-pill')).toContainText('Tags');
+  await expect(page.locator('#vl-left-pill')).toContainText('Tags');
 });
 
 test('Files: folders start folded; a nested folder opens, a note in it opens and the drawer shuts; collapse all; the sort', async ({ phone }) => {
@@ -204,7 +204,7 @@ test('the space row counts the files and folders; the gear opens Settings', asyn
   await page.goBack();
   await expect(page.locator('#vl-spaces-sheet')).toBeHidden();
   await page.click('#vl-gear');
-  await expect(page.locator('#vl-settings')).toBeVisible();
+  await expect(page.locator('#vl-set')).toBeVisible();
 });
 
 test('Search: the count of notes, the matches marked; Match case changes the counts; a tag tap searches tag:', async ({ phone }) => {
@@ -249,7 +249,7 @@ test('axe: each view of the sidebar, light and dark', async ({ phone }) => {
       if (key === 'search') { await page.fill('#vl-search-input', 'basil'); await expect(page.locator('#vl-search-count')).toHaveText('2 results'); }
       expect(await problems(page), `${key} (${scheme})`).toEqual([]);
     }
-    await page.click('#vl-view-pill');
+    await page.click('#vl-left-pill');
     expect(await problems(page), `the view picker (${scheme})`).toEqual([]);
     await page.keyboard.press('Escape');
     await pick(page, 'files');

@@ -13,6 +13,8 @@
     "@core/theme": { "core": "app-ui", "file": "theme/index.js", "types": "./node_modules/app-ui/theme/index.js", "preload": true },
     "@core/files": { "url": "./files/index.js", "types": "./app/public/files/index.js" },
     "@core/settings": { "core": "app-ui", "file": "settings/index.js", "types": "./node_modules/app-ui/settings/index.js", "preload": true },
+    "@core/ui/vault": { "core": "app-ui", "file": "ui/vault/index.js", "types": "./node_modules/app-ui/ui/vault/index.js" },
+    "@core/ui/vault/settings": { "core": "app-ui", "file": "ui/vault/settings-sheet.js", "types": "./node_modules/app-ui/ui/vault/settings-sheet.js" },
     "@core/search": { "url": "./search/index.js", "types": "./app/public/search/index.js", "alias": "app/public/search/index.js" },
     "@core/backup": { "url": "./backup/index.js", "types": "./app/public/backup/index.js" },
     "@core/drive": { "url": "./drive/index.js", "types": "./app/public/drive/index.js", "alias": "app/public/drive/index.js" },

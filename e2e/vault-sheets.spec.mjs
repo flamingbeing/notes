@@ -132,7 +132,7 @@ test('the ribbon menu: its rows; Open random note (turned on) opens another note
   await expect(sheet).toBeVisible();
   for (const id of ['switcher', 'daily', 'palette', 'new', 'random', 'search', 'bookmarks', 'settings'])
     await expect(page.locator(`#vl-rib-${id}`)).toBeVisible();
-  await expect(sheet.locator('.vl-card').first().locator('.vl-row-label')).toHaveText([
+  await expect(sheet.locator('.ui-vault-card').first().locator('.ui-vault-row-label')).toHaveText([
     'Open quick switcher', 'Open today’s daily note', 'Open command palette', 'Create new note', 'Open random note', 'Search', 'Bookmarks']);
   await page.goBack();
   await expect(sheet).toBeHidden();
@@ -156,28 +156,28 @@ test('the tabs sheet: "N tabs", + then a note gives 2; a tab’s cross closes it
   const { uid } = await signIn(page);
   const n = await seed(uid);
   await openNote(page, n.bread);
-  await expect(page.locator('#vl-tabs .vl-count')).toHaveText('1');
+  await expect(page.locator('#vl-tabs .ui-vault-count')).toHaveText('1');
   await page.click('#vl-new');
   await expect(page.locator('#vl-empty')).toBeVisible();
   await page.click('#vl-search');
   await page.fill('#vl-switcher-q', n.garden);
   await page.keyboard.press('Enter');
   await expect(page.locator('#vl-title')).toHaveText(n.garden);
-  await expect(page.locator('#vl-tabs .vl-count')).toHaveText('2');
+  await expect(page.locator('#vl-tabs .ui-vault-count')).toHaveText('2');
 
   await page.click('#vl-tabs');
   const sheet = page.locator('#vl-tabs-sheet');
   await expect(sheet).toBeVisible();
-  await expect(sheet.locator('.vl-sheet-title')).toHaveText('2 tabs');
-  await expect(page.locator('#vl-tab-0 .vl-row-label')).toHaveText(n.bread);
-  await expect(page.locator('#vl-tab-0 .vl-row-sub')).toHaveText('Cooking');
+  await expect(sheet.locator('.ui-vault-sheet-title')).toHaveText('2 tabs');
+  await expect(page.locator('#vl-tab-0 .ui-vault-row-label')).toHaveText(n.bread);
+  await expect(page.locator('#vl-tab-0 .ui-vault-row-sub')).toHaveText('Cooking');
   await expect(page.locator('#vl-tab-1')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#vl-tabs-new')).toBeVisible();
   await expect(page.locator('#vl-tabs-close-all')).toBeVisible();
   await page.click('#vl-tab-close-0');
   await expect(sheet).toBeVisible();
-  await expect(sheet.locator('.vl-sheet-title')).toHaveText('1 tab');
-  await expect(page.locator('#vl-tabs .vl-count')).toHaveText('1');
+  await expect(sheet.locator('.ui-vault-sheet-title')).toHaveText('1 tab');
+  await expect(page.locator('#vl-tabs .ui-vault-count')).toHaveText('1');
   await expect(page.locator('#vl-title')).toHaveText(n.garden);
   await page.goBack();
   await expect(sheet).toBeHidden();
@@ -191,7 +191,7 @@ test('the tabs sheet: "N tabs", + then a note gives 2; a tab’s cross closes it
   await page.click('#vl-tabs');
   await page.click('#vl-tabs-close-all');
   await expect(page.locator('#vl-empty')).toBeVisible();
-  await expect(page.locator('#vl-tabs .vl-count')).toHaveText('1');
+  await expect(page.locator('#vl-tabs .ui-vault-count')).toHaveText('1');
 });
 
 test('closing a sheet (Esc, Back, Cancel) never says "Press Back again to close"; Back on the page still does', async ({ phone }) => {

@@ -142,7 +142,7 @@ test('the note menu: Rename… relinks, Bookmark… ticks and shows in the drawe
   await expect(page.locator('#vl-menu')).toBeHidden();
   await menu(page);
   await expect(page.locator('#vl-menu-bookmark')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('#vl-menu-bookmark .vl-tick')).toBeVisible();
+  await expect(page.locator('#vl-menu-bookmark .ui-vault-tick')).toBeVisible();
   await page.goBack();
   await expect(page.locator('#vl-menu')).toBeHidden();
   await page.click('#vl-side-btn');

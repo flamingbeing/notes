@@ -1,16 +1,15 @@
-// The Vault layout's left sidebar, inside the drawer (drawer.js): one view at a time (Files, Search, Tags, Bookmarks,
-// and Notes when the Note list extra is on), each loaded the first time it shows; at the bottom the view's tools, the
-// view picker pill (its card of views rises from it), and the space row: the space's name (tap: switch spaces), how many
-// files and folders it has, and the Settings gear. The view shown is kept per space (vault-ui/state.js).
+// The Vault layout's left sidebar's insides: the kit's sidebar (app-ui ui/vault/sidebar.js, made by shell.js: the
+// drawer, one view at a time, the view's tools and the view picker pill at the bottom) holds Notes' views (Files,
+// Search, Tags, Bookmarks, and Notes when the Note list extra is on), each loaded the first time it shows, and in its
+// footer the space row: the space's name (tap: switch spaces), how many files and folders it has, and the Settings
+// gear. The view shown is kept per space (vault-ui/state.js).
 import { claim, haptic } from '@core/ui';
 import { glyph } from './icons.js';
 import { buildTree, stillEmpty } from './tree.js';
-import { viewPicker } from './view-pill.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
 /**
  * @typedef {{ el: HTMLElement, tools: HTMLElement[], redraw: () => void, shown?: () => void, run?: (q: string) => void }} View
- * @typedef {{ key: string, label: string, icon: string, plugin: string, make: (ctx: Ctx) => Promise<View> }} ViewDef
  * @typedef {{
  *   app: import('../cloud.js').Started, list: ReturnType<typeof import('../screens/list.js').listScreen>,
  *   state: () => ReturnType<typeof import('./state.js').vaultState>, on: (key: string) => boolean, canWrite: () => boolean,
@@ -24,14 +23,15 @@ import { viewPicker } from './view-pill.js';
  * }} Ctx
  */
 
-/** @type {ViewDef[]} */
-const VIEWS = [
-  { key: 'files', label: 'Files', icon: 'folder', plugin: 'pFiles', make: ctx => import('./files.js').then(m => m.filesView(ctx)) },
-  { key: 'search', label: 'Search', icon: 'search', plugin: 'pSearch', make: ctx => import('./search-view.js').then(m => m.searchView(ctx)) },
-  { key: 'tags', label: 'Tags', icon: 'tags', plugin: 'pTags', make: ctx => import('./tags.js').then(m => m.tagsView(ctx)) },
-  { key: 'bookmarks', label: 'Bookmarks', icon: 'bookmark', plugin: 'pBookmarks', make: ctx => import('./bookmarks.js').then(m => m.bookmarksView(ctx)) },
-  { key: 'notes', label: 'Notes', icon: 'list', plugin: 'xNoteList', make: ctx => import('./notes-view.js').then(m => m.notesView(ctx)) },
-];
+/** each view's code, loaded the first time it shows (the views' names, icons and plugins: shell.js, LEFT_VIEWS)
+ * @type {Record<string, (ctx: Ctx) => Promise<View>>} */
+const MAKERS = {
+  files: ctx => import('./files.js').then(m => m.filesView(ctx)),
+  search: ctx => import('./search-view.js').then(m => m.searchView(ctx)),
+  tags: ctx => import('./tags.js').then(m => m.tagsView(ctx)),
+  bookmarks: ctx => import('./bookmarks.js').then(m => m.bookmarksView(ctx)),
+  notes: ctx => import('./notes-view.js').then(m => m.notesView(ctx)),
+};
 
 /**
  * @template {keyof HTMLElementTagNameMap} K
@@ -84,42 +84,30 @@ const holdRows = (box, held) => {
 
 /**
  * @param {Omit<Ctx, 'searchFor' | 'redraw' | 'tool' | 'menu' | 'bookmarked' | 'bookmark' | 'extraFolders' | 'closeDrawer' | 'isOpen' | 'hold'>} base
- * @param {ReturnType<typeof import('./drawer.js').sideDrawer>} drawer
+ * @param {import('app-ui/ui/vault/sidebar.js').Sidebar} side  the kit's sidebar this fills (shell.js made it: the drawer, the
+ *   view picker); its views are drawn by render() here, its footer gets the space row
  */
-export function leftSidebar(base, drawer) {
-  const d = drawer.el;
-  const views = el('div', { className: 'vl-views' });
-  const tools = el('div', { className: 'vl-tools' });
-  tools.setAttribute('role', 'toolbar');
+export function leftSidebar(base, side) {
+  const d = side.el;
   const spaceName = el('span', { className: 'vl-space-name' });
   const spaceCount = el('span', { className: 'vl-space-count' });
   const space = el('button', { type: 'button', id: 'vl-space', className: 'vl-space' }, el('span', { className: 'vl-space-top' }, spaceName, glyph('chevronDown', 'vl-space-chev')), spaceCount);
   space.setAttribute('aria-haspopup', 'dialog');
   const gear = el('button', { type: 'button', id: 'vl-gear', className: 'vl-gear' }, glyph('settings'));
   gear.setAttribute('aria-label', 'Settings');
-  const picker = viewPicker({ prefix: 'vl-view', drawer: d, views: () => available(), current: () => current(), choose: key => void show(key) });
-  const foot = el('div', { className: 'vl-left-foot' }, tools, picker.wrap, el('div', { className: 'vl-vault-row' }, space, gear));
-  d.append(el('div', { className: 'vl-left-in' }, views, foot));
+  side.foot.append(el('div', { className: 'vl-vault-row' }, space, gear));
 
-  /** @type {Map<string, Promise<View>>} */
-  const made = new Map();
   /** @type {Map<string, View>} */
   const ready = new Map();
-  const available = () => VIEWS.filter(v => base.on(v.plugin));
-  /** the view to show: the one kept, if it is on, else the first that is */
-  const current = () => {
-    const want = base.state().get().leftView;
-    const on = available();
-    return on.find(v => v.key === want) || on[0] || null;
-  };
+  let showing = '';
 
   /** @type {Ctx} */
   const ctx = {
     ...base,
-    closeDrawer: () => drawer.close(),
-    isOpen: () => drawer.isOpen(),
+    closeDrawer: () => side.close(),
+    isOpen: () => side.isOpen(),
     redraw: () => redraw(),
-    searchFor: q => { void show('search').then(v => v?.run?.(q)); },
+    searchFor: q => { void show('search').then(() => ready.get('search')?.run?.(q)); },
     bookmarked: id => base.state().get().bookmarks.includes(id),
     bookmark(id, on) {
       const now = base.state().get().bookmarks;
@@ -145,7 +133,7 @@ export function leftSidebar(base, drawer) {
     // (a toast while the drawer is open shows in it: the page under a modal dialog can't be reached, its Undo neither)
     toast(msg, o) {
       const host = document.getElementById('toasts');
-      if (host && drawer.isOpen() && host.parentNode !== d) { home ||= { parent: host.parentNode, next: host.nextSibling }; d.append(host); }
+      if (host && side.isOpen() && host.parentNode !== d) { home ||= { parent: host.parentNode, next: host.nextSibling }; d.append(host); }
       return base.toast(msg, o);
     },
   };
@@ -156,40 +144,26 @@ export function leftSidebar(base, drawer) {
     if (host && home && host.parentNode === d) home.parent?.insertBefore(host, home.next);
   };
 
-  /** @param {ViewDef} def */
-  const make = def => {
-    let p = made.get(def.key);
-    if (!p) {
-      p = def.make(ctx).then(v => {
-        v.el.classList.add('vl-view');
-        v.el.hidden = true;
-        views.append(v.el);
-        ready.set(def.key, v);
-        return v;
-      });
-      made.set(def.key, p);
-      p.catch(() => made.delete(def.key));
-    }
-    return p;
+  /** a view drawn for the sidebar (its first showing) @param {string} key @returns {Promise<import('app-ui/ui/vault/sidebar.js').SidebarView>} */
+  const render = async key => {
+    const make = MAKERS[key];
+    if (!make) throw new Error(`no view ${key}`);
+    const v = await make(ctx);
+    v.el.classList.add('vl-view');
+    ready.set(key, v);
+    return {
+      el: v.el, tools: v.tools,
+      // (shown, or the sidebar opened on it: kept as this space's choice, drawn for the notes now)
+      shown: () => {
+        showing = key;
+        if (base.state().get().leftView !== key) base.state().set({ leftView: key });
+        v.redraw();
+        v.shown?.();
+      },
+    };
   };
-  let showing = '';
   /** show a view (kept as this space's choice) @param {string} key */
-  const show = async key => {
-    const def = VIEWS.find(v => v.key === key && base.on(v.plugin));
-    if (!def) return null;
-    if (base.state().get().leftView !== key) base.state().set({ leftView: key });
-    const v = await make(def);
-    if (current()?.key !== key) return v;   // (another was picked while it loaded)
-    showing = key;
-    for (const [k, other] of ready) other.el.hidden = k !== key;
-    tools.replaceChildren(...v.tools);
-    tools.hidden = !v.tools.length;
-    tools.setAttribute('aria-label', `${def.label} tools`);
-    picker.paint(def);
-    v.redraw();
-    v.shown?.();
-    return v;
-  };
+  const show = async key => { await side.show(key); return ready.get(key) || null; };
 
   // ---- the space row: the name, its counts; the switcher; Settings
   const paintSpace = () => {
@@ -207,6 +181,7 @@ export function leftSidebar(base, drawer) {
     (await switcher).open();
   });
   gear.addEventListener('click', () => void base.openSettings());
+  paintSpace();
 
   let queued = 0;
   /** everything the notes show, again (at most once a frame) */
@@ -215,26 +190,18 @@ export function leftSidebar(base, drawer) {
     queued = requestAnimationFrame(() => {
       queued = 0;
       paintSpace();
-      const want = current();
-      if (!want) { tools.replaceChildren(); picker.paint(null); return; }
-      if (want.key !== showing) { void show(want.key); return; }
-      ready.get(showing)?.redraw();
+      // (a view came or went, or another is wanted: the sidebar picks again; else the one showing draws again)
+      if (side.current() !== showing) side.refresh(); else ready.get(showing)?.redraw();
     });
   };
 
   return {
     ctx,
-    /** the drawer is opening: the view kept, drawn now */
-    shown() {
-      paintSpace();
-      const want = current();
-      if (want) void show(want.key);
-      // (the others load while the drawer is open, so a switch is at once)
-      const idle = window.requestIdleCallback || (/** @type {(f: () => void) => number} */ f => setTimeout(f, 200));
-      idle(() => { for (const def of available()) void make(def); });
-    },
+    render,
+    /** the drawer is opening */
+    opened() { paintSpace(); },
     /** the drawer has shut */
-    closed() { void picker.close(); toastsHome(); },
+    closed() { toastsHome(); },
     redraw,
     /** a view by key (the e2e and other sheets) @param {string} key */
     show,

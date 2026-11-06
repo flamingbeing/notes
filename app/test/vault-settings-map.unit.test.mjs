@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { PAGES, OPTION_PAGES, PLUGIN_PAGES, optionPages, pluginCards, findRows, TOOLBAR } from '../src/vault-ui/settings-map.js';
+import { PAGES, OPTION_PAGES, PLUGIN_PAGES, optionPages, pluginCards, TOOLBAR } from '../src/vault-ui/settings-map.js';
 import { PLUGINS } from '../src/vault-ui/plugins.js';
 import { OPTIONS } from '../src/settings/options.js';
 
@@ -43,16 +43,6 @@ test('Core plugins rows are alphabetical in each card', () => {
     assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)));
   }
   assert.equal(cards.reduce((n, c) => n + c.rows.length, 0), PLUGINS.length);
-});
-
-test('search finds rows across pages, leaves out headings and second rows', () => {
-  const hits = findRows('line numbers');
-  assert.ok(hits.some(h => h.page.id === 'editor' && 'key' in h.row && h.row.key === 'lineNumbers'));
-  assert.equal(findRows('how many notes').filter(h => 'key' in h.row && h.row.key === 'itemCount').length, 1);
-  assert.ok(findRows('tags view').some(h => h.page.id === 'plugins'));
-  assert.equal(findRows('   ').length, 0);
-  assert.ok(!findRows('display').some(h => 'heading' in h.row));
-  assert.equal(findRows('pull down', p => p.id !== 'palette').length, 0, 'a page not shown is left out');
 });
 
 test('the mobile toolbar list: distinct commands, each with an icon and a label', () => {

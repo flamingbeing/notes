@@ -1,22 +1,22 @@
-// The Vault layout's Settings: a grey sheet over the app, nearly the screen's height, drawn from settings-map.js. The
-// root has a search box, the "Options" card (a row per page) and the "Core plugins" card (the page of each plugin or
-// Notes extra that has options, while it is on). A page slides in from the right over the one before; its Back (the
-// arrow, Android's Back, a swipe right) slides it away, and the X closes the whole sheet, as does a drag down on the
-// root's top or Esc. Every option is bound to the settings api (settings.set, settings.watch), its control named
-// #opt-<key> as the Classic Settings name theirs; the buttons that open the app's sheets keep their ids, so list.js
-// opens them (the sheet closes first). It moves only by transform and opacity, on the kit's spring (glide) and drag.
-import { drag, glide, still, tabArranger, installApp, installMode, aboutSheet, LABELS } from '@core/ui';
+// The Vault layout's Settings: the kit's vault settings sheet (app-ui ui/vault/settings-sheet.js: a grey sheet over
+// the app, a page over the one before, its Back, the X, a drag down, Esc, the search), drawn from settings-map.js.
+// The root has the "Options" card (a row per page) and the "Core plugins" card (the page of each plugin or Notes extra
+// that has options, while it is on). Every option is bound to the settings api (settings.set, settings.watch), its
+// control named #opt-<key> as the Classic Settings name theirs; the buttons that open the app's sheets keep their
+// ids, so list.js opens them (the sheet closes first). What stays Notes' own: the pages and their words, and the parts
+// only Notes has (the theme's pickers, the accent and font size, the spaces, the tab arranger, the account).
+import { tabArranger, installApp, installMode, aboutSheet, LABELS } from '@core/ui';
+import { settingsSheet } from '@core/ui/vault/settings';
 import { themeSwitch, themeChoice, chooseTheme, previewTheme, PRESET_IDS, TEXT_SIZES } from '@core/theme';
 import { transients } from '../shell/transients.js';
 import { available, RULES, repaints } from '../settings/bar.js';
 import { OPTIONS } from '../settings/options.js';
-import { glyph } from './icons.js';
+import { GLYPHS, glyph } from './icons.js';
 import { featureOn, GROUPS } from './plugins.js';
-import { PAGES, OPTION_PAGES, PLUGIN_PAGES, TOOLBAR, findRows, pluginCards } from './settings-map.js';
-import { shadeEl } from './sheet.js';
+import { PAGES, OPTION_PAGES, PLUGIN_PAGES, TOOLBAR, pluginCards } from './settings-map.js';
 
 /** @typedef {import('./settings-map.js').Row} Row @typedef {import('./settings-map.js').Page} Page */
-/** @typedef {{ id: string, el: HTMLElement, x: number, v: number, step: { readonly active: boolean, close: () => Promise<void> } | null, from: HTMLElement | null }} Shown */
+/** @typedef {import('app-ui/ui/vault/settings-sheet.js').SettingsRow} KitRow @typedef {import('app-ui/ui/vault/settings-sheet.js').SettingsCard} KitCard */
 
 /**
  * @template {keyof HTMLElementTagNameMap} K
@@ -30,7 +30,6 @@ const el = (tag, props = {}, ...kids) => {
 };
 /** the sheet's buttons that open one of the app's sheets (list.js has them): the sheet closes first */
 const AFTER_CLOSE = new Set(['open-transfer', 'open-drive', 'open-bin', 'open-feedback', 'open-mcp', 'sign-out']);
-const PARALLAX = 0.3;
 // The Vault layout's palette, pinned (boot.js pins it the same way at startup): the kit's style, ground, look and
 // density stay the Classic layout's, so a style picked there never repaints the Vault one. Kept on this device as
 // picked; only shown without them here.
@@ -43,121 +42,101 @@ const pickTheme = change => {
   const a = themeChoice().accent;
   if (a) document.documentElement.style.setProperty('--vl-pick', a); else document.documentElement.style.removeProperty('--vl-pick');
 };
-const FONT_PX = { regular: 16, large: 18, larger: 20 };   // how far the page under moves while one slides over it (of the width)
+const FONT_PX = { regular: 16, large: 18, larger: 20 };
+/** @param {string} name */
+const nodes = name => GLYPHS[name] || GLYPHS.x;
+/** a row's second line, once the sheet has drawn the row around its control @param {Element} control */
+const subOf = control => /** @type {HTMLElement | null} */ (control.closest('.ui-vault-set-row')?.querySelector('.ui-vault-set-sub') || null);
 
 /**
  * @param {import('../cloud.js').Started} app
- * @param {{ list: ReturnType<typeof import('../screens/list.js').listScreen>, haiku: () => unknown }} h  haiku: the Haiku page shown
+ * @param {{ list: ReturnType<typeof import('../screens/list.js').listScreen>, haiku: () => unknown, who: () => string }} h
+ *   haiku: the Haiku page shown; who: the signed-in email
  * @returns {{ open: () => void, close: () => Promise<void> }}
  */
 export function settingsHost(app, h) {
   const { settings } = app;
   const on = (/** @type {string} */ key) => featureOn('vault', k => settings.get(k), key);
-  const d = /** @type {HTMLDialogElement} */ (el('dialog', { id: 'vl-settings', className: 'vl-set' }));
-  const status = el('p', { className: 'vl-set-status' });
-  status.setAttribute('role', 'status');
-  document.body.append(d);
-
-  // ---- options bound to the settings api: shown now, and again on every change (here, another tab, a profile)
-  /** @type {Map<string, ((v: unknown) => void)[]>} */
-  const shows = new Map();
-  /** @param {string} key @param {(v: unknown) => void} f */
-  const shown = (key, f) => { shows.set(key, [...(shows.get(key) || []), f]); f(settings.get(key)); };
-  /** @type {(() => void)[]} drawn again on any change (a row that shows only with a plugin on, the root's cards) */
-  const redraws = [];
-  /** @param {HTMLElement} node @param {() => boolean} when */
-  const gate = (node, when) => { const f = () => { node.hidden = !when(); }; redraws.push(f); f(); };
-  let said = 0;
+  /** @type {import('app-ui/ui/vault/settings-sheet.js').SettingsSheet} */
+  let sheet;
   /** @param {string} text @param {boolean} [bad] */
-  const say = (text, bad = false) => {
-    status.textContent = text;
-    status.classList.toggle('bad', bad);
-    clearTimeout(said);
-    if (text) said = window.setTimeout(() => { status.textContent = ''; }, 4000);
-  };
-  /** a value saved; refused (an account option while signed out, say): the control shows the value in force again @param {string} key @param {unknown} v */
-  const save = async (key, v) => {
-    try { await settings.set(key, v); say(''); return true; }
-    catch (e) { say(e instanceof Error ? e.message : String(e), true); shows.get(key)?.forEach(f => f(settings.get(key))); return false; }
-  };
-  settings.watch(null, (/** @type {unknown} */ v, /** @type {string | undefined} */ key) => { if (key) shows.get(key)?.forEach(f => f(v)); redraws.forEach(f => f()); });
+  const say = (text, bad = false) => sheet.say(text, bad);
+  // (the buttons list.js shows or hides by what is on, who may: told again once a page with them is drawn)
+  let told = false;
+  const tell = () => { if (told) return; told = true; queueMicrotask(() => { told = false; h.list.modules(); }); };
 
-  // ---- the parts of a row
-  let n = 0;
-  /** @param {string} label @param {string | undefined} sub @param {string} [forId] @param {...Node} more  more words after the line (the email) */
-  const words = (label, sub, forId, ...more) => {
-    const name = forId ? el('label', { className: 'vl-set-name', htmlFor: forId, textContent: label }) : el('span', { className: 'vl-set-name', textContent: label });
-    return el('div', { className: 'vl-set-text' }, name, sub || more.length ? el('div', { className: 'vl-set-sub' }, sub || '', ...more) : null);
-  };
-  /** a row: its words, then its control at the end (side) or under them (a pill) @param {Node} text @param {Node | null} control @param {boolean} [under] */
-  const row = (text, control, under = false) => el('div', { className: `vl-set-row${under ? ' vl-set-col' : ''}` }, text, control);
   /** a pill button @param {string} label @param {() => unknown} run @param {{ id?: string, danger?: boolean }} [o] */
   const pill = (label, run, o = {}) => {
-    const b = el('button', { type: 'button', className: `vl-set-pill${o.danger ? ' vl-set-danger' : ''}`, textContent: label });
+    const b = el('button', { type: 'button', className: `ui-vault-set-pill${o.danger ? ' is-danger' : ''}`, textContent: label });
     if (o.id) b.id = o.id;
     b.addEventListener('click', () => void run());
     return b;
   };
-  /** a switch bound to an option @param {string} key @param {string} id */
-  const toggle = (key, id) => {
-    const sw = /** @type {HTMLInputElement} */ (el('input', { type: 'checkbox', id, className: 'vl-toggle' }));
-    sw.setAttribute('role', 'switch');
-    shown(key, (/** @type {unknown} */ v) => { sw.checked = v === true; });
-    sw.addEventListener('change', () => void save(key, sw.checked));
-    return sw;
-  };
+  /** a choice with the kit's chevrons over it @param {HTMLSelectElement} pick */
+  const drop = pick => el('span', { className: 'ui-vault-set-drop' }, pick, glyph('chevronsUpDown', 'ui-vault-set-chev'));
+  /** @param {string} key @param {unknown} v */
+  const save = async (key, v) => { await settings.set(key, v); };
 
-  /** an option's row: a switch, a choice (a pill of choices) or a folder box @param {import('./settings-map.js').OptionRow} r */
-  const optionRow = r => {
+  /** an option's row: a switch, a choice (a pill of choices) or a folder box @param {import('./settings-map.js').OptionRow} r @param {string} keywords @returns {KitRow} */
+  const optionRow = (r, keywords) => {
     const id = r.alias ? `vl-opt-${r.key}-2` : `opt-${r.key}`;
     const def = OPTIONS[r.key]?.default;
-    /** @type {HTMLElement} */
-    let out;
+    const w = r.when;
+    const base = { id, label: r.label, sub: r.sub, keywords, shown: w ? () => on(w) : undefined };
     if (r.choices) {
-      const pick = /** @type {HTMLSelectElement} */ (el('select', { id, className: 'vl-set-select' }));
-      for (const [v, w] of r.choices) pick.add(new Option(w, v));
-      shown(r.key, v => { pick.value = String(v ?? def); });
-      pick.addEventListener('change', async () => {
+      return { ...base, choice: { options: r.choices, get: () => String(settings.get(r.key) ?? def),
         // (a new layout: the app loads again in it)
-        if (await save(r.key, pick.value) && r.key === 'layout') location.reload();
-      });
-      out = row(words(r.label, r.sub, id), el('div', { className: 'vl-set-drop' }, pick, glyph('chevronsUpDown', 'vl-set-chev')), true);
-    } else if (typeof def === 'boolean') {
-      out = row(words(r.label, r.sub, id), toggle(r.key, id));
-    } else {
-      const box = /** @type {HTMLInputElement} */ (el('input', { id, className: 'vl-set-input', maxLength: 200, placeholder: r.hint || '', autocomplete: 'off', spellcheck: false }));
-      shown(r.key, v => { if (document.activeElement !== box) box.value = String(v || ''); });
-      // (kept when the box is left: the option's clean trims the slashes)
-      box.addEventListener('change', async () => { await save(r.key, box.value); box.value = String(settings.get(r.key) || ''); });
-      out = row(words(r.label, r.sub, id), box, true);
+        set: async v => { await save(r.key, v); if (r.key === 'layout') location.reload(); } } };
     }
-    if (r.when) { const w = r.when; gate(out, () => on(w)); }
-    return out;
+    if (typeof def === 'boolean') return { ...base, toggle: { get: () => settings.get(r.key) === true, set: v => save(r.key, v) } };
+    return { ...base, under: true, control: () => {
+      const box = /** @type {HTMLInputElement} */ (el('input', { id, className: 'vl-set-input', maxLength: 200, placeholder: r.hint || '', autocomplete: 'off', spellcheck: false }));
+      box.value = String(settings.get(r.key) || '');
+      // (kept when the box is left: the option's clean trims the slashes)
+      box.addEventListener('change', async () => {
+        try { await save(r.key, box.value); say(''); } catch (e) { say(e instanceof Error ? e.message : String(e), true); }
+        box.value = String(settings.get(r.key) || '');
+      });
+      return box;
+    } };
   };
 
-  /** @type {Record<string, (r: import('./settings-map.js').PartRow) => HTMLElement>} the parts the map leaves to the screen */
+  let version = app.update ? '…' : 'dev';
+  app.update?.versionLabel().then((/** @type {string} */ v) => { version = v || LABELS.notInstalled; }, () => { version = LABELS.notInstalled; })
+    .then(() => sheet?.refresh());
+  /** @type {() => void} */
+  let arrangerStop = () => {};
+  /** @type {HTMLElement | null} */
+  let arrangerHost = null;
+  const arrange = () => {
+    arrangerStop();
+    arrangerStop = () => {};
+    if (arrangerHost?.isConnected) arrangerStop = tabArranger(arrangerHost, { tabs: available(), get: () => settings.get('tabs'), set: v => settings.set('tabs', v), rules: RULES });
+  };
+  repaints.add(arrange);
+
+  /** @type {Record<string, (r: import('./settings-map.js').PartRow, keywords: string) => KitRow>} the parts the map leaves to the screen */
   const PARTS = {
-    version: () => {
-      const name = el('span', { className: 'vl-set-name', textContent: `Version ${app.update ? '…' : 'dev'}` });
-      app.update?.versionLabel().then((/** @type {string} */ v) => { name.textContent = `Version ${v || LABELS.notInstalled}`; }, () => { name.textContent = `Version ${LABELS.notInstalled}`; });
-      return row(el('div', { className: 'vl-set-text' }, name), null);
-    },
-    update: r => {
-      const text = words(r.label, r.sub);
-      const line = /** @type {HTMLElement} */ (text.querySelector('.vl-set-sub'));
-      line.setAttribute('role', 'status');
+    version: () => ({ label: `Version ${version}`, value: '' }),
+    update: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
       const go = pill('Check now', async () => {
+        const line = subOf(go);
+        if (!line) return;
+        line.setAttribute('role', 'status');
         line.textContent = LABELS.checking;
         try { line.textContent = (await app.update?.checkNow()) ? LABELS.updated : LABELS.newest; }
         catch { line.textContent = LABELS.checkFailed; }
       }, { id: 'vl-set-check' });
       go.disabled = !app.update;
-      return row(text, go, true);
-    },
-    account: r => row(words(r.label, r.sub ? `${r.sub} ` : '', undefined, el('span', { id: 'who' })),
-      pill('Log out', () => {}, { id: 'sign-out', danger: true }), true),
-    file: r => {
-      const text = words(r.label, r.sub);
+      return go;
+    } }),
+    account: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
+      const out = pill('Log out', () => {}, { id: 'sign-out', danger: true });
+      // (the email after the line's words, where the app keeps it current)
+      queueMicrotask(() => subOf(out)?.append(' ', el('span', { id: 'who', textContent: h.who() })));
+      return out;
+    } }),
+    file: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
       const picker = /** @type {HTMLInputElement} */ (el('input', { type: 'file', accept: '.json,application/json', hidden: true }));
       const exp = pill('Export', () => {
         const url = URL.createObjectURL(new Blob([settings.exportFile()], { type: 'application/json' }));
@@ -174,28 +153,25 @@ export function settingsHost(app, h) {
           say(changed.length || dropped.length ? `Imported: ${changed.length} ${changed.length === 1 ? 'change' : 'changes'}${dropped.length ? `, ${dropped.length} left out` : ''}` : 'Nothing to change');
         } catch (e) { say(e instanceof Error ? e.message : String(e), true); }
       });
-      return row(text, el('div', { className: 'vl-set-pills' }, exp, imp, picker), true);
-    },
-    scheme: r => {
-      const pick = /** @type {HTMLSelectElement} */ (el('select', { id: 'vl-scheme', className: 'vl-set-select' }));
-      for (const [v, w] of [['auto', 'Adapt to system'], ['light', 'Light'], ['dark', 'Dark']]) pick.add(new Option(w, v));
-      pick.value = themeChoice().theme;
-      pick.addEventListener('change', () => pickTheme({ theme: pick.value }));
-      return row(words(r.label, r.sub, pick.id), el('div', { className: 'vl-set-drop' }, pick, glyph('chevronsUpDown', 'vl-set-chev')), true);
-    },
-    accent: r => {
+      return el('div', { className: 'vl-set-pills' }, exp, imp, picker);
+    } }),
+    scheme: (r, keywords) => ({ id: 'vl-scheme', label: r.label, sub: r.sub, keywords,
+      choice: { options: [['auto', 'Adapt to system'], ['light', 'Light'], ['dark', 'Dark']], get: () => themeChoice().theme, set: v => pickTheme({ theme: v }) } }),
+    accent: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
       const well = /** @type {HTMLInputElement} */ (el('input', { type: 'color', id: 'vl-accent', className: 'vl-set-well' }));
+      well.setAttribute('aria-label', r.label);
       const reset = el('button', { type: 'button', className: 'vl-set-reset', id: 'vl-accent-reset', title: 'Back to the default colour' }, glyph('rotateCcw'));
       reset.setAttribute('aria-label', 'Back to the default accent colour');
       const sync = () => { well.value = themeChoice().accent || VAULT_ACCENT; reset.hidden = !themeChoice().accent; };
       well.addEventListener('change', () => { pickTheme({ accent: well.value }); sync(); });
       reset.addEventListener('click', () => { pickTheme({ accent: '' }); sync(); well.focus(); });
       sync();
-      return row(words(r.label, r.sub, well.id), el('div', { className: 'vl-set-ctl' }, reset, well));
-    },
-    fontSize: r => {
+      return el('div', { className: 'vl-set-ctl' }, reset, well);
+    } }),
+    fontSize: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
       const slide = /** @type {HTMLInputElement} */ (el('input', { type: 'range', id: 'vl-font-size', className: 'vl-set-range', min: '0', max: String(TEXT_SIZES.length - 1), step: '1' }));
-      const value = el('span', { className: 'vl-set-value', id: 'vl-font-size-value' });
+      slide.setAttribute('aria-label', r.label);
+      const value = el('span', { className: 'ui-vault-set-value', id: 'vl-font-size-value' });
       const reset = el('button', { type: 'button', className: 'vl-set-reset', id: 'vl-font-reset', title: 'Back to 16' }, glyph('rotateCcw'));
       reset.setAttribute('aria-label', 'Back to the default font size');
       const px = (/** @type {string} */ t) => FONT_PX[/** @type {keyof typeof FONT_PX} */ (t)] ?? 16;
@@ -210,10 +186,10 @@ export function settingsHost(app, h) {
       slide.addEventListener('change', () => { pickTheme({ text: TEXT_SIZES[Number(slide.value)] || TEXT_SIZES[0] }); sync(); });
       reset.addEventListener('click', () => { pickTheme({ text: TEXT_SIZES[0] }); sync(); slide.focus(); });
       sync();
-      return row(words(r.label, r.sub, slide.id), el('div', { className: 'vl-set-ctl' }, reset, value, slide));
-    },
-    theme: () => {
-      const host = el('div', { className: 'vl-set-theme' });
+      return el('div', { className: 'vl-set-ctl' }, reset, value, slide);
+    } }),
+    theme: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
+      const host = el('div', { className: 'vl-set-theme vl-set-bare' });
       themeSwitch(host);
       // (the kit's pickers the Vault layout has its own rows for, or pins: Base color scheme, Accent color and Font
       // size above; look, style, ground and density stay the Classic layout's)
@@ -223,416 +199,180 @@ export function settingsHost(app, h) {
       // (each of the kit's pickers as a row: its words over a pill)
       for (const label of host.querySelectorAll('.theme-switch > label')) {
         const lead = label.firstChild;
-        if (lead?.nodeType === Node.TEXT_NODE) label.replaceChild(el('span', { className: 'vl-set-name', textContent: (lead.textContent || '').trim() }), lead);
+        if (lead?.nodeType === Node.TEXT_NODE) label.replaceChild(el('span', { className: 'ui-vault-set-name', textContent: (lead.textContent || '').trim() }), lead);
         const pick = label.querySelector('select');
-        if (pick) { pick.classList.add('vl-set-select'); const drop = el('span', { className: 'vl-set-drop' }); pick.before(drop); drop.append(pick, glyph('chevronsUpDown', 'vl-set-chev')); }
-        label.classList.add('vl-set-row', 'vl-set-col');
+        if (pick) { pick.classList.add('ui-vault-set-select'); const at = el('span'); pick.before(at); at.replaceWith(drop(pick)); }
+        label.classList.add('ui-vault-set-row', 'is-under');
       }
       // (a pick there shows the whole choice again: the Vault palette pinned back over it)
       host.addEventListener('change', () => pickTheme());
       return host;
-    },
-    commands: () => {
-      const spacing = el('div', { className: 'vl-set-cmd' }, glyph('type'), el('span', { textContent: 'Line spacing' }));
-      gate(spacing, () => on('xLineSpacing'));
-      const list = el('div', { className: 'vl-set-cmds' }, ...TOOLBAR.map(t => el('div', { className: 'vl-set-cmd' }, glyph(t.icon), el('span', { textContent: t.label }))));
+    } }),
+    commands: (r, keywords) => ({ label: r.label, keywords, control: () => {
+      const spacing = el('div', { className: 'vl-set-cmd', hidden: !on('xLineSpacing') }, glyph('type'), el('span', { textContent: 'Line spacing' }));
+      const list = el('div', { className: 'vl-set-cmds vl-set-bare' }, ...TOOLBAR.map(t => el('div', { className: 'vl-set-cmd' }, glyph(t.icon), el('span', { textContent: t.label }))));
       list.insertBefore(spacing, list.lastChild);
       return list;
-    },
-    spaces: () => {
-      const box = el('div', { className: 'vl-set-spaces' });
+    } }),
+    spaces: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
+      const box = el('div', { className: 'vl-set-spaces vl-set-bare' });
       box.setAttribute('role', 'radiogroup');
       box.setAttribute('aria-label', 'Spaces');
-      const draw = () => {
-        const here = app.space().id, mine = app.vault();
-        const rows = [{ id: mine, name: 'My notes' }, ...app.spaces().map(s => ({ id: s.id, name: s.role === 'view' ? `${s.name} (view only)` : s.name }))];
-        box.replaceChildren(...rows.map(s => {
-          const b = el('button', { type: 'button', className: 'vl-set-choice', id: `vl-set-space-${s.id}` }, glyph('folder'), el('span', { textContent: s.name }));
-          b.setAttribute('role', 'radio');
-          b.setAttribute('aria-checked', String(s.id === here));
-          if (s.id === here) b.append(glyph('check', 'vl-set-tick'));
-          b.addEventListener('click', async () => {
-            if (s.id === app.space().id) return;
-            const why = await app.switchTo(s.id);
-            if (why) say(why, true);
-            draw();
-            opening.get('account-tools')?.();
-          });
-          return b;
-        }));
-      };
-      opening.set('account', draw);
-      draw();
+      const here = app.space().id, mine = app.vault();
+      const rows = [{ id: mine, name: 'My notes' }, ...app.spaces().map(s => ({ id: s.id, name: s.role === 'view' ? `${s.name} (view only)` : s.name }))];
+      box.append(...rows.map(s => {
+        const b = el('button', { type: 'button', className: 'vl-set-choice', id: `vl-set-space-${s.id}` }, glyph('folder'), el('span', { textContent: s.name }));
+        b.setAttribute('role', 'radio');
+        b.setAttribute('aria-checked', String(s.id === here));
+        if (s.id === here) b.append(glyph('check', 'vl-set-tick'));
+        b.addEventListener('click', async () => {
+          if (s.id === app.space().id) return;
+          const why = await app.switchTo(s.id);
+          sheet.refresh();
+          if (why) say(why, true);
+        });
+        return b;
+      }));
       return box;
-    },
-    'space-tools': r => {
+    } }),
+    // (Members only in a shared space, New space for those who may make one; neither: no row)
+    'space-tools': (r, keywords) => {
+      const members = () => app.space().id !== app.vault();
+      const make = () => { const role = h.list.role(); return role === 'admin' || role === 'member'; };
       /** a button of the app's spaces sheet, there on the page (hidden in this layout) @param {string} sel */
-      const press = async (/** @type {string} */ sel) => { await close(); /** @type {HTMLElement | null} */ (document.querySelector(sel))?.click(); };
-      const members = pill('Members of this space', () => press('#space-open'), { id: 'vl-set-members' });
-      const make = pill('New space', () => press('#space-new'), { id: 'vl-set-new-space' });
-      const out = row(words(r.label, r.sub), el('div', { className: 'vl-set-pills' }, members, make), true);
-      // (Members only in a shared space, New space for those who may make one; neither: no row)
-      opening.set('account-tools', () => {
-        const role = h.list.role();
-        members.hidden = app.space().id === app.vault();
-        make.hidden = !(role === 'admin' || role === 'member');
-        out.hidden = members.hidden && make.hidden;
-      });
-      return out;
+      const press = async (/** @type {string} */ sel) => { await sheet.close(); /** @type {HTMLElement | null} */ (document.querySelector(sel))?.click(); };
+      return { label: r.label, sub: r.sub, keywords, under: true, shown: () => members() || make(), control: () => {
+        const a = pill('Members of this space', () => press('#space-open'), { id: 'vl-set-members' });
+        const b = pill('New space', () => press('#space-new'), { id: 'vl-set-new-space' });
+        a.hidden = !members();
+        b.hidden = !make();
+        return el('div', { className: 'vl-set-pills' }, a, b);
+      } };
     },
-    arranger: () => {
-      const host = el('div', { className: 'vl-set-arrange' });
-      const draw = () => tabArranger(host, { tabs: available(), get: () => settings.get('tabs'), set: v => settings.set('tabs', v), rules: RULES });
-      let stop = draw();
-      repaints.add(() => { stop(); stop = draw(); });
+    arranger: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
+      const host = el('div', { className: 'vl-set-arrange vl-set-bare' });
+      host.dataset.noSwipe = '';
+      arrangerHost = host;
+      queueMicrotask(arrange);
       return host;
+    } }),
+    install: (r, keywords) => {
+      if (installMode() === 'installed') return { label: r.label, sub: 'Installed.', keywords, value: '' };
+      return { label: r.label, sub: r.sub, keywords, under: true, control: () => {
+        const go = pill('Install', async () => {
+          if (await installApp() !== 'accepted') return;
+          const line = subOf(go);
+          if (line) line.textContent = 'Installed. Open it from your home screen.';
+          go.hidden = true;
+        }, { id: 'vl-set-install' });
+        return go;
+      } };
     },
-    install: r => {
-      const text = words(r.label, r.sub);
-      if (installMode() === 'installed') { /** @type {HTMLElement} */ (text.querySelector('.vl-set-sub')).textContent = 'Installed.'; return row(text, null); }
-      const go = pill('Install', async () => {
-        if (await installApp() === 'accepted') { /** @type {HTMLElement} */ (text.querySelector('.vl-set-sub')).textContent = 'Installed. Open it from your home screen.'; go.hidden = true; }
-      }, { id: 'vl-set-install' });
-      return row(text, go, true);
-    },
-    licences: r => row(words(r.label, r.sub), pill('Open', () => aboutSheet({ name: 'Notes', update: app.update || null }), { id: 'vl-set-about' }), true),
-    haiku: r => {
-      const go = pill('Open Haiku', async () => { await close(); h.haiku(); }, { id: 'vl-set-haiku' });
-      const text = words(r.label, r.sub);
-      opening.set('haiku', () => { go.disabled = h.list.role() !== 'admin'; });
-      return row(text, go, true);
-    },
+    licences: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true,
+      control: () => pill('Open', () => aboutSheet({ name: 'Notes', update: app.update || null }), { id: 'vl-set-about' }) }),
+    haiku: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
+      const go = pill('Open Haiku', async () => { await sheet.close(); h.haiku(); }, { id: 'vl-set-haiku' });
+      go.disabled = h.list.role() !== 'admin';
+      return go;
+    } }),
   };
-  /** @type {Map<string, () => void>} drawn again as Settings or a page opens (the spaces, who may do what) */
-  const opening = new Map();
 
-  /** the Core plugins page: a card per group (the reference's plugins, then the Notes extras), name, line, gear, switch */
-  const pluginsPart = () => el('div', {}, ...pluginCards().map(({ group, rows }) => {
-    const head = el('h3', { className: 'vl-set-h', textContent: GROUPS[group].title });
-    const sub = GROUPS[group].sub ? el('p', { className: 'vl-set-h-sub', textContent: GROUPS[group].sub }) : null;
-    return el('section', { className: 'vl-set-group' }, head, sub, el('div', { className: 'vl-set-card' }, ...rows.map(p => {
-      const id = `opt-${p.key}`;
-      const r = el('div', { className: 'vl-set-row' }, words(p.label, p.sub, id));
-      if (p.gear && PAGES.some(pg => pg.id === p.gear)) {
-        const g = el('button', { type: 'button', className: 'vl-set-gear', id: `vl-set-gear-${p.gear}` }, glyph('settings'));
-        g.setAttribute('aria-label', `${p.label} options`);
-        g.addEventListener('click', () => void push(/** @type {string} */ (p.gear), g));
-        gate(g, () => on(p.key));
-        r.append(g);
-      }
-      r.append(toggle(p.key, id));
-      return r;
-    })));
-  }));
-
-  /** @param {Row} r @param {Page} page */
+  /** @param {Row} r @param {Page} page @returns {KitRow | null} */
   const rowOf = (r, page) => {
-    if ('key' in r) return optionRow(r);
+    const keywords = ['find' in r ? r.find : '', 'info' in r ? r.info : '', page.title].filter(Boolean).join(' ');
+    if ('key' in r) return optionRow(r, keywords);
     if ('button' in r) {
-      const b = pill(r.text, () => {}, { id: r.button, danger: r.danger });
-      b.setAttribute('aria-label', `${r.text} ${r.label}`);
-      return row(words(r.label, r.sub), b, true);
+      const { button: id, text, danger } = r;
+      return { label: r.label, sub: r.sub, keywords, under: true, control: () => {
+        const b = pill(text, () => {}, { id, danger });
+        b.setAttribute('aria-label', `${text} ${r.label}`);
+        tell();
+        return b;
+      } };
     }
     if ('link' in r) {
-      const a = el('a', { className: 'vl-set-pill', href: r.link, target: '_blank', rel: 'noopener', textContent: r.text });
-      a.setAttribute('aria-label', `${r.text} ${r.label}`);
-      return row(words(r.label, r.sub), a, true);
+      const { link, text } = r;
+      return { label: r.label, sub: r.sub, keywords, under: true, control: () => {
+        const a = el('a', { className: 'ui-vault-set-pill', href: link, target: '_blank', rel: 'noopener', textContent: text });
+        a.setAttribute('aria-label', `${text} ${r.label}`);
+        return a;
+      } };
     }
-    if ('info' in r) return row(words(r.label, r.sub), el('div', { className: 'vl-set-value', textContent: r.info }), true);
-    if ('part' in r) return PARTS[r.part]?.(r) || el('div', {});
-    void page;
-    return el('div', {});
+    if ('info' in r) { const { info } = r; return { label: r.label, sub: r.sub, keywords, under: true, control: () => el('div', { className: 'ui-vault-set-value', textContent: info }) }; }
+    if ('part' in r) return PARTS[r.part]?.(r, keywords) || null;
+    return null;
   };
-
-  // ---- the pages
-  /** @param {string} id @param {string} title @param {boolean} root */
-  const frame = (id, title, root) => {
-    const heading = el('h2', { className: 'vl-set-title', id: `vl-set-title-${id}`, textContent: title, tabIndex: -1 });
-    const shut = el('button', { type: 'button', className: 'vl-set-circle vl-set-close' }, glyph('x'));
-    shut.setAttribute('aria-label', 'Close settings');
-    if (root) shut.id = 'vl-settings-close';
-    shut.addEventListener('click', () => void close());
-    let back = null;
-    if (!root) {
-      back = el('button', { type: 'button', className: 'vl-set-circle vl-set-back' }, glyph('arrowLeft'));
-      back.setAttribute('aria-label', 'Back');
-      back.addEventListener('click', () => void stepBack());
-    }
-    const head = el('div', { className: 'vl-set-head' }, back || el('span'), heading, shut);
-    const scroll = el('div', { className: 'vl-set-scroll' });
-    const pageEl = el('section', { className: 'vl-set-page', hidden: !root }, head, scroll);
-    pageEl.dataset.page = id;
-    pageEl.setAttribute('aria-labelledby', heading.id);
-    d.append(pageEl);
-    return { pageEl, head, scroll };
-  };
-  /** @type {Map<string, HTMLElement>} */
-  const pages = new Map();
-  for (const page of PAGES) {
-    const { pageEl, scroll } = frame(page.id, page.title, false);
-    /** @type {HTMLElement | null} */
+  /** a page's rows as the kit's cards: a heading starts a card; the Core plugins page, a card per group @param {Page} page @returns {KitCard[]} */
+  const cardsOf = page => {
+    /** @type {KitCard[]} */
+    const cards = [];
+    /** @type {KitCard | null} */
     let card = null;
-    /** @param {string} [title] @param {string} [sub] */
-    const group = (title, sub) => {
-      card = el('div', { className: 'vl-set-card' });
-      scroll.append(el('section', { className: 'vl-set-group' }, title ? el('h3', { className: 'vl-set-h', textContent: title }) : null,
-        sub ? el('p', { className: 'vl-set-h-sub', textContent: sub }) : null, card));
-    };
-    page.rows.forEach((r, i) => {
-      if ('heading' in r) { group(r.heading, r.sub); return; }
-      if ('part' in r && r.part === 'plugins') { scroll.append(pluginsPart()); card = null; return; }
-      if (!card) group();
-      const node = rowOf(r, page);
-      node.dataset.row = String(i);
-      /** @type {HTMLElement} */ (card).append(node);
-    });
-    pages.set(page.id, pageEl);
-    swipeBack(pageEl);
-  }
+    for (const r of page.rows) {
+      if ('heading' in r) { card = { title: r.heading, sub: r.sub, rows: [] }; cards.push(card); continue; }
+      if ('part' in r && r.part === 'plugins') {
+        for (const { group, rows } of pluginCards()) cards.push({ title: GROUPS[group].title, sub: GROUPS[group].sub, rows: rows.map(p => ({
+          id: `opt-${p.key}`, label: p.label, sub: p.sub, keywords: page.title, gear: p.gear,
+          toggle: { get: () => settings.get(p.key) === true, set: (/** @type {boolean} */ v) => save(p.key, v) },
+        })) });
+        card = null;
+        continue;
+      }
+      const row = rowOf(r, page);
+      if (!row) continue;
+      if (!card) { card = { rows: [] }; cards.push(card); }
+      card.rows.push(row);
+    }
+    return cards;
+  };
+  /** @type {import('app-ui/ui/vault/settings-sheet.js').SettingsPage[]} */
+  const pages = PAGES.map(p => ({ id: p.id, title: p.title, icon: nodes(p.icon), cards: () => cardsOf(p), shown: () => !p.plugin || on(p.plugin) }));
+  /** @returns {KitCard[]} */
+  const rootCards = () => [
+    { title: 'Options', rows: OPTION_PAGES.map(p => ({ go: p.id, label: p.title })) },
+    { title: 'Core plugins', rows: PLUGIN_PAGES.map(p => ({ go: p.id, label: p.title, shown: () => on(/** @type {string} */ (p.plugin)) })) },
+  ];
+  sheet = settingsSheet({ id: 'vl-set', title: 'Settings', root: rootCards, pages, steps: transients(), search: { placeholder: 'Search settings...' } });
+  const d = sheet.el;
 
-  // ---- the root: the search, the Options card, the Core plugins card
-  const root = frame('root', 'Settings', true);
-  root.pageEl.hidden = false;
-  const q = /** @type {HTMLInputElement} */ (el('input', { type: 'search', id: 'vl-set-q', className: 'vl-set-q', placeholder: 'Search settings...', autocomplete: 'off', spellcheck: false }));
-  q.setAttribute('aria-label', 'Search settings');
-  const search = el('label', { className: 'vl-set-search' }, glyph('search'), q);
-  /** a row of the root that opens a page @param {Page} page */
-  const goRow = page => {
-    const b = el('button', { type: 'button', className: 'vl-set-nav', id: `vl-set-go-${page.id}` }, glyph(page.icon), el('span', { className: 'vl-set-nav-label', textContent: page.title }), glyph('chevronRight', 'vl-set-more'));
-    b.addEventListener('click', () => void push(page.id, b));
-    return b;
+  // ---- a change from anywhere (here, another tab, a profile, an import): its controls show it, and the page on top
+  // is drawn again only if a row there came or went (so a switch's knob keeps moving)
+  /** @type {Map<string, string>} the plugin's options page: its gear */
+  const gearOf = new Map(pluginCards().flatMap(c => c.rows).filter(p => p.gear).map(p => [p.key, /** @type {string} */ (p.gear)]));
+  /** whether a row of the page on top came or went since it was drawn (its rows' places against the drawn ones) */
+  const drift = () => {
+    const top = sheet.top();
+    const page = PAGES.find(pg => pg.id === top);
+    const cards = top === 'root' ? rootCards() : page ? cardsOf(page) : [];
+    const want = cards.flatMap((c, ci) => c.rows.map((r, ri) => (!r.shown || r.shown() ? `${ci}-${ri}` : ''))).filter(Boolean).join(' ');
+    const drawn = d.querySelectorAll(`.ui-vault-set-page[data-page="${top}"] .ui-vault-set-card > [data-row]`);
+    return want !== [...drawn].map(n => /** @type {HTMLElement} */ (n).dataset.row).join(' ');
   };
-  const optionsCard = el('section', { className: 'vl-set-group' }, el('h3', { className: 'vl-set-h', textContent: 'Options' }), el('div', { className: 'vl-set-card' }, ...OPTION_PAGES.map(goRow)));
-  const pluginRows = PLUGIN_PAGES.map(p => { const b = goRow(p); const k = /** @type {string} */ (p.plugin); gate(b, () => on(k)); return b; });
-  const pluginsCard = el('section', { className: 'vl-set-group' }, el('h3', { className: 'vl-set-h', textContent: 'Core plugins' }), el('div', { className: 'vl-set-card' }, ...pluginRows));
-  gate(pluginsCard, () => pluginRows.some(b => !b.hidden));
-  const results = el('div', { className: 'vl-set-card vl-set-results', id: 'vl-set-results', hidden: true });
-  const none = el('p', { className: 'vl-set-none', textContent: 'No setting matches', hidden: true });
-  none.dataset.faint = '';
-  const menu = el('div', {}, optionsCard, pluginsCard);
-  root.scroll.append(search, results, none, menu);
-  // (a page a search found: opened at the row, which flashes)
-  /** @param {string} pageId @param {string} [key] @param {number} [index] @param {HTMLElement} [from] */
-  const jump = async (pageId, key, index, from) => {
-    await push(pageId, from);
-    const page = pages.get(pageId);
-    const hit = /** @type {HTMLElement | null} */ ((key && page?.querySelector(`#opt-${CSS.escape(key)}`)?.closest('.vl-set-row')) || page?.querySelector(`[data-row="${index}"]`) || null);
-    if (!hit) return;
-    hit.scrollIntoView({ block: 'center' });
-    hit.classList.add('vl-set-flash');
-    setTimeout(() => hit.classList.remove('vl-set-flash'), 1200);
-  };
-  const find = () => {
-    const words = q.value.trim();
-    menu.hidden = !!words;
-    if (!words) { results.hidden = true; none.hidden = true; return; }
-    const hits = findRows(words, p => !p.plugin || on(p.plugin)).filter(x => !('when' in x.row) || !x.row.when || on(x.row.when));
-    results.replaceChildren(...hits.map(({ page, row: r, index }) => {
-      const b = el('button', { type: 'button', className: 'vl-set-nav vl-set-hit' }, glyph(page.icon),
-        el('span', { className: 'vl-set-nav-two' }, el('span', { className: 'vl-set-nav-label', textContent: 'label' in r ? r.label : '' }), el('span', { className: 'vl-set-hit-page', textContent: page.title })),
-        glyph('chevronRight', 'vl-set-more'));
-      b.addEventListener('click', () => void jump(page.id, 'key' in r ? r.key : undefined, index, b));
-      return b;
-    }));
-    results.hidden = !hits.length;
-    none.hidden = !!hits.length;
-  };
-  q.addEventListener('input', find);
-  redraws.push(() => { if (q.value.trim()) find(); });
-  d.append(status);
-
-  // ---- the stack of pages: the root, then each page over the one before
-  /** @type {Shown[]} */
-  const stack = [{ id: 'root', el: root.pageEl, x: 0, v: 0, step: null, from: null }];
-  const width = () => d.getBoundingClientRect().width || innerWidth;
-  /** @type {ReturnType<typeof glide> | null} */
-  let slideRun = null;
-  /** the top page `x` px from its place, the page under it moved a little the other way @param {Shown} top @param {Shown | undefined} under @param {number} x */
-  const place = (top, under, x) => {
-    top.x = x;
-    top.el.style.transform = x > 0.5 ? `translateX(${x}px)` : '';
-    if (under) under.el.style.transform = x < width() - 0.5 ? `translateX(${-PARALLAX * (width() - x)}px)` : '';
-  };
-  /** @param {Shown} top @param {Shown | undefined} under @param {number} to @param {number} [v] */
-  const slide = async (top, under, to, v = 0) => {
-    slideRun?.stop();
-    slideRun = null;
-    if (still()) { place(top, under, to); return; }
-    const w = width();
-    /** @type {[Element, (x: number) => Keyframe][]} */
-    const parts = [[top.el, x => ({ transform: `translateX(${x}px)` })]];
-    if (under) parts.push([under.el, x => ({ transform: `translateX(${-PARALLAX * (w - x)}px)` })]);
-    const g = glide(parts, top.x, to, v);
-    slideRun = g;
-    await g.done;
-    if (slideRun === g) { slideRun = null; place(top, under, to); g.stop(); }
-  };
-  /** a page over the one showing (a history step: Back takes it away) @param {string} id @param {HTMLElement | null} [from]  the row that opened it */
-  async function push(id, from = null) {
-    const pageEl = pages.get(id);
-    if (!pageEl || !d.open || closing || stack.some(s => s.id === id)) return;
-    const under = stack[stack.length - 1];
-    /** @type {Shown} */
-    const top = { id, el: pageEl, x: width(), v: 0, step: null, from };
-    stack.push(top);
-    opening.get(id)?.();
-    if (id === 'account') opening.get('account-tools')?.();
-    pageEl.hidden = false;
-    pageEl.inert = false;
-    /** @type {HTMLElement} */ (pageEl.querySelector('.vl-set-scroll')).scrollTop = 0;
-    place(top, under, top.x);
-    named();
-    top.step = transients().open(() => { top.step = null; void pop(top); });
-    /** @type {HTMLElement} */ (pageEl.querySelector('.vl-set-title')).focus({ preventScroll: true });
-    await slide(top, under, 0);
-    if (stack[stack.length - 1] === top) { under.el.inert = true; under.el.hidden = true; }
-  }
-  /** a page away (its history step already gone: Back, the arrow, a swipe) @param {Shown} top */
-  async function pop(top) {
-    const i = stack.indexOf(top);
-    if (i < 1) return;
-    stack.splice(i, 1);
-    const under = stack[i - 1];
-    under.el.hidden = false;
-    under.el.inert = false;
-    named();
-    if (!closing && d.open) { place(top, under, top.x); await slide(top, under, width(), top.v); }
-    top.el.hidden = true;
-    top.el.style.transform = '';
-    top.v = 0;
-    under.el.style.transform = '';
-    if (!closing) top.from?.focus({ preventScroll: true });
-  }
-  /** Back from the page on top: its history step taken back (which slides it away) */
-  const stepBack = async () => {
-    const top = stack[stack.length - 1];
-    if (stack.length < 2) return;
-    if (top.step?.active) await top.step.close(); else await pop(top);
-  };
-  const named = () => d.setAttribute('aria-labelledby', `vl-set-title-${stack[stack.length - 1].id}`);
-  /** a swipe right on a page: it follows the finger, and past a third (or flicked) it goes Back @param {HTMLElement} pageEl */
-  function swipeBack(pageEl) {
-    drag(pageEl, {
-      axis: 'x', name: 'back',
-      filter: e => !(/** @type {Element} */ (e.target).closest?.('input, select, textarea, .ui-tab-arrange, .vl-set-arrange')),
-      start: () => {
-        const top = stack[stack.length - 1], under = stack[stack.length - 2];
-        if (top.el !== pageEl || !under) return 0;
-        slideRun?.stop();
-        slideRun = null;
-        under.el.hidden = false;
-        return top.x;
-      },
-      move: x => { const top = stack[stack.length - 1]; if (top.el === pageEl) place(top, stack[stack.length - 2], Math.max(0, x)); },
-      end: (x, v) => {
-        const top = stack[stack.length - 1], under = stack[stack.length - 2];
-        if (top.el !== pageEl || !under) return;
-        if (x > width() / 3 || v > 0.5) { top.v = v; void stepBack(); }
-        else void slide(top, under, 0, v).then(() => { if (stack[stack.length - 1] === top) under.el.hidden = true; });
-      },
-      bounds: () => [0, width()],
-    });
-  }
-
-  // ---- the sheet: up from the bottom, down to close (the shade behind it fades with it)
-  let sy = 0;
-  /** @type {ReturnType<typeof glide> | null} */
-  let sheetRun = null;
-  const height = () => d.getBoundingClientRect().height || innerHeight;
-  const sheetPut = (/** @type {number} */ y) => {
-    sy = y;
-    d.style.transform = y > 0.5 ? `translateY(${y}px)` : '';
-    shadeEl().style.opacity = String(Math.max(0, 1 - y / height()));
-  };
-  /** @param {number} to @param {number} [v] */
-  const sheetMove = async (to, v = 0) => {
-    const from = sheetRun ? sheetRun.stop() : sy;
-    sheetRun = null;
-    if (still()) { sheetPut(to); return; }
-    const hh = height();
-    const g = glide([[d, y => ({ transform: `translateY(${Math.max(0, y)}px)` })], [shadeEl(), y => ({ opacity: String(Math.max(0, 1 - y / hh)) })]], from, to, v);
-    sheetRun = g;
-    await g.done;
-    if (sheetRun === g) { sheetRun = null; sheetPut(to); g.stop(); }
-  };
-  drag(root.head, {
-    axis: 'y', mouse: true, name: 'sheet',
-    start: () => { const at = sheetRun ? sheetRun.stop() : sy; sheetRun = null; sheetPut(at); return at; },
-    move: y => sheetPut(Math.max(0, y)),
-    end: (y, v) => { if (y > height() / 3 || v > 0.5) void close(v); else void sheetMove(0, v); },
-    bounds: () => [0, height()],
+  settings.watch(null, (/** @type {unknown} */ v, /** @type {string | undefined} */ key) => {
+    if (!sheet.isOpen()) return;
+    if (key) {
+      for (const id of [`opt-${key}`, `vl-opt-${key}-2`]) {
+        const c = document.getElementById(id);
+        if (c instanceof HTMLInputElement && c.type === 'checkbox') c.checked = v === true;
+        else if (c instanceof HTMLSelectElement) c.value = String(v ?? OPTIONS[key]?.default);
+        else if (c instanceof HTMLInputElement && document.activeElement !== c) c.value = String(v || '');
+      }
+      const g = gearOf.get(key) && document.getElementById(`vl-set-gear-${gearOf.get(key)}`);
+      if (g) g.hidden = v !== true;
+    }
+    if (drift()) sheet.refresh();
   });
 
-  /** @type {{ readonly active: boolean, close: () => Promise<void> } | null} */
-  let rootStep = null;
-  let closing = false;
-  /** @type {Promise<void> | null} */
-  let shut = null;
-  /** every page off the stack, the root alone (closed) */
-  const restack = () => {
-    for (const s of stack.splice(1)) { s.el.hidden = true; s.el.style.transform = ''; s.step = null; }
-    root.pageEl.hidden = false;
-    root.pageEl.inert = false;
-    root.pageEl.style.transform = '';
-    named();
-  };
-  /** down and closed (the steps already gone) @param {number} [v] */
-  const hide = (v = 0) => (shut ||= (async () => {
-    closing = true;
-    if (d.open) await sheetMove(height(), v);
-    if (d.open) d.close();
-    shadeEl().classList.remove('on');
-    restack();
-    closing = false;
-    shut = null;
-  })());
-  /** closed: the pages' steps and the sheet's taken back, newest first, then down it goes @param {number} [v] */
-  async function close(v = 0) {
-    if (!d.open) return;
-    if (shut) return shut;
-    closing = true;
-    for (const s of [...stack.slice(1).reverse().map(x => x.step), rootStep]) if (s?.active) await s.close();
-    rootStep = null;
-    await hide(v);
-  }
-  const open = () => {
-    if (d.open && !shut) return;
-    closing = false;
-    restack();
-    q.value = '';
-    find();
-    say('');
-    redraws.forEach(f => f());
-    opening.forEach(f => f());
-    shadeEl().classList.add('on');
-    if (!d.open) d.showModal();
-    sheetPut(height());
-    rootStep = transients().open(() => { rootStep = null; void hide(); });
-    root.scroll.scrollTop = 0;
-    /** @type {HTMLElement} */ (root.pageEl.querySelector('.vl-set-title')).focus({ preventScroll: true });
-    void sheetMove(0);
-  };
-  d.addEventListener('cancel', e => { e.preventDefault(); void close(); });
-  // closed from outside (Sign out, another screen taking over): its steps go too, nothing moves
-  d.addEventListener('close', () => {
-    if (shut) return;
-    closing = true;
-    void (async () => {
-      for (const s of [...stack.slice(1).reverse().map(x => x.step), rootStep]) if (s?.active) await s.close();
-      rootStep = null;
-      shadeEl().classList.remove('on');
-      sheetPut(0);
-      restack();
-      closing = false;
-    })();
-  });
   // a button that opens one of the app's sheets: Settings closes first (its steps landed), then the click goes on to list.js
   let passing = false;
   d.addEventListener('click', e => {
     const b = /** @type {Element} */ (e.target).closest?.('button[id]');
     if (!b || passing || !AFTER_CLOSE.has(b.id)) return;
     e.stopPropagation();
-    void close().then(() => { passing = true; try { /** @type {HTMLElement} */ (b).click(); } finally { passing = false; } });
+    void sheet.close().then(() => { passing = true; try { /** @type {HTMLElement} */ (b).click(); } finally { passing = false; } });
   });
-  return { open, close };
+  return {
+    open: () => { sheet.open(); tell(); },
+    close: () => sheet.close(),
+  };
 }

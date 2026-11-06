@@ -66,10 +66,15 @@ test('the pill hides while the keyboard is up; Back closes the ribbon sheet and 
   await put(uid, a, 'text');
   await expect.poll(() => page.evaluate(t => window.starter.vault?.open(t), a)).toBe(true);
   await expect(page.locator('#vl-nav')).toBeVisible();
-  await page.evaluate(() => document.documentElement.classList.add('ui-keyboard-open'));
+  // (as the kit's keyboard watch does: the class, then its ui-keyboard event)
+  const keyboard = (/** @type {boolean} */ open) => page.evaluate(o => {
+    document.documentElement.classList.toggle('ui-keyboard-open', o);
+    document.documentElement.dispatchEvent(new CustomEvent('ui-keyboard', { detail: { open: o } }));
+  }, open);
+  await keyboard(true);
   await expect(page.locator('#vl-nav')).toBeHidden();
   expect(await page.locator('#vl-nav').evaluate(n => /** @type {HTMLElement} */ (n).inert)).toBe(true);
-  await page.evaluate(() => document.documentElement.classList.remove('ui-keyboard-open'));
+  await keyboard(false);
   await expect(page.locator('#vl-nav')).toBeVisible();
 
   await page.click('#vl-ribbon');
@@ -88,7 +93,7 @@ test('Core plugins: the Tab bar extra brings the tab bar back; Layout to Classic
   await expect(page.locator('#tabbar')).toBeHidden();
   await page.click('#vl-ribbon');
   await page.click('#vl-rib-settings');
-  await expect(page.locator('#vl-settings')).toBeVisible();
+  await expect(page.locator('#vl-set')).toBeVisible();
   await page.click('#vl-set-go-plugins');
   await expect(page.locator('#opt-pDaily')).toBeChecked();
   await expect(page.locator('#opt-xTabBar')).not.toBeChecked();

@@ -11,7 +11,7 @@ const problems = async page => {
   const all = await axe(page);
   const faint = await page.evaluate(lines => lines.map(l => {
     const [rule, target] = [l.slice(0, l.indexOf(':')), l.slice(l.indexOf(':') + 2)];
-    try { return rule === 'color-contrast' && !!document.querySelector(target)?.closest('[data-faint]'); } catch { return false; }
+    try { return rule === 'color-contrast' && !!document.querySelector(target)?.closest('[data-faint], [aria-hidden="true"]'); } catch { return false; }
   }), all);
   return all.filter((_, i) => !faint[i]);
 };
@@ -39,9 +39,9 @@ const openNote = (page, t) => expect.poll(() => page.evaluate(x => window.starte
 const isOpen = page => expect.poll(() => page.locator('#vl-right').evaluate(d => d.matches('[open]') && Math.round(d.getBoundingClientRect().right))).toBe(390);
 /** a pane picked from the pill */
 const pick = async (page, key) => {
-  await page.click('#vl-rview-pill');
-  await expect(page.locator('#vl-rview-menu')).toBeVisible();
-  await page.click(`#vl-rview-${key}`);
+  await page.click('#vl-right-pill');
+  await expect(page.locator('#vl-right-menu')).toBeVisible();
+  await page.click(`#vl-right-pick-${key}`);
   await expect(page.locator(`#vl-r-${key}`)).toBeVisible();
 };
 
@@ -145,7 +145,7 @@ test('axe: each pane of the right sidebar, light and dark', async ({ phone }) =>
       if (key === 'backlinks') await expect(page.locator('#vl-rb-count')).toHaveText('1');
       expect(await problems(page), `${key} (${scheme})`).toEqual([]);
     }
-    await page.click('#vl-rview-pill');
+    await page.click('#vl-right-pill');
     expect(await problems(page), `the pane picker (${scheme})`).toEqual([]);
     await page.keyboard.press('Escape');
     await page.goBack();
