@@ -178,10 +178,10 @@ html.vl-finding #edit-scroll { padding-top: calc(var(--vl-top) + 67px + 52px); }
 .vl-mn-gtitle { appearance: none; flex: 1; min-width: 0; min-height: 36px; margin: 0; padding: 0 4px; border: 0; background: none; color: var(--vl-text);
   font: 500 14px var(--vl-font); text-align: start; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: block; box-shadow: none; }
 .vl-mn-gcount { flex: none; min-width: 24px; text-align: end; font-size: 13px; padding-right: 4px; }
-.vl-mn-snips { display: grid; gap: 6px; padding: 0 0 6px 4px; }
+.vl-mn-snips { display: grid; gap: 4px; padding: 0 0 6px 4px; }
 .vl-mn-snips[hidden] { display: none; }
-.vl-mn-snip { appearance: none; display: grid; justify-content: stretch; justify-items: start; box-shadow: none; width: 100%; margin: 0; padding: 8px 10px; border: 1px solid var(--vl-card-border); border-radius: 8px; background: var(--vl-card);
-  color: var(--vl-text); font: 13px/1.5 var(--vl-font); text-align: start; overflow-wrap: anywhere; white-space: pre-wrap; cursor: pointer; }
+.vl-mn-snip { appearance: none; display: grid; justify-content: stretch; justify-items: start; box-shadow: none; width: 100%; min-height: 0; margin: 0; padding: 3px 8px; border: 1px solid var(--vl-card-border); border-radius: 5px; background: var(--vl-card);
+  color: var(--vl-text); font: 13px/1.4 var(--vl-font); text-align: start; overflow-wrap: anywhere; white-space: pre-wrap; cursor: pointer; }
 .vl-mn-snip:active { background: var(--vl-hover); }
 .vl-mn-snip mark { background: var(--vl-highlight); color: inherit; border-radius: 2px; }
 .vl-mn-ctx { color: var(--vl-muted); }
@@ -511,8 +511,8 @@ html[data-layout=vault] :is(.vl-tool, .vl-view-pill, .vl-view-row, .vl-space, .v
 .vl-group-title { appearance: none; display: block; border: 0; margin: 0; padding: 4px 0; flex: 1; min-width: 0; background: none; color: var(--vl-text);
   font: 500 17px var(--vl-font); text-align: start; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .vl-group-count { flex: none; font-size: 13px; padding-left: 8px; }
-.vl-snippet { appearance: none; display: block; width: 100%; margin: 0 0 6px; padding: 8px 10px; box-sizing: border-box; border: 1px solid var(--vl-card-border);
-  border-radius: 6px; background: var(--vl-bg); color: var(--vl-text); font: 13px/1.45 var(--vl-font); text-align: start; white-space: pre-line;
+.vl-snippet { appearance: none; display: block; width: 100%; margin: 0 0 4px; padding: 3px 8px; box-sizing: border-box; border: 1px solid var(--vl-card-border);
+  border-radius: 4px; background: var(--vl-bg); color: var(--vl-text); font: 13px/1.4 var(--vl-font); text-align: start; white-space: pre-line;
   overflow-wrap: anywhere; cursor: pointer; }
 .vl-snippet mark, .vl-title-row mark { background: var(--vl-highlight); color: inherit; border-radius: 2px; }
 .vl-more-results { appearance: none; border: 0; margin: 10px auto; display: block; height: 36px; padding: 0 16px; border-radius: 999px;
