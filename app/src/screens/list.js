@@ -12,8 +12,6 @@ import { COLL } from '../cloud.js';
 import { isoDay, nextWorkday } from '../notes/model.js';
 import { $, input, dialog, sectionScreen } from '../shell/dom.js';
 import { iconOf } from '../icons.js';
-import { picker } from './picker.js';
-import { haikuTab } from '../haiku/haiku-tab.js';
 
 // Loaded the first time they are needed, not with the app, so the list draws sooner; warmUp() fetches the rest once
 // it is up (app-ui's lazyModules). Each a literal import(), so the deploy's bundle splits them off.
@@ -27,6 +25,8 @@ const mods = lazyModules({
   bulk: () => import('../bulk/bulk-sheet.js'),
   share: () => import('../share/share-sheet.js'),
   feedback: () => import('../feedback/feedback-sheet.js'),
+  picker: () => import('./picker.js'),
+  haiku: () => import('../haiku/haiku-tab.js'),
 });
 /** a sheet made once, the first time it is wanted @template T @param {() => Promise<T>} make @returns {() => Promise<T>} */
 const once = make => { /** @type {Promise<T> | undefined} */ let made; return () => (made ||= make().catch(e => { made = undefined; throw e; })); };
@@ -187,10 +187,15 @@ export function listScreen(app, kit) {
     return hits.map(h => byId.get(h.id)).filter(/** @returns {i is Note} */ i => !!i);
   };
   const toast = toaster($('toasts')).show;
+  // Settings (the Classic panel, or the Vault layout's dialog) closes before a sheet it opened shows
+  const closeSettings = () => { for (const id of ['settings-panel', 'vl-settings']) /** @type {HTMLDialogElement | null} */ (document.getElementById(id))?.close(); };
   // the note page: off the first draw's path, but its module starts loading at once (the app's main page; a note may
   // be opened, or the network lost, before warmUp), and is made then, so a link or a reload's step opens its note
   /** @type {ReturnType<typeof import('./note-page.js').notePage> | undefined} */ let pageNow;
-  const pageReady = once(() => mods.withMod('page', m => (pageNow = m.notePage(app, toast, () => canWrite, note => markOpen(note.id)))));
+  // (the Vault layout: the page is home; its shell, vault-ui/shell.js, fills in the rest of these once it loads)
+  /** @type {NonNullable<Parameters<typeof import('./note-page.js').notePage>[4]> & { onShow?: (note: Note, step: { n: number, pushed: boolean }) => void, onList?: (notes: Note[]) => void }} */
+  const pageLayout = { home: document.documentElement.dataset.layout === 'vault' };
+  const pageReady = once(() => mods.withMod('page', m => (pageNow = m.notePage(app, toast, () => canWrite, (note, step) => { markOpen(note.id); pageLayout.onShow?.(note, step); }, pageLayout))));
   const page = {
     /** @param {Note} note */ open: async note => (await pageReady()).open(note),
     /** @param {string} folder */ draft: async folder => (await pageReady()).draft(folder),
@@ -204,7 +209,18 @@ export function listScreen(app, kit) {
     remove: () => pageNow?.remove(),
   };
   void pageReady();
-  const haiku = haikuTab(app, toast, note => void page.open(note));
+  // the Haiku tab (admins only): its module loads once an admin is signed in
+  /** @type {ReturnType<typeof import('../haiku/haiku-tab.js').haikuTab> | undefined} */ let haikuNow;
+  let haikuOn = false;
+  const haikuReady = once(() => mods.withMod('haiku', m => (haikuNow = m.haikuTab(app, toast, note => void page.open(note)))));
+  const haiku = {
+    /** @param {Note[]} notes */ fill: notes => haikuNow?.fill(notes),
+    /** @param {boolean} on */ allow: on => {
+      haikuOn = on;
+      if (haikuNow) haikuNow.allow(on);
+      else if (on) void haikuReady().then(h => { h.allow(haikuOn); if (haikuOn) h.fill(all); });
+    },
+  };
   // a new note: its page opens empty, in the folder for new notes; the first title or text typed makes it
   const newNote = () => {
     for (const d of document.querySelectorAll('dialog[open]')) if (d.id !== 'edit') /** @type {HTMLDialogElement} */ (d).close();
@@ -236,28 +252,42 @@ export function listScreen(app, kit) {
   const transfer = once(() => mods.withMod('transfer', m => m.transferSheet(app, msg => toast(msg), () => canWrite)));
   const backup = once(() => mods.withMod('backup', m => m.backupSheet(app, msg => toast(msg), () => canWrite)));
   const openTransfer = async () => { const [t, b] = await Promise.all([transfer(), backup()]); b.reset(); t.open(); };
-  $('open-transfer').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); void openTransfer(); });
+  // (the buttons below are on Settings pages, made when Settings first opens: their clicks are caught on the page)
+  /** @type {Record<string, () => unknown>} */
+  const settingsButtons = {};
+  document.addEventListener('click', e => {
+    const b = /** @type {Element} */ (e.target).closest?.('button[id]');
+    const fn = b && settingsButtons[b.id];
+    if (fn) fn();
+  });
+  settingsButtons['open-transfer'] = () => { closeSettings(); void openTransfer(); };
   /** @type {import('../cloud.js').OpenSpace | undefined} */ let openSpace;
   const drive = once(() => mods.withMod('drive', m => m.driveSheet(app, msg => toast(msg), () => openSpace)));
   const openDrive = async () => (await drive()).open();
-  $('open-drive').addEventListener('click', () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); void openDrive(); });
+  settingsButtons['open-drive'] = () => { closeSettings(); void openDrive(); };
   const mcp = once(() => mods.withMod('mcp', m => m.mcpSheet(app, msg => toast(msg))));
-  $('open-mcp').addEventListener('click', async () => { /** @type {HTMLDialogElement} */ ($('settings-panel')).close(); (await mcp()).open(); });
+  settingsButtons['open-mcp'] = async () => { closeSettings(); (await mcp()).open(); };
   // the modules that are off until a device turns them on (settings: binScreen, bulkEdit, shareIn, feedbackOn, mcpOn)
-  const on = (/** @type {string} */ key) => !!app.settings.get(key);
+  // (the Vault layout: each also needs its Notes extra on, vault-ui/plugins.js; Select many is that extra itself)
+  const vaultLayout = document.documentElement.dataset.layout === 'vault';
+  /** @type {Record<string, string>} */
+  const EXTRA = { binScreen: 'xMore', shareIn: 'xMore', feedbackOn: 'xMore', mcpOn: 'xAdvanced' };
+  const on = (/** @type {string} */ key) => !vaultLayout ? !!app.settings.get(key)
+    : key === 'bulkEdit' ? !!app.settings.get('xSelect') : !!app.settings.get(key) && (!EXTRA[key] || !!app.settings.get(EXTRA[key]));
   /** @type {string | undefined} */ let role;
   const bin = once(() => mods.withMod('bin', m => m.binSheet(app, msg => toast(msg), () => canWrite)));
   const bulk = once(() => mods.withMod('bulk', m => m.bulkSheet(app, msg => toast(msg))));
   const transients = sharedTransients();
   const share = once(() => mods.withMod('share', m => m.shareSheet(app, msg => toast(msg), note => void page.open(note))));
   const feedback = once(() => mods.withMod('feedback', m => m.feedbackSheet(app, msg => toast(msg), () => role === 'admin')));
-  const closeSettings = () => /** @type {HTMLDialogElement} */ ($('settings-panel')).close();
-  $('open-bin').addEventListener('click', async () => { closeSettings(); (await bin()).open(); });
-  $('open-feedback').addEventListener('click', async () => { closeSettings(); (await feedback()).open(); });
+  settingsButtons['open-bin'] = async () => { closeSettings(); (await bin()).open(); };
+  settingsButtons['open-feedback'] = async () => { closeSettings(); (await feedback()).open(); };
+  /** @param {string} id @param {boolean} hidden */
+  const hide = (id, hidden) => { const b = document.getElementById(id); if (b) b.hidden = hidden; };
   const modules = () => {
-    $('open-bin').hidden = !on('binScreen');
-    $('open-mcp').hidden = !on('mcpOn');
-    $('open-feedback').hidden = !on('feedbackOn') || !(role === 'admin' || role === 'member');
+    hide('open-bin', !on('binScreen'));
+    hide('open-mcp', !on('mcpOn'));
+    hide('open-feedback', !on('feedbackOn') || !(role === 'admin' || role === 'member'));
     const noSelect = !on('bulkEdit') || !canWrite;
     for (const b of twice('select')) b.hidden = noSelect;
     if (noSelect) select()?.setEditing(false);
@@ -296,12 +326,16 @@ export function listScreen(app, kit) {
     }
   });
   app.settings.watch(null, modules);
+  // the list's options (this device's row size; the account's count), now and whenever one changes
+  const applyList = () => { items.classList.toggle('big', !!app.settings.get('bigRows')); $('count').hidden = !app.settings.get('itemCount'); };
+  app.settings.watch(null, applyList);
+  applyList();
   let swept = false;
-  const pick = picker({
+  const pickMade = once(() => mods.withMod('picker', m => m.picker({
     notes: app.notes, recent: page.recent, canWrite: () => canWrite,
     open: note => page.open(note), create: openTitle,
     commands: [
-      { id: 'go', label: 'Go to note', run: () => pick.switcher() },
+      { id: 'go', label: 'Go to note', run: () => void pick.switcher() },
       { id: 'new', label: 'New note', when: () => canWrite, run: newNote },
       { id: 'today', label: 'Open today’s note', when: () => canWrite, run: () => daily() },
       { id: 'nextday', label: 'Open the next working day’s note', when: () => canWrite, run: () => daily(nextWorkday()) },
@@ -314,10 +348,19 @@ export function listScreen(app, kit) {
       { id: 'width', label: 'Toggle readable line width', run: flip('readableWidth') },
       { id: 'transfer', label: 'Import or export notes', run: () => void openTransfer() },
       { id: 'drive', label: 'Google Drive', run: () => void openDrive() },
-      { id: 'settings', label: 'Open settings', run: () => ($('open-settings-w').getClientRects().length ? $('open-settings-w') : $('open-settings')).click() },
+      { id: 'settings', label: 'Open settings', run: () => (document.documentElement.dataset.layout === 'vault' ? document.getElementById('vl-settings-open') : $('open-settings-w').getClientRects().length ? $('open-settings-w') : $('open-settings'))?.click() },
     ],
+  })));
+  const pick = { switcher: async () => (await pickMade()).switcher(), palette: async () => (await pickMade()).palette() };
+  $('go-to').addEventListener('click', () => void pick.switcher());
+  // Ctrl/Cmd+O and Ctrl/Cmd+P anywhere on the page (not the browser's open and print)
+  document.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const k = e.key.toLowerCase();
+    if ((k !== 'o' && k !== 'p') || $('list-view').hidden) return;
+    e.preventDefault();
+    void (k === 'o' ? pick.switcher() : pick.palette());
   });
-  $('go-to').addEventListener('click', () => pick.switcher());
 
   // the search box is in two places (under the phone's title, at the top of the side bar); they show the same words
   const boxes = [input('q'), input('q-w')];
@@ -418,6 +461,7 @@ export function listScreen(app, kit) {
     }
     page.redraw();
     page.drawn();
+    pageLayout.onList?.(notes);
     const open = page.current();
     if (open) markOpen(open.id);
   };
@@ -428,5 +472,20 @@ export function listScreen(app, kit) {
     toast,
     /** the open space's attachments changed */
     files: () => page.redrawFiles(),
+    /** the Settings pages are made (their buttons show as the options say) */
+    modules,
+    // for the Vault layout's shell (vault-ui/shell.js): the note page and the actions it offers
+    page, pageReady, pageLayout, newNote, daily, openTitle, pick, focusSearch,
+    openBin: async () => (await bin()).open(),
+    /** a module on for this device (in the Vault layout: with its Notes extra) @param {string} key */
+    on,
+    notes: () => all,
+    /** the app's search over the notes (the Vault layout's Search view) @param {string} q @param {{ limit?: number }} [o] */
+    search: (q, o) => search.search(q, o),
+    canWrite: () => canWrite,
+    role: () => role,
+    space: () => openSpace,
+    /** a note's row in the list (the Note list's tap) @param {string} id */
+    rowOf: (/** @type {string} */ id) => rows.get(id),
   };
 }

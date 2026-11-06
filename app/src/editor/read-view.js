@@ -5,6 +5,9 @@ import { Marked } from 'marked';
 import DOMPurify from 'dompurify';
 
 const WIKILINK = /^(!?)\[\[([^[\]\n|#]*)(#[^[\]\n|]*)?(?:\|([^[\]\n]*))?\]\]/;
+// a #tag (parse.js's TAG: not inside a word, not all digits): the # where one starts, then the tag itself
+const TAG_START = /(^|[^\p{L}\p{N}_&/#])#[\p{L}\p{N}_\-/]/u;
+const TAG = /^#([\p{L}\p{N}_\-/]+)/u;
 const escape = (/** @type {string} */ s) => s.replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
 
 // style="…" in a note's own HTML: DOMPurify drops it anyway, but the page's CSP reports it while DOMPurify parses (the
@@ -28,6 +31,17 @@ const marked = new Marked({
       // ![[x]]: a picture or file of the space (readView fills it in); a note by that name, a link as before
       : t.embed ? `<span class="embed" data-embed="${escape(t.target)}" data-alt="${escape(t.text)}"></span>`
         : `<a href="#" class="wikilink" data-note="${escape(t.target)}">${escape(t.text)}</a>`),
+  }, {
+    // #tag: a span the layouts style (the Vault layout as a pill; the Classic one leaves it as text)
+    name: 'tag',
+    level: 'inline',
+    start: (/** @type {string} */ src) => { const m = TAG_START.exec(src); return m ? m.index + m[1].length : undefined; },
+    tokenizer(/** @type {string} */ src) {
+      const m = TAG.exec(src);
+      if (!m || /^\d+$/.test(m[1])) return undefined;
+      return { type: 'tag', raw: m[0], tag: m[1].replace(/\/+$/, '') };
+    },
+    renderer: (/** @type {any} */ t) => `<span class="md-tag" data-tag="${escape(t.tag)}">${escape(t.raw)}</span>`,
   }],
 });
 

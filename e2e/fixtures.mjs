@@ -6,7 +6,8 @@ import path from 'node:path';
 import { fsAdmin } from '../.devkit/playwright/helpers.mjs';
 
 export const db = fsAdmin('demo-notes');
-export const APP = '/app/?emulator';
+// (E2E_EMULATOR: the emulators' ports when not the usual ones, "<firestore>:<auth>", e.g. 8181:9199)
+export const APP = process.env.E2E_EMULATOR ? `/app/?emulator=${process.env.E2E_EMULATOR}` : '/app/?emulator';
 export const uniq = (p = 't') => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 // SYNC_DIR: a local app-sync build (its entry files and src/) served in place of core.anawj.com/sync/<version>/, so
@@ -53,13 +54,24 @@ async function routeCoreRetry(context) {
 
 export const test = base.extend({
   // a new phone: its own browser context; CSP reports collected for the check after the test
+  // layout: the phone's layout. The specs written for the Classic layout run in it (this device's layout option set
+  // before the app starts, unless the test set it); { layout: 'vault' } leaves it unset, so the Vault layout (the default) shows.
   phone: async ({ browser, browserName }, use) => {
     const made = [];
-    await use(async () => {
+    await use(async ({ layout = 'classic' } = {}) => {
       const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, ...(browserName === 'firefox' ? {} : { isMobile: true }) });   // (Firefox has no mobile emulation: isMobile throws)
       await context.addInitScript(() => {
         window.__csp = [];
         addEventListener('securitypolicyviolation', e => window.__csp.push(`${e.violatedDirective} ${e.blockedURI}`));
+      });
+      if (layout !== 'vault') await context.addInitScript(() => {
+        try {
+          const key = 'notes:settings:settings/device';
+          const kept = JSON.parse(localStorage.getItem(key) || 'null');
+          const o = kept && typeof kept === 'object' ? kept : { v: 1, values: {} };
+          o.values = o.values && typeof o.values === 'object' ? o.values : {};
+          if (!('layout' in o.values)) { o.values.layout = 'classic'; localStorage.setItem(key, JSON.stringify(o)); }
+        } catch { /* opaque origin */ }
       });
       const served = { n: 0, built: 0 };
       await routeCoreRetry(context);
@@ -95,6 +107,8 @@ export async function signIn(page, role = 'member', { path = APP } = {}) {
     await db.put(`members/${uid}`, { role, v: 1 });
     await expect(page.locator('#list-view')).toBeVisible();
     await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
+    // (the sign-in's screen change is a view transition: while it runs every touch lands on its overlay, not the page)
+    await page.waitForFunction(() => !document.getAnimations().some(a => /** @type {KeyframeEffect} */ (a.effect)?.pseudoElement?.includes('view-transition')));
   }
   return { uid, email };
 }

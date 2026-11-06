@@ -1,0 +1,147 @@
+{
+ "spaces/_/notes/welcome": {
+  "path": "",
+  "title": "Welcome",
+  "body": "# Welcome\n\nThis is a made-up vault for screenshots. See [[Garden plan]] and [[Reading list]].\n\n- [ ] Try a **bold** idea\n- [x] Make a note\n\n#sample",
+  "tags": [
+   "sample"
+  ],
+  "links": [
+   "garden plan",
+   "reading list"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-0}}"
+ },
+ "spaces/_/notes/garden": {
+  "path": "Projects",
+  "title": "Garden plan",
+  "body": "# Garden plan\n\nBeds along the **south fence**. Tomatoes, basil, beans.\n\n## Tasks\n- [ ] Buy seeds\n- [ ] Build the frame\n\n## Beds\n- North bed: see [[Seed list|the seed list]]\n  - Tomatoes at the back\n  - Basil in front\n- South bed: *runner beans*\n\n---\n\nRelated: [[Reading list]] #garden #plan",
+  "tags": [
+   "garden",
+   "plan"
+  ],
+  "links": [
+   "reading list",
+   "seed list"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-90}}"
+ },
+ "spaces/_/notes/reading": {
+  "path": "Ideas",
+  "title": "Reading list",
+  "body": "# Reading list\n\n1. A book about bees\n2. A book about soil\n\nBack to [[Welcome]] #books",
+  "tags": [
+   "books"
+  ],
+  "links": [
+   "welcome"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-180}}"
+ },
+ "spaces/_/notes/meeting": {
+  "path": "Projects/Meetings",
+  "title": "Kickoff meeting",
+  "body": "## Kickoff meeting\n\nAgenda: scope, dates, owners. Notes follow the call. #meeting",
+  "tags": [
+   "meeting"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-270}}"
+ },
+ "spaces/_/notes/day-{{today}}": {
+  "path": "Daily",
+  "title": "{{today}}",
+  "body": "# {{today}}\n\n- [ ] Water the plants\n- [ ] Call the plumber\n\nSee [[Garden plan]]",
+  "daily": "{{today}}",
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-360}}"
+ },
+ "spaces/_/notes/day-{{today-1}}": {
+  "path": "Daily",
+  "title": "{{today-1}}",
+  "body": "# {{today-1}}\n\nQuiet day. Read a chapter. #journal",
+  "daily": "{{today-1}}",
+  "tags": [
+   "journal"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-450}}"
+ },
+ "spaces/_/notes/recipe": {
+  "path": "Ideas",
+  "title": "Soup recipe",
+  "body": "# Soup recipe\n\nOnions, carrots, stock. Simmer for forty minutes.\n\n#recipe #food",
+  "tags": [
+   "recipe",
+   "food"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-540}}"
+ },
+ "spaces/_/notes/seeds": {
+  "path": "Projects/Garden",
+  "title": "Seed list",
+  "body": "# Seed list\n\n- Tomatoes: two kinds\n- Basil, sweet and Thai\n- Runner beans\n\nSow the basil after the last frost. #garden/veg",
+  "tags": [
+   "garden/veg"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-120}}"
+ },
+ "spaces/_/notes/compost": {
+  "path": "Projects/Garden",
+  "title": "Compost notes",
+  "body": "# Compost notes\n\nTurn the pile every two weeks. Greens and browns, about half and half.\n\nSee [[Garden plan]] #garden/soil",
+  "tags": [
+   "garden/soil"
+  ],
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-360}}"
+ },
+ "spaces/_/notes/spring": {
+  "path": "Projects/Garden",
+  "title": "Spring jobs",
+  "body": "# Spring jobs\n\n## This month\n- Dig over the beds from the [[Garden plan]]\n- **Order compost** before the rain\n\n## Later\n- Stake the tomatoes, as in [[Garden plan#Beds|the bed layout]]",
+  "tags": [],
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-60}}"
+ },
+ "spaces/_/notes/bread": {
+  "path": "Cooking",
+  "title": "Bread",
+  "body": "# Bread\n\n500 g flour, 350 g water, 10 g salt, a little yeast.\n\nRest overnight, bake hot. A sprig of basil on top is odd but nice. #cooking",
+  "tags": [
+   "cooking"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-60}}"
+ },
+ "spaces/_/notes/pancakes": {
+  "path": "Cooking/Breakfast",
+  "title": "Pancakes",
+  "body": "# Pancakes\n\nFlour, milk, two eggs. Fry thin. #cooking/breakfast",
+  "tags": [
+   "cooking/breakfast"
+  ],
+  "links": [],
+  "aliases": [],
+  "updatedAt": "{{now-400}}"
+ }
+}

@@ -115,14 +115,6 @@ export function picker(o) {
     });
   };
 
-  // Ctrl/Cmd+O and Ctrl/Cmd+P anywhere on the page (not the browser's open and print)
-  document.addEventListener('keydown', e => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
-    const k = e.key.toLowerCase();
-    if (k !== 'o' && k !== 'p') return;
-    if (!o.notes || $('list-view').hidden) return;
-    e.preventDefault();
-    if (k === 'o') switcher(); else palette();
-  });
+  // (Ctrl/Cmd+O and Ctrl/Cmd+P are the list's: it loads this module on the first one)
   return { switcher, palette };
 }

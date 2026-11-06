@@ -9,6 +9,19 @@ person has their own vault (`spaces/<uid>/notes`); tests run side by side and ch
 Keep each browser test well inside the 60 s timeout: an axe run takes about 1 s and a slow CI runner is about 3x
 slower than a usual one, so a loop of axe runs is one test per case (`e2e/theme.spec.mjs`, one per look).
 
+Screenshots: `node tools/shot.mjs <out.png> [--dark] [--tab folders] [--note "Garden plan"] [--settings List] [--opt bigRows=true]`
+signs in a made-up account on the emulators and saves a 390x844 (3x) PNG of one screen with the made-up notes in
+`tools/shot-seed.json` (options in the file's header). Another service on port 8080? Export
+`FIRESTORE_EMULATOR_HOST=127.0.0.1:8181 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199` first.
+
+Both layouts (decision 0022): the app starts in the Vault layout unless this device's `layout` option says
+`classic`. Screenshots: `node tools/shot.mjs <out.png>` shows Vault; add `--opt layout='"classic"'` for Classic (open
+Vault's Settings with `--eval "document.getElementById('vl-settings-open').click()"`). Browser tests: the `phone`
+fixture (`e2e/fixtures.mjs`) sets `layout` to `classic` before the app starts, so the older specs run in Classic as
+written; `phone({ layout: 'vault' })` leaves it unset, so the default Vault layout shows (`e2e/vault-*.spec.mjs`).
+Proving Classic unchanged: the same Classic shots on the base commit and on HEAD, compared with
+`magick compare -metric AE` (0 except the Layout row on This device and the made-up email on Account).
+
 Test list (what each part is proved by):
 
 - Parser, links, tags, aliases, daily ids, rename plan, backlink index, `merge3`: `app/test/*.unit.test.mjs`.
@@ -19,6 +32,11 @@ Test list (what each part is proved by):
   reload opens the note again, viewer read-only (`e2e/list.spec.mjs`); search operators and hints (`e2e/search.spec.mjs`).
 - Sync: offline save sent later, two phones, different lines merge, same line gives a conflict copy, rename rewrites
   links and a link to no note makes it (`e2e/sync.spec.mjs`).
+- Vault layout: the shell, pill, ribbon and the switch to Classic (`e2e/vault-shell.spec.mjs`); left sidebar
+  (`vault-left`), note page (`vault-note`), right sidebar (`vault-right`), switcher, palette and tabs (`vault-sheets`);
+  Settings: the cards, search, a toggle kept over a reload, Back page by page, swipe and drag down, a Core plugin off
+  takes its view away, Log out, axe light and dark (`vault-settings`); every option has a page, Core plugins
+  alphabetical (`app/test/vault-settings-map.unit.test.mjs`), plugins and defaults (`vault-plugins.unit.test.mjs`).
 - Spaces: the Worker's routes × roles, pending invites, move, delete in rounds (`worker/test/spaces.test.mjs`); in the
   browser with two or three accounts: invite and edit, a viewer only reads, someone not invited sees nothing, removed
   or leaving loses the space and its notes on the device, a pending invite taken up at first sign-in, move, and a

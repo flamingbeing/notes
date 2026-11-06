@@ -7,14 +7,16 @@ const LINK = /^(!?)\[\[([^[\]\n|#]*)(#[^[\]\n|]*)?(?:\|([^[\]\n]*))?\]\]/;
 const TAG = /^#([\p{L}\p{N}_\-/]+)/u;
 const NOT_BEFORE_TAG = /[\p{L}\p{N}_&/#]/u;
 const OPEN = 91, BANG = 33, HASH = 35;   // [ ! #
+/** a link's target and alias (the words between the brackets), for a theme that colours them (the Vault layout) */
+export const linkText = tags.special(tags.name);
 
 /** @type {import('@lezer/markdown').MarkdownConfig} */
 export const notesSyntax = {
   defineNodes: [
     { name: 'WikiLink', style: tags.link },
     { name: 'WikiLinkMark', style: tags.processingInstruction },
-    { name: 'WikiLinkTarget' },
-    { name: 'WikiLinkAlias' },
+    { name: 'WikiLinkTarget', style: linkText },
+    { name: 'WikiLinkAlias', style: linkText },
     { name: 'Hashtag', style: tags.labelName },
   ],
   parseInline: [{

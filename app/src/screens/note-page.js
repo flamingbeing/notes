@@ -37,9 +37,16 @@ const AUTO = { title: false, say: false };
  * @param {import('../cloud.js').Started} app
  * @param {(message: string) => unknown} toast  a short note (the kit's toaster)
  * @param {() => boolean} canWrite  false: the sheet only shows the note (a viewer)
- * @param {(note: Note) => void} [onShow]  a note is on the page (the list marks its row)
+ * @param {(note: Note, step: { n: number, pushed: boolean }) => void} [onShow]  a note is on the page (the list marks its
+ *   row); step: its place in the history (n, 1 the first note) and whether it is a new step (not Back or Forward)
+ * @param {{ home?: boolean, onBlank?: () => void, swipeOn?: () => boolean, swipeBack?: () => boolean, onUpdate?: (view: import('@codemirror/view').EditorView) => void }} [layout]  home: the Vault layout, where
+ *   the page is the home screen: never modal, never closed (closing a note shows the empty page, onBlank), the first
+ *   note opened takes the place of the page's first history step (Back from it leaves the app, as from the list);
+ *   swipeOn: the swipe right is on there (a Notes extra); swipeBack: it goes to the list (true: it did); onUpdate: each
+ *   editor update (the Vault layout's toolbar)
  */
-export function notePage(app, toast, canWrite, onShow) {
+export function notePage(app, toast, canWrite, onShow, layout = {}) {
+  const home = !!layout.home;
   const sheet = dialog('edit');
   const { settings } = app;
   /** @type {Note | null} the note as last saved or opened (the base of its next save) */
@@ -88,7 +95,7 @@ export function notePage(app, toast, canWrite, onShow) {
         if (draft) {
           if (!input('edit-text').value.trim()) input('edit-text').value = title;
           remember(made.note);
-          if (sheet.open && !unwinding) history.replaceState({ note: made.note.id, n: history.state?.n || 1 }, '', hashOf(made.note));
+          if (sheet.open && !unwinding) history.replaceState({ ...guardOf(), note: made.note.id, n: history.state?.n || 1 }, '', hashOf(made.note));
           fillMove(); redrawFiles();
         }
       }
@@ -183,10 +190,11 @@ export function notePage(app, toast, canWrite, onShow) {
   vv?.addEventListener('resize', keyboard); vv?.addEventListener('scroll', keyboard);
   keyboard();
   // the editor's options (this device): source mode, line numbers, readable line width
-  const options = () => ({ source: !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
+  // (the Vault layout: its own editing mode, Source or Live Preview; line spacing only with that Notes extra on)
+  const options = () => ({ source: home ? settings.get('vEditMode') !== 'live' : !!settings.get('sourceMode'), lineNumbers: !!settings.get('lineNumbers'), tickToBottom: !!settings.get('tickToBottom') });
   const applyOptions = () => {
     sheet.classList.toggle('wide', !settings.get('readableWidth'));
-    sheet.dataset.spacing = String(settings.get('lineSpacing') || 'normal');
+    sheet.dataset.spacing = home && !settings.get('xLineSpacing') ? 'normal' : String(settings.get('lineSpacing') || 'normal');
     ed?.setOptions(options());
   };
   settings.watch(null, () => { applyOptions(); fmtShow(); });
@@ -336,7 +344,7 @@ export function notePage(app, toast, canWrite, onShow) {
         onChange: text => { area().value = text; typing(); },
         onBlur: () => void commit(AUTO),
         onLink: t => void go(t),
-        onUpdate: v => bar?.refresh(v),
+        onUpdate: v => { bar?.refresh(v); layout.onUpdate?.(v); },
       });
       bar = fmtBar(() => ed?.view || null, { get: () => String(settings.get('lineSpacing') || 'normal'), set: v => settings.set('lineSpacing', v) });
       $('edit-fmt').replaceChildren(bar);
@@ -357,7 +365,7 @@ export function notePage(app, toast, canWrite, onShow) {
   sheet.addEventListener('cancel', e => { if (tooBig() && canWrite() && typed()) { e.preventDefault(); toast(TOO_BIG); } });
   // (beside the list the page is not modal, and the browser only closes a modal dialog on Esc)
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape' || e.defaultPrevented || !sheet.open || sheet.matches(':modal')) return;
+    if (home || e.key !== 'Escape' || e.defaultPrevented || !sheet.open || sheet.matches(':modal')) return;
     // (a box outside the page keeps its own Esc, and a sheet over the page takes it first)
     if (!sheet.contains(/** @type {Node} */ (e.target)) && /** @type {Element} */ (e.target).closest?.('input, textarea, select')) return;
     if (document.querySelector('dialog:modal')) return;
@@ -367,12 +375,13 @@ export function notePage(app, toast, canWrite, onShow) {
   });
   // a swipe right goes back to the list, as Esc does (a note too big to save stays)
   swipeBack(sheet, () => {
+    if (home) return !!layout.swipeBack?.();
     const cancel = new Event('cancel', { cancelable: true });
     sheet.dispatchEvent(cancel);
     if (cancel.defaultPrevented) return false;
     sheet.close();
     return true;
-  });
+  }, home ? () => !!layout.swipeOn?.() : undefined);
   sheet.addEventListener('close', async () => {
     const turn = shown;
     stopLive?.(); stopLive = null;
@@ -390,7 +399,7 @@ export function notePage(app, toast, canWrite, onShow) {
   let switching = 0;
   window.addEventListener('close', e => { if (e.target === sheet && switching) { switching--; e.stopImmediatePropagation(); } }, true);
   wideMq.addEventListener('change', () => {
-    if (!sheet.open || sheet.matches(':modal') !== wideMq.matches) return;
+    if (home || !sheet.open || sheet.matches(':modal') !== wideMq.matches) return;
     switching++;
     sheet.close();
     if (wideMq.matches) sheet.show(); else sheet.showModal();
@@ -400,10 +409,22 @@ export function notePage(app, toast, canWrite, onShow) {
     if (!await confirmModal('Delete this note? It goes to the bin.', { title: 'Delete note', danger: true, yes: 'Delete' })) return;
     const note = editing; editing = null;
     clearTimeout(timer);
-    sheet.close('delete');
+    leave('delete');
     if (note && !editingGone && !drafts.has(note)) { await app.remove(note); toast('Deleted'); }
   };
   $('edit-delete').addEventListener('click', () => void remove());
+  // the page leaves its note: closed (over the list), or in the Vault layout the empty page in its place
+  /** @param {string} why  'delete' | 'moved' | 'gone' | '' */
+  const leave = why => {
+    if (!home) { sheet.close(why); return; }
+    clearTimeout(timer);
+    stopLive?.(); stopLive = null;
+    shown++;
+    editing = null; editingGone = false;
+    input('edit-text').value = ''; input('edit-path').value = ''; area().value = ''; ed?.set('');
+    $('edit-live').textContent = '';
+    layout.onBlank?.();
+  };
 
   // where the note can move: the person's own notes and each space they can write, but not the one it is in
   const moveSel = () => /** @type {HTMLSelectElement} */ ($('edit-move'));
@@ -428,7 +449,7 @@ export function notePage(app, toast, canWrite, onShow) {
     const why = await app.move(now, to);
     if (why) { toast(why); follow(now); return; }
     editing = null;
-    sheet.close('moved');
+    leave('moved');
     toast(`Moved to ${name}`);
   });
 
@@ -458,13 +479,15 @@ export function notePage(app, toast, canWrite, onShow) {
         $('edit-live').textContent = 'This note was deleted on another device. Saving adds your text back as a new note.';
       } else if (seen) {
         editing = null;
-        sheet.close('gone');
+        leave('gone');
         $('edit-msg').textContent = `“${note.title}” was deleted on another device.`;
       }
     });
   };
 
   // the history: one entry per note opened, { note: id ('' for a new note), n: how many steps from the list }
+  /** the kit's close guard on this entry, if there (kept when a note takes the entry's place or steps on from it) */
+  const guardOf = () => (history.state?.uiTabGuard ? { uiTabGuard: 1 } : {});
   const hashOf = (/** @type {Note} */ note) => (note.id ? `#/note/${encodeURIComponent(note.id)}` : '#/new');
   const remember = (/** @type {Note} */ note) => { recent.splice(0, recent.length, note.id, ...recent.filter(id => id !== note.id).slice(0, 19)); };
   /** @type {string | null} a note named by the address when the page loaded, opened once the list has it */
@@ -482,7 +505,7 @@ export function notePage(app, toast, canWrite, onShow) {
       return;
     }
     const at = history.state;
-    if (!at?.n) { if (sheet.open) sheet.close(); return; }
+    if (!at?.n) { if (sheet.open && !home) sheet.close(); return; }
     const note = app.notes().find(n => n.id === at.note);
     if (note && note.id !== editing?.id) void (async () => { if (sheet.open && editing && await commit()) return; show(note, false); })();
   });
@@ -495,8 +518,14 @@ export function notePage(app, toast, canWrite, onShow) {
     editing = note;
     if (!drafts.has(note)) remember(note);
     if (step) {
-      const at = { note: note.id, n: (sheet.open && !unwinding ? history.state?.n || 0 : 0) + 1 };
-      if (unwinding) queued = [at, hashOf(note)]; else history.pushState(at, '', hashOf(note));
+      // (home: the steps go on from the page's; its first note takes the place of the step the app opened on)
+      const from = home ? Number(history.state?.n) || 0 : sheet.open && !unwinding ? history.state?.n || 0 : 0;
+      // (the kit's close guard kept on the entry: an entry without it, under a sheet's step, reads as the bottom one and
+      // a sheet closed over it would say "Press Back again to close")
+      const at = { ...guardOf(), note: note.id, n: from + 1 };
+      if (unwinding) queued = [at, hashOf(note)];
+      else if (home && !from) history.replaceState(at, '', hashOf(note));
+      else history.pushState(at, '', hashOf(note));
     }
     input('edit-text').value = note.title;
     input('edit-path').value = note.path || '';
@@ -512,10 +541,11 @@ export function notePage(app, toast, canWrite, onShow) {
     if (drafts.has(note)) { stopLive?.(); stopLive = null; } else follow(note);
     redraw();
     redrawFiles();
-    setReading(!rw);
+    // (the Vault layout: a note opened from elsewhere may open in the read view, as this device asks)
+    setReading(!rw || (home && step && settings.get('vNewTabView') === 'read'));
     // beside the list (not over it) from 600 px: the list stays in reach, so it is not modal there
-    if (!sheet.open) { if (matchMedia('(min-width: 600px)').matches) sheet.show(); else sheet.showModal(); }
-    onShow?.(note);
+    if (!sheet.open) { if (home || matchMedia('(min-width: 600px)').matches) sheet.show(); else sheet.showModal(); }
+    onShow?.(note, { n: Number(history.state?.n) || 1, pushed: step });
     if (drafts.has(note)) input('edit-text').focus();
     void load().then(() => { if (editing?.id === note.id) { ed?.setReadOnly(!canWrite()); ed?.set(area().value); setReading(reading || !canWrite()); } });
   };
@@ -548,5 +578,19 @@ export function notePage(app, toast, canWrite, onShow) {
       toast('Tidied');
     },
     remove,
+    /** home (the Vault layout): the note open now saved and left for the empty page -> false if its save was refused */
+    blank: async () => {
+      if (editing && await commit()) return false;
+      leave('');
+      return true;
+    },
+    /** in the read view now */
+    reading: () => reading,
+    /** the editor's view (null until it has loaded, or if it could not) */
+    editor: () => ed?.view || null,
+    /** once the editor has loaded (or failed to), with the note open in it */
+    whenEditor: () => load(),
+    /** a note the address named at load, not open yet ('' : none) */
+    linked: () => linked || '',
   };
 }
