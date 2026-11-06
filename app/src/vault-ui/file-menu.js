@@ -99,15 +99,21 @@ export function pickFolder(ctx, from) {
     let done = false;
     const finish = (/** @type {string | null} */ v) => { if (!done) { done = true; resolve(v); } };
     const { paths } = buildTree(ctx.notes(), ctx.extraFolders());
+    let asking = false;
     moveCards = [{ title: 'Move to', rows: ['', ...paths].map(p => ({
       icon: p ? 'folder' : 'folderOpen', label: p || 'Top level', ticked: p === from ? true : undefined, disabled: p === from,
       run: () => finish(p),
-    })) }];
+    })) }, { rows: [{ id: 'vl-move-new', icon: 'folderPlus', label: 'New folder…', run: async () => {
+      // (a folder named here: the note goes into it, which makes it)
+      asking = true;
+      const v = await askText({ title: 'New folder', label: 'Folder name', check: t => (cleanPath(t) ? '' : 'Give the folder a name.') });
+      finish(v ? cleanPath(v) : null);
+    } }] }];
     moveSheet ||= bottomSheet({ id: 'vl-move-sheet', label: 'Move file to', cards: () => moveCards });
     moveSheet.open();
     const d = moveSheet.el;
     // (shut without a choice: nothing; a row's choice comes just after the sheet goes)
-    d.addEventListener('close', () => setTimeout(() => finish(null), 50), { once: true });
+    d.addEventListener('close', () => setTimeout(() => { if (!asking) finish(null); }, 50), { once: true });
   });
 }
 
@@ -128,7 +134,7 @@ const moveNote = async (ctx, note, path) => {
 };
 
 /** @param {Ctx} ctx @param {Note} note */
-async function rename(ctx, note) {
+export async function rename(ctx, note) {
   const path = cleanPath(note.path);
   const v = await askText({ title: 'Rename file', label: 'File name', value: note.title, check: t => {
     if (t.toLowerCase() === note.title.toLowerCase() && t === note.title) return '';
@@ -143,7 +149,7 @@ async function rename(ctx, note) {
 }
 
 /** @param {Ctx} ctx @param {Note} note */
-async function move(ctx, note) {
+export async function move(ctx, note) {
   const from = cleanPath(note.path);
   const to = await pickFolder(ctx, from);
   if (to === null || to === from) return;
@@ -154,7 +160,7 @@ async function move(ctx, note) {
 }
 
 /** @param {Ctx} ctx @param {Note} note */
-async function remove(ctx, note) {
+export async function remove(ctx, note) {
   await ctx.leave(note.id);
   const n = fresh(ctx, note.id) || note;
   await ctx.app.remove(n);
@@ -166,7 +172,8 @@ async function remove(ctx, note) {
 async function undo(ctx, n) {
   for (let i = 0; i < 6; i++) {
     try {
-      const entry = (await ctx.app.bin.list()).find(e => e.id === n.id);
+      // (an entry's id is '<kind>:<note id>'; its data is the note)
+      const entry = (await ctx.app.bin.list()).find(e => e.data?.id === n.id);
       if (entry) { const why = await ctx.app.bin.restore(entry); ctx.toast(why || 'Restored'); return; }
     } catch { /* offline: the bin can't be read yet */ }
     await new Promise(r => setTimeout(r, 500));
