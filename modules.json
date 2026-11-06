@@ -18,7 +18,7 @@
     "@core/search": { "url": "./search/index.js", "types": "./app/public/search/index.js", "alias": "app/public/search/index.js" },
     "@core/backup": { "url": "./backup/index.js", "types": "./app/public/backup/index.js" },
     "@core/drive": { "url": "./drive/index.js", "types": "./app/public/drive/index.js", "alias": "app/public/drive/index.js" },
-    "app-update/register.js": { "url": "https://core.anawj.com/update/0.2.0/register.js", "preload": true },
+    "app-update/register.js": { "core": "app-ui", "file": "update/register.js", "preload": true },
     "firebase/app": { "url": "./vendor/firebase/12.19.0/firebase-app.js", "preload": true },
     "firebase/auth": { "url": "./vendor/firebase/12.19.0/firebase-auth.js", "preload": true },
     "firebase/firestore": { "url": "./vendor/firebase/12.19.0/firebase-firestore.js", "preload": true },
