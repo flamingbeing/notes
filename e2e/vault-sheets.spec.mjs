@@ -188,6 +188,37 @@ test('the tabs sheet: "N tabs", + then a note gives 2; a tab’s cross closes it
   await expect(page.locator('#vl-tabs .vl-count')).toHaveText('1');
 });
 
+test('closing a sheet (Esc, Back, Cancel) never says "Press Back again to close"; Back on the page still does', async ({ phone }) => {
+  const page = await phone(vault);
+  const { uid } = await signIn(page);
+  const n = await seed(uid);
+  await openNote(page, n.bread);
+  const again = page.getByText('Press Back again to close');
+  const menu = page.locator('#vl-menu');
+  await page.click('#vl-more-btn');
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await page.click('#vl-more-btn');
+  await expect(menu).toBeVisible();
+  await page.goBack();
+  await expect(menu).toBeHidden();
+  await page.click('#vl-more-btn');
+  await page.click('#vl-menu-delete');
+  await expect(page.locator('#vl-confirm')).toBeVisible();
+  await page.click('#vl-confirm-cancel');
+  await expect(page.locator('#vl-confirm')).toBeHidden();
+  await page.click('#vl-ribbon');
+  await expect(page.locator('#vl-ribbon-sheet')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#vl-ribbon-sheet')).toBeHidden();
+  await page.waitForTimeout(400);
+  await expect(again).toBeHidden();
+  // the page itself: Back still asks once before it leaves
+  await page.goBack();
+  await expect(again).toBeVisible();
+});
+
 test('axe: the switcher, the palette, the ribbon and the tabs sheet, light and dark', async ({ phone }) => {
   const page = await phone(vault);
   const { uid } = await signIn(page);

@@ -95,7 +95,7 @@ export function notePage(app, toast, canWrite, onShow, layout = {}) {
         if (draft) {
           if (!input('edit-text').value.trim()) input('edit-text').value = title;
           remember(made.note);
-          if (sheet.open && !unwinding) history.replaceState({ note: made.note.id, n: history.state?.n || 1 }, '', hashOf(made.note));
+          if (sheet.open && !unwinding) history.replaceState({ ...guardOf(), note: made.note.id, n: history.state?.n || 1 }, '', hashOf(made.note));
           fillMove(); redrawFiles();
         }
       }
@@ -486,6 +486,8 @@ export function notePage(app, toast, canWrite, onShow, layout = {}) {
   };
 
   // the history: one entry per note opened, { note: id ('' for a new note), n: how many steps from the list }
+  /** the kit's close guard on this entry, if there (kept when a note takes the entry's place or steps on from it) */
+  const guardOf = () => (history.state?.uiTabGuard ? { uiTabGuard: 1 } : {});
   const hashOf = (/** @type {Note} */ note) => (note.id ? `#/note/${encodeURIComponent(note.id)}` : '#/new');
   const remember = (/** @type {Note} */ note) => { recent.splice(0, recent.length, note.id, ...recent.filter(id => id !== note.id).slice(0, 19)); };
   /** @type {string | null} a note named by the address when the page loaded, opened once the list has it */
@@ -518,7 +520,9 @@ export function notePage(app, toast, canWrite, onShow, layout = {}) {
     if (step) {
       // (home: the steps go on from the page's; its first note takes the place of the step the app opened on)
       const from = home ? Number(history.state?.n) || 0 : sheet.open && !unwinding ? history.state?.n || 0 : 0;
-      const at = { note: note.id, n: from + 1 };
+      // (the kit's close guard kept on the entry: an entry without it, under a sheet's step, reads as the bottom one and
+      // a sheet closed over it would say "Press Back again to close")
+      const at = { ...guardOf(), note: note.id, n: from + 1 };
       if (unwinding) queued = [at, hashOf(note)];
       else if (home && !from) history.replaceState(at, '', hashOf(note));
       else history.pushState(at, '', hashOf(note));
