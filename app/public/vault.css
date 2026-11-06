@@ -275,7 +275,10 @@ html[data-layout=vault] .vl-set-circle { appearance: none; width: 43px; height: 
   display: grid; place-items: center; background: var(--vl-card); color: var(--vl-text); box-shadow: var(--vl-shadow); cursor: pointer; }
 .vl-set-circle .vl-icon { width: 20px; height: 20px; }
 .vl-set-close { grid-column: 3; }
-.vl-set-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 72px 0 calc(48px + var(--vl-bottom)); box-sizing: border-box; }
+.vl-set-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 72px 0 calc(48px + var(--vl-bottom)); box-sizing: border-box; 
+  touch-action: pan-y; }
+/* (pan-y here too: a scroller starts its own touch-action, so the page's own pan-y stops above it, and a sideways
+   finger would be the browser's, cancelling the page's swipe Back) */
 .vl-set-group { margin: 0 0 28px; }
 .vl-set-h { margin: 0 32px 14px; font-size: 15px; font-weight: 600; color: var(--vl-muted); }
 .vl-set-h-sub { margin: -6px 32px 10px; font-size: 12px; color: var(--vl-muted); }
