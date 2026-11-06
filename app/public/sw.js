@@ -263,6 +263,7 @@ const SHELL = [
   'https://core.anawj.com/ui/1.0.0-rc.109/ui/vault/shade.js',
   'https://core.anawj.com/ui/1.0.0-rc.109/ui/vault/sidebar.js',
   'https://core.anawj.com/ui/1.0.0-rc.109/ui/vault/side-drawer.js',
+  'https://core.anawj.com/ui/1.0.0-rc.109/ui/vault/vault.css',
   'https://core.anawj.com/ui/1.0.0-rc.109/ui/vault/settings-sheet.js',
   'https://core.anawj.com/ui/1.0.0-rc.109/update/register.js',
   'https://core.anawj.com/ui/1.0.0-rc.109/theme/theme.css',
