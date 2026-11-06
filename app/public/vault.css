@@ -110,8 +110,9 @@ html[data-layout=vault] #edit-read ul > li:has(> input[type=checkbox])::before {
 html[data-layout=vault] #edit-read li { margin: 0; }
 html[data-layout=vault] #edit-read li > p { margin: 0; }
 html[data-layout=vault] #edit-read li > input[type=checkbox] { appearance: none; position: absolute; left: -24px; top: 4px; width: 16px; height: 16px; margin: 0;
-  box-sizing: border-box; border: 1.5px solid var(--vl-accent); border-radius: 4px; background: transparent; }
-html[data-layout=vault] #edit-read li > input[type=checkbox]:checked { background: var(--vl-accent) no-repeat center / 12px
+  box-sizing: border-box; border: 1.5px solid var(--vl-faint); border-radius: 4px; background: transparent; }
+/* (grey until ticked, then the accent) */
+html[data-layout=vault] #edit-read li > input[type=checkbox]:checked { border-color: var(--vl-accent); background: var(--vl-accent) no-repeat center / 12px
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3 3 7-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 html[data-layout=vault] #edit-read li:has(> input[type=checkbox]:checked) { color: var(--vl-muted); text-decoration: line-through; }
 html[data-layout=vault] #edit-read blockquote { margin: 0 0 16px; padding: 0 0 0 16px; border-left: 2px solid var(--vl-accent); color: var(--vl-text); }
@@ -205,6 +206,9 @@ html[data-layout=vault] .vl-pill#vl-head-pill { display: flex; align-items: cent
 #vl-head-pill .vl-btn, #vl-head-pill .ui-sync-btn { width: 47px; height: 44px; }
 #vl-head-pill [hidden] { display: none; }
 html.vl-blank #vl-mode-btn { display: none; }
+/* the empty page: the dots alone, a circle like the sidebar button */
+html[data-layout=vault].vl-blank .vl-pill#vl-head-pill { width: 44px; min-width: 0; height: 44px; padding: 0; }
+html.vl-blank #vl-head-pill .vl-btn { width: 44px; }
 
 /* the empty page (S3) in the note's place */
 #vl-empty { display: none; }
@@ -378,7 +382,7 @@ html[data-layout=vault] .vl-set-choice { appearance: none; width: 100%; height: 
 .vl-drawer-shade { position: fixed; inset: 0; z-index: 35; background: var(--vl-shade-drawer); opacity: 0; visibility: hidden; pointer-events: none; }
 .vl-drawer-shade.on { visibility: visible; }
 dialog.vl-drawer { position: fixed; inset: 0 auto 0 0; z-index: 36; width: min(417px, 84vw); height: 100dvh; max-width: none; max-height: none;
-  margin: 0; padding: 0; border: 0; box-sizing: border-box; background: var(--vl-bg); color: var(--vl-text); font-family: var(--vl-font);
+  margin: 0; padding: 0; border: 0; border-radius: 0; box-sizing: border-box; background: var(--vl-bg); color: var(--vl-text); font-family: var(--vl-font);
   overflow: hidden; outline: none; transform: translateX(-100%); display: none; touch-action: pan-y; }
 dialog.vl-drawer-right { inset: 0 0 0 auto; transform: translateX(100%); }
 dialog.vl-drawer[open] { display: flex; }

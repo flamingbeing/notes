@@ -57,11 +57,12 @@ export const OPTIONS = {
   // there as the reference look has them; each can be turned off on its plugin's page
   vMentions: { scope: 'device', default: true },
   vPull: { scope: 'device', default: true },
-  // the Vault layout's Core plugins (vault-ui/plugins.js; read only in the Vault layout): its own features on, the
-  // Classic layout's extras off until turned on
+  // the Vault layout's Core plugins (vault-ui/plugins.js; read only in the Vault layout): its own features on (Random
+  // note off, as the reference has it), the Classic layout's extras off until turned on
   ...Object.fromEntries([
-    'pBacklinks', 'pBookmarks', 'pPalette', 'pDaily', 'pFiles', 'pOutgoing', 'pOutline', 'pSwitcher', 'pRandom', 'pSearch', 'pTags', 'pWordCount',
+    'pBacklinks', 'pBookmarks', 'pPalette', 'pDaily', 'pFiles', 'pOutgoing', 'pOutline', 'pSwitcher', 'pSearch', 'pTags', 'pWordCount',
   ].map(k => [k, { scope: 'device', default: true }])),
+  pRandom: { scope: 'device', default: false },
   ...Object.fromEntries([
     'xTabBar', 'xNoteList', 'xSwipeTabs', 'xSwipeBack', 'xSelect', 'xDetails', 'xLineSpacing', 'xDayButtons', 'xSyncButton', 'xHaiku', 'xMore', 'xAdvanced',
   ].map(k => [k, { scope: 'device', default: false }])),

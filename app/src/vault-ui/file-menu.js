@@ -235,7 +235,7 @@ async function renameFolder(ctx, path) {
   const s = ctx.state().get();
   ctx.state().set({
     folders: s.folders.map(f => movedPath(f, path, to)),
-    shut: s.shut.map(f => movedPath(f, path, to)),
+    opened: s.opened.map(f => movedPath(f, path, to)),
   });
   // (each note in it saved once, its new path; the one open goes through the page)
   let failed = 0;
@@ -276,7 +276,7 @@ export function folderMenu(ctx, path) {
       id: 'vl-fm-delete', icon: 'trash2', label: 'Delete folder', danger: true, disabled: full, hint: full ? 'Move its notes first' : undefined,
       run: () => {
         const s = ctx.state().get();
-        ctx.state().set({ folders: s.folders.filter(f => f !== path && !f.startsWith(path + '/')), shut: s.shut.filter(f => f !== path && !f.startsWith(path + '/')) });
+        ctx.state().set({ folders: s.folders.filter(f => f !== path && !f.startsWith(path + '/')), opened: s.opened.filter(f => f !== path && !f.startsWith(path + '/')) });
         ctx.redraw();
         ctx.toast(`Deleted “${lastPart(path)}”`);
       },

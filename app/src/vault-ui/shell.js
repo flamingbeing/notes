@@ -6,7 +6,7 @@
 // the ribbon menu, the tabs sheet, and the Notes extras: the Classic layout's features, each back when this device turns it on (vault-ui/plugins.js).
 // Every sheet and page over the note is a Back step (the app's transients), so Android Back closes it first; Back
 // with none open goes to the note before, as the pill's Back does.
-import { nextWorkday, uniqueTitle } from '../notes/model.js';
+import { findDaily, isoDay, nextWorkday, uniqueTitle } from '../notes/model.js';
 import { transients } from '../shell/transients.js';
 import { glyph } from './icons.js';
 import { featureOn } from './plugins.js';
@@ -495,7 +495,11 @@ export async function vaultShell(app, kit, list, { who }) {
     const last = saved.tabs.length ? tabs.current() : saved.last;
     const daily = (start === 'daily' || !!settings.get('vDailyOnStart')) && on('pDaily') && list.canWrite();
     if (daily) await list.daily();
-    else if (start === 'last' && noteOf(last)) await page.open(/** @type {Note} */ (noteOf(last)));
+    else if (start === 'last') {
+      // (no note open last: today's note, if it is there already, else the empty page)
+      const first = noteOf(last) || (on('pDaily') ? findDaily(list.notes(), isoDay()) : undefined);
+      if (first) await page.open(first);
+    }
     if (!page.current()) await toBlank();
   }
   paint();

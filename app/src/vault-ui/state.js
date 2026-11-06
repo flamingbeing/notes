@@ -1,5 +1,5 @@
 // The Vault layout's own state on this device, one per space (localStorage 'notes:vl:<space>'): the last note open,
-// the tabs, recent notes, bookmarks, new folders not yet holding a note, folded folders, the sidebars' views, sorts and
+// the tabs, recent notes, bookmarks, new folders not yet holding a note, the folders opened (every other one starts folded), the sidebars' views, sorts and
 // recent searches, the Search and Tags views' choices. Ids, paths and searches only, never a note's text. Cleaned on every read (unknown keys dropped,
 // lists capped), and dropped with the kept list on sign-out (dropAll). Pure: the storage is handed in.
 
@@ -7,7 +7,7 @@ export const PREFIX = 'notes:vl:';
 const SORTS = ['name-asc', 'name-desc', 'mtime-desc', 'mtime-asc'];
 
 /** @typedef {{ last: string, tabs: string[], active: number, recent: string[], bookmarks: string[], folders: string[],
- *   shut: string[], leftView: string, rightView: string, fileSort: string, searchSort: string, matchCase: boolean,
+ *   opened: string[], leftView: string, rightView: string, fileSort: string, searchSort: string, matchCase: boolean,
  *   searchRecent: string[], cmdRecent: string[], searchCollapse: boolean, searchContext: boolean, tagSort: string,
  *   tagNested: boolean, tagShut: string[], mentionsOff: string[], mentionSort: string, mentionFold: boolean,
  *   mentionContext: boolean }} VaultState
@@ -16,7 +16,7 @@ const SORTS = ['name-asc', 'name-desc', 'mtime-desc', 'mtime-asc'];
 
 /** @returns {VaultState} */
 export const blank = () => ({
-  last: '', tabs: [], active: 0, recent: [], bookmarks: [], folders: [], shut: [], leftView: 'files', rightView: 'backlinks',
+  last: '', tabs: [], active: 0, recent: [], bookmarks: [], folders: [], opened: [], leftView: 'files', rightView: 'backlinks',
   fileSort: 'name-asc', searchSort: 'relevance', matchCase: false, searchRecent: [], cmdRecent: [],
   searchCollapse: false, searchContext: false, tagSort: 'name', tagNested: true, tagShut: [],
   mentionsOff: [], mentionSort: 'name-asc', mentionFold: false, mentionContext: false,
@@ -41,7 +41,7 @@ export function clean(raw) {
     recent: strings(o.recent, 20),
     bookmarks: strings(o.bookmarks, 200),
     folders: strings(o.folders, 200, 200),
-    shut: strings(o.shut, 500, 200),
+    opened: strings(o.opened, 500, 200),
     leftView: oneOf(o.leftView, ['files', 'search', 'tags', 'bookmarks', 'notes'], d.leftView),
     rightView: oneOf(o.rightView, ['backlinks', 'outgoing', 'outline', 'calendar'], d.rightView),
     fileSort: oneOf(o.fileSort, SORTS, d.fileSort),

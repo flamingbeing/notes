@@ -116,8 +116,14 @@ test('the command palette: Ctrl+P, "Group: Command" rows; it runs Open today’s
   await expect(sheet).toBeHidden();
 });
 
-test('the ribbon menu: its rows; Open random note opens another note; Back closes it first', async ({ phone }) => {
+test('the ribbon menu: its rows; Open random note (turned on) opens another note; Back closes it first', async ({ phone }) => {
   const page = await phone(vault);
+  // (Random note is off until a device turns it on)
+  await page.addInitScript(() => {
+    const key = 'notes:settings:settings/device';
+    const o = JSON.parse(localStorage.getItem(key) || 'null') || { v: 1, values: {} };
+    if (!('pRandom' in (o.values ||= {}))) { o.values.pRandom = true; localStorage.setItem(key, JSON.stringify(o)); }
+  });
   const { uid } = await signIn(page);
   const n = await seed(uid);
   await openNote(page, n.bread);

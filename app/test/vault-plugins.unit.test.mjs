@@ -22,8 +22,10 @@ test('every Notes extra and Core plugin has a toggle: a device option with a row
   assert.ok(GROUPS.extra.sub.length > 0);
 });
 
-test('Vault defaults: its own features on, the Classic extras off', () => {
-  for (const k of CORE) { assert.equal(OPTIONS[k].default, true, k); assert.equal(featureOn('vault', {}, k), true, k); }
+test('Vault defaults: its own features on (Random note off), the Classic extras off', () => {
+  assert.equal(OPTIONS.pRandom.default, false); assert.equal(featureOn('vault', {}, 'pRandom'), false);
+  assert.equal(featureOn('vault', { pRandom: true }, 'pRandom'), true);
+  for (const k of CORE.filter(x => x !== 'pRandom')) { assert.equal(OPTIONS[k].default, true, k); assert.equal(featureOn('vault', {}, k), true, k); }
   for (const k of EXTRAS) { assert.equal(OPTIONS[k].default, false, k); assert.equal(featureOn('vault', {}, k), false, k); }
   assert.equal(featureOn('vault', { xTabBar: true }, 'xTabBar'), true);
   assert.equal(featureOn('vault', key => key === 'pSearch' ? false : undefined, 'pSearch'), false);

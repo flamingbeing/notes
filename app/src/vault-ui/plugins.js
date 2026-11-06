@@ -2,7 +2,8 @@
 // the Vault layout's own features are on, the Classic layout's extras ("Notes extras") are off until a device turns
 // them on. In the Classic layout none of these apply: it keeps every feature as it was, governed by its own options.
 
-/** @typedef {{ key: string, label: string, sub: string, icon: string, group: 'core' | 'extra', gear?: string }} Plugin */
+/** @typedef {{ key: string, label: string, sub: string, icon: string, group: 'core' | 'extra', gear?: string, off?: boolean }} Plugin
+ *   off: a Core plugin off until a device turns it on */
 
 /** @type {Plugin[]} the Core plugins page's rows, in order (alphabetical within each card) */
 export const PLUGINS = [
@@ -14,7 +15,7 @@ export const PLUGINS = [
   { key: 'pOutgoing', label: 'Outgoing links', sub: 'Show the links in the current note.', icon: 'link', group: 'core' },
   { key: 'pOutline', label: 'Outline', sub: 'Show the headings of the current note.', icon: 'list', group: 'core' },
   { key: 'pSwitcher', label: 'Quick switcher', sub: 'Jump to a note by typing part of its name.', icon: 'search', group: 'core' },
-  { key: 'pRandom', label: 'Random note', sub: 'Open a random note.', icon: 'dices', group: 'core' },
+  { key: 'pRandom', label: 'Random note', sub: 'Open a random note.', icon: 'dices', group: 'core', off: true },
   { key: 'pSearch', label: 'Search', sub: 'Search the text of every note.', icon: 'textSearch', group: 'core' },
   { key: 'pTags', label: 'Tags view', sub: 'Show every tag and how often it is used.', icon: 'tags', group: 'core' },
   { key: 'pWordCount', label: 'Word count', sub: 'Show the words and characters of the note.', icon: 'type', group: 'core' },
@@ -43,7 +44,7 @@ const BY_KEY = new Map(PLUGINS.map(p => [p.key, p]));
 /**
  * Is a feature on? In the Classic layout every Notes extra is (its own options still decide) and the Vault layout's
  * plugins don't apply; in the Vault layout, the plugin's option (an unset one: its default, on for the Vault's own
- * features and off for the extras).
+ * features but Random note, off for the extras).
  * @param {string} layout  'vault' | 'classic'
  * @param {Record<string, unknown> | ((key: string) => unknown)} values  the options (or a getter)
  * @param {string} key  a plugin's key
@@ -53,5 +54,5 @@ export function featureOn(layout, values, key) {
   if (!p) return false;
   if (layout === 'classic') return p.group === 'extra';
   const v = typeof values === 'function' ? values(key) : values?.[key];
-  return typeof v === 'boolean' ? v : p.group === 'core';
+  return typeof v === 'boolean' ? v : p.group === 'core' && !p.off;
 }

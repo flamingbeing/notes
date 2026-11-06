@@ -108,7 +108,7 @@ test('the view picker switches views; the choice is kept over a reload', async (
   await expect(page.locator('#vl-view-pill')).toContainText('Tags');
 });
 
-test('Files: a nested folder opens, a note in it opens and the drawer shuts; collapse all; the sort', async ({ phone }) => {
+test('Files: folders start folded; a nested folder opens, a note in it opens and the drawer shuts; collapse all; the sort', async ({ phone }) => {
   const page = await phone(vault);
   const { uid } = await signIn(page);
   const deep = uniq('Deep');
@@ -116,8 +116,13 @@ test('Files: a nested folder opens, a note in it opens and the drawer shuts; col
   await put(uid, 'Top note', { body: 'top' });
   await openLeft(page);
   await expect(folder(page, 'Outer')).toBeVisible();
-  await page.click('#vl-files-fold');   // collapse all
+  // folders start folded: expand all, then collapse all
   await expect(folder(page, 'Outer')).toHaveAttribute('aria-expanded', 'false');
+  await expect(folder(page, 'Outer/Inner')).toHaveCount(0);
+  await expect(page.locator('#vl-files-fold')).toHaveAttribute('aria-label', 'Expand all');
+  await page.click('#vl-files-fold');
+  await expect(folder(page, 'Outer/Inner')).toHaveAttribute('aria-expanded', 'true');
+  await page.click('#vl-files-fold');
   await expect(folder(page, 'Outer/Inner')).toHaveCount(0);
   await folder(page, 'Outer').click();
   await expect(folder(page, 'Outer/Inner')).toHaveAttribute('aria-expanded', 'false');

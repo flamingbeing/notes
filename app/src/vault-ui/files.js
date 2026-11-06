@@ -41,7 +41,7 @@ export function filesView(ctx) {
     const clean = cleanPath(name);
     if (!clean) return;
     const path = cleanPath(`${folderNow()}/${clean}`);
-    st().set({ folders: [...st().get().folders.filter(f => f !== path), path], shut: st().get().shut.filter(s => !foldersAbove(path).includes(s)) });
+    st().set({ folders: [...st().get().folders.filter(f => f !== path), path], opened: [...new Set([...st().get().opened, ...foldersAbove(path)])] });
     here = path;
     redraw();
     ctx.redraw();
@@ -53,14 +53,14 @@ export function filesView(ctx) {
   const sort = ctx.tool('vl-files-sort', 'Change sort order', 'arrowUpNarrowWide', () => sortSheet.open());
   const fold = ctx.tool('vl-files-fold', 'Collapse all', 'chevronsDownUp', () => {
     const { paths } = buildTree(ctx.notes(), ctx.extraFolders());
-    st().set({ shut: anyOpen ? paths : [] });
+    st().set({ opened: anyOpen ? [] : paths });
     redraw();
   });
   const show = ctx.tool('vl-files-reveal', 'Show the open note', 'galleryVerticalEnd', () => {
     const n = ctx.current();
     if (!n) return;
     const above = foldersAbove(n.path || '');
-    st().set({ shut: st().get().shut.filter(s => !above.includes(s)) });
+    st().set({ opened: [...new Set([...st().get().opened, ...above])] });
     redraw();
     reveal(`n:${n.id}`);
   });
@@ -80,7 +80,8 @@ export function filesView(ctx) {
     newFolder.hidden = !write;
     const s = st().get();
     const { root, paths } = buildTree(ctx.notes(), ctx.extraFolders(), s.fileSort);
-    const shut = new Set(s.shut);
+    const opened = new Set(s.opened);
+    const shut = { has: (/** @type {string} */ p) => !opened.has(p) };   // (folders start folded: open only once opened)
     anyOpen = paths.some(p => !shut.has(p));
     fold.replaceChildren(glyph(anyOpen ? 'chevronsDownUp' : 'chevronsUpDown'));
     fold.setAttribute('aria-label', anyOpen ? 'Collapse all' : 'Expand all');
@@ -136,8 +137,8 @@ export function filesView(ctx) {
     if (row.dataset.path !== undefined) {
       const p = row.dataset.path;
       here = p;
-      const s = st().get().shut;
-      st().set({ shut: s.includes(p) ? s.filter(x => x !== p) : [...s, p] });
+      const s = st().get().opened;
+      st().set({ opened: s.includes(p) ? s.filter(x => x !== p) : [...s, p] });
       redraw();
       reveal(`f:${p}`);
       return;
