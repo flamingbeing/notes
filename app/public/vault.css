@@ -382,7 +382,7 @@ dialog.vl-drawer[open] { display: flex; }
 dialog.vl-drawer::backdrop { background: transparent; }
 html.vl-drawer-on #vl-nav { transition: none; }
 /* (the theme's buttons and fields are 44 tall and centred: these rows set their own) */
-#vl-left button, #vl-left input, #vl-left select, #vl-prompt button, #vl-right button, .vl-pick button, .vl-pick input, .vl-sheet button { min-height: 0; }
+#vl-left button, #vl-left input, #vl-left select, #vl-prompt button, #vl-confirm button, #vl-right button, .vl-pick button, .vl-pick input, .vl-sheet button { min-height: 0; }
 :is(.vl-view-row, .vl-tree-row, .vl-tag-row, .vl-title-row, .vl-recent-row, .vl-mark-row) { justify-content: flex-start; }
 :is(.vl-note-row, .vl-space) { justify-content: stretch; }
 .vl-left-in { display: flex; flex-direction: column; width: 100%; height: 100%; padding-top: var(--vl-top); box-sizing: border-box; }
@@ -549,6 +549,8 @@ dialog.vl-prompt::backdrop { background: var(--vl-shade-sheet); }
 .vl-prompt-btn { appearance: none; border: 0; margin: 0; height: 38px; padding: 0 18px; border-radius: 999px; background: var(--vl-bg-2); color: var(--vl-text);
   font: 600 15px var(--vl-font); cursor: pointer; }
 .vl-prompt-ok { background: light-dark(#6b45e6, #8a6cf0); color: #fff; }
+.vl-prompt-text { margin: 0; font-size: 15px; line-height: 1.45; color: var(--vl-muted); }
+.vl-prompt-danger { background: light-dark(#c0233a, #e5484d); color: #fff; }
 
 @media (prefers-reduced-motion: reduce) {
   #vl-nav, html.ui-keyboard-open #vl-nav { transition: opacity 150ms, visibility 0s; transform: none; }

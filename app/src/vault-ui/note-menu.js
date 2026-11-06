@@ -1,7 +1,7 @@
 // The note's menu (the header's vertical dots), as the reference app's bottom sheet of cards: Close (this tab); the
 // views (Backlinks in document, Reading view, Source mode or Live Preview, each ticked when on); Rename…, Move file
 // to…, Bookmark… (ticked when bookmarked), Find…, Copy path; Share; Details… (with that Notes extra on); Delete file
-// (to the bin, with Undo). Someone who can only view the space gets Close, the views, Copy path and Share. Each row
+// (asked first; to the bin, with Undo). Someone who can only view the space gets Close, the views, Copy path and Share. Each row
 // does what the app already does elsewhere (the file menu's rename, move and delete, the page's read view and
 // Details), so every save still goes through the write queue. Loaded on the first tap of the dots.
 import { copyText, shareText } from '@core/ui';

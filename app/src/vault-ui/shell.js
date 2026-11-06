@@ -48,6 +48,10 @@ export async function vaultShell(app, kit, list, { who }) {
   const edit = /** @type {HTMLDialogElement} */ (document.getElementById('edit'));
   const form = /** @type {HTMLFormElement} */ (document.getElementById('edit-form'));
   const titleBox = /** @type {HTMLInputElement} */ (document.getElementById('edit-text'));
+  // (the Classic page's Delete button: hidden here, and out of reach of Tab and screen readers too; the note menu's
+  // Delete file asks first instead)
+  const classicDelete = document.getElementById('edit-delete');
+  if (classicDelete) { classicDelete.inert = true; classicDelete.setAttribute('aria-hidden', 'true'); classicDelete.tabIndex = -1; }
   /** @param {string} key */
   const on = key => featureOn('vault', k => settings.get(k), key);
 

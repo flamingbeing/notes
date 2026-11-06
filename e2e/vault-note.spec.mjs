@@ -1,7 +1,7 @@
 // The Vault layout's note page: Source mode (the Markdown shown, ** and all), the view button to the read view and
 // back, the mobile toolbar over the keyboard (bold wraps the selection; it scrolls sideways), the Linked mentions under
 // the note (a group's tap opens the note linking here), the note menu (Rename… relinks, Bookmark… ticks and shows in
-// the drawer's card, Delete file goes to the bin and Undo brings it back), the title renamed in the header, a viewer's
+// the drawer’s card, Delete file asks first, goes to the bin and Undo brings it back), the title renamed in the header, a viewer's
 // smaller menu, and axe on both views in light and dark.
 import { test, expect, signIn, serverHas, serverNotes, uniq, db } from './fixtures.mjs';
 import axe from './axe.mjs';
@@ -110,7 +110,7 @@ test('Linked mentions: the notes linking here, how many; a tap on a group opens 
   await expect(page.locator('#vl-mn-count')).toHaveText('0');
 });
 
-test('the note menu: Rename… relinks, Bookmark… ticks and shows in the drawer, Delete file goes to the bin and Undo restores it', async ({ phone }) => {
+test('the note menu: Rename… relinks, Bookmark… ticks and shows in the drawer, Delete file asks, goes to the bin and Undo restores it', async ({ phone }) => {
   const page = await phone(vault);
   const { uid } = await signIn(page);
   const a = uniq('Alpha'), b = uniq('Beta'), a2 = uniq('Gamma');
@@ -151,8 +151,18 @@ test('the note menu: Rename… relinks, Bookmark… ticks and shows in the drawe
   await page.click('#vl-menu-backlinks');
   await expect(page.locator('#vl-mentions')).toBeVisible();
 
+  // Delete file asks first: Cancel keeps the note; Delete sends it to the bin
   await menu(page);
   await page.click('#vl-menu-delete');
+  await expect(page.locator('#vl-confirm')).toBeVisible();
+  await expect(page.locator('#vl-confirm-text')).toContainText(a2);
+  await expect(page.locator('#vl-confirm-cancel')).toBeFocused();
+  await page.click('#vl-confirm-cancel');
+  await expect(page.locator('#vl-confirm')).toBeHidden();
+  await expect(page.locator('#vl-title')).toContainText(a2);
+  await menu(page);
+  await page.click('#vl-menu-delete');
+  await page.click('#vl-confirm-ok');
   await noLonger(a2);
   await expect(page.locator('#vl-empty')).toBeVisible();
   await page.locator('#toasts button', { hasText: 'Undo' }).click();

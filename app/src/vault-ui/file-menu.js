@@ -1,6 +1,6 @@
 // A row's menu in the left sidebar (a long-press or right-click), as a bottom sheet. A note: open it in a new tab,
-// rename it (its links follow), move it to another folder, bookmark it, copy its path, delete it (to the bin, with
-// Undo). A folder: a new note in it, rename it (each note in it saved once, through the write queue), delete it (only
+// rename it (its links follow), move it to another folder, bookmark it, copy its path, delete it (asked first; to
+// the bin, with Undo). A folder: a new note in it, rename it (each note in it saved once, through the write queue), delete it (only
 // when empty: a folder is its notes' paths, so one with notes can't go without them). Someone who can only view the
 // space gets open and copy. The note open on the page changes through the page (its boxes), so its edits stay one save.
 import { copyText } from '@core/ui';
@@ -89,6 +89,45 @@ export function askText({ title: heading, label, value = '', check = () => '' })
   });
 }
 
+// ---- a yes or no asked (Delete file?): the same small dialog, its words and a red button
+/** @type {{ d: HTMLDialogElement, h: HTMLElement, text: HTMLElement, ok: HTMLButtonElement } | null} */
+let asker = null;
+/**
+ * @param {{ title: string, text: string, ok: string }} o  ok: the red button's word
+ * @returns {Promise<boolean>}  true: the red button (false: Cancel, Esc, Back)
+ */
+export function askYes({ title: heading, text, ok: yes }) {
+  if (!asker) {
+    const d = /** @type {HTMLDialogElement} */ (el('dialog', { id: 'vl-confirm', className: 'vl-prompt' }));
+    const h = el('h2', { id: 'vl-confirm-title', className: 'vl-prompt-title' });
+    const words = el('p', { id: 'vl-confirm-text', className: 'vl-prompt-text' });
+    const cancel = el('button', { type: 'button', id: 'vl-confirm-cancel', className: 'vl-prompt-btn', textContent: 'Cancel' });
+    const ok = /** @type {HTMLButtonElement} */ (el('button', { type: 'submit', id: 'vl-confirm-ok', className: 'vl-prompt-btn vl-prompt-danger' }));
+    d.append(el('form', { method: 'dialog' }, h, words, el('div', { className: 'vl-prompt-row' }, cancel, ok)));
+    d.setAttribute('aria-labelledby', 'vl-confirm-title');
+    d.setAttribute('aria-describedby', 'vl-confirm-text');
+    document.body.append(d);
+    cancel.addEventListener('click', () => d.close(''));
+    ok.addEventListener('click', () => { d.returnValue = 'ok'; });
+    asker = { d, h, text: words, ok };
+  }
+  const a = asker;
+  a.h.textContent = heading;
+  a.text.textContent = text;
+  a.ok.textContent = yes;
+  return new Promise(resolve => {
+    const step = transients().open(() => { if (a.d.open) a.d.close(''); });
+    a.d.addEventListener('close', () => {
+      if (step.active) void step.close();
+      resolve(a.d.returnValue === 'ok');
+    }, { once: true });
+    a.d.returnValue = '';
+    a.d.showModal();
+    // (Cancel first: a stray Enter keeps the note)
+    /** @type {HTMLElement} */ (a.d.querySelector('#vl-confirm-cancel')).focus();
+  });
+}
+
 // ---- the folders, to move a note into
 let moveCards = /** @type {Card[]} */ ([]);
 /** @type {ReturnType<typeof bottomSheet> | null} */
@@ -161,6 +200,7 @@ export async function move(ctx, note) {
 
 /** @param {Ctx} ctx @param {Note} note */
 export async function remove(ctx, note) {
+  if (!await askYes({ title: 'Delete file', text: `Delete “${note.title || 'Untitled'}”? It goes to the bin, where you can restore it.`, ok: 'Delete' })) return;
   await ctx.leave(note.id);
   const n = fresh(ctx, note.id) || note;
   await ctx.app.remove(n);
