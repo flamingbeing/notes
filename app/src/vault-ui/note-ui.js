@@ -182,5 +182,13 @@ export function noteUi(o) {
     menu,
     /** an option or plugin changed */
     options: drawMentions,
+    /** a note opened at a line (the sidebars' mentions and headings) */
+    openAt,
+    /** Find in this note */
+    find: () => void find(),
+    /** the note's "Backlinks in document", turned the other way */
+    toggleMentions: () => setMentions(!mentionsOn()),
+    /** the editing view's mode (Source, Live Preview), turned the other way */
+    toggleEditMode: () => { if (page.reading()) { setReading(false); return; } void settings.set('vEditMode', String(settings.get('vEditMode') || 'source') === 'live' ? 'source' : 'live'); },
   };
 }

@@ -23,6 +23,7 @@ html[data-layout=vault] {
   --vl-accent: #9873f6;
   --vl-link: light-dark(#7852ee, #a68af9);
   --vl-red: light-dark(#d42a3f, #ff6b70);
+  --vl-green: light-dark(#08b94e, #44cf6e);
   --vl-grabber: light-dark(#a6a6a6, #5a5a5a);
   --vl-sh1: light-dark(rgba(0, 0, 0, .08), transparent);
   --vl-sh2: light-dark(rgba(0, 0, 0, .12), #333333);
@@ -43,6 +44,8 @@ html[data-layout=vault] .vl-btn, html[data-layout=vault] .vl-circle, html[data-l
 html[data-layout=vault] .vl-btn:focus-visible, html[data-layout=vault] .vl-circle:focus-visible, html[data-layout=vault] .vl-row:focus-visible,
 html[data-layout=vault] .vl-empty-btn:focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
 html[data-layout=vault] [data-faint] { color: var(--vl-faint); }
+/* (a filled glyph's cut lines: the card's colour) */
+.vl-icon .vl-cut { stroke: var(--vl-card); }
 
 /* ---- the note screen: the page fills the screen, never modal, under the header and above the nav pill */
 html[data-layout=vault] #edit.page[open] { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0;
@@ -259,7 +262,7 @@ dialog.vl-drawer[open] { display: flex; }
 dialog.vl-drawer::backdrop { background: transparent; }
 html.vl-drawer-on #vl-nav { transition: none; }
 /* (the theme's buttons and fields are 44 tall and centred: these rows set their own) */
-#vl-left button, #vl-left input, #vl-left select, #vl-prompt button { min-height: 0; }
+#vl-left button, #vl-left input, #vl-left select, #vl-prompt button, #vl-right button, .vl-pick button, .vl-pick input, .vl-sheet button { min-height: 0; }
 :is(.vl-view-row, .vl-tree-row, .vl-tag-row, .vl-title-row, .vl-recent-row, .vl-mark-row) { justify-content: flex-start; }
 :is(.vl-note-row, .vl-space) { justify-content: stretch; }
 .vl-left-in { display: flex; flex-direction: column; width: 100%; height: 100%; padding-top: var(--vl-top); box-sizing: border-box; }
@@ -431,3 +434,108 @@ dialog.vl-prompt::backdrop { background: var(--vl-shade-sheet); }
   #vl-nav, html.ui-keyboard-open #vl-nav { transition: opacity 150ms, visibility 0s; transform: none; }
   .vl-folder .vl-chev, .vl-chev-btn .vl-icon, .vl-group-chev .vl-icon, .vl-switch::after { transition: none; }
 }
+
+/* ---- the sheets' extras: a title over the cards (the tabs' "N tabs"), a row's second line, a button beside a row */
+.vl-sheet-title { margin: 4px 0 2px; padding: 0 8px; font: 700 20px var(--vl-font); color: var(--vl-text); }
+.vl-row-two { flex: 1; min-width: 0; margin-left: 8px; display: grid; gap: 1px; }
+.vl-row-two .vl-row-label { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-row-sub { font-size: 12px; color: var(--vl-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-row-wrap { position: relative; display: flex; align-items: center; }
+.vl-row-wrap .vl-row { flex: 1; min-width: 0; }
+.vl-row-wrap:has(.vl-row-sub) .vl-row { height: 54px; }
+.vl-row-wrap + .vl-row-wrap::before { content: ""; position: absolute; top: 0; left: 43px; right: 0; border-top: 1px solid var(--vl-line); z-index: 1; }
+.vl-row-aside { appearance: none; border: 0; margin: 0 6px 0 0; padding: 0; width: 40px; height: 40px; flex: none; display: grid; place-items: center;
+  border-radius: 10px; background: none; color: var(--vl-muted); cursor: pointer; }
+.vl-row-aside .vl-icon { width: 18px; height: 18px; }
+.vl-row-aside:active { background: var(--vl-hover); }
+.vl-row-aside:focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
+#vl-tabs-sheet .vl-row .vl-icon:first-child { color: var(--vl-muted); }
+
+/* ---- the quick switcher and the command palette (S10): a grey sheet from under the header, the results from the top,
+   the box at the bottom over the keyboard */
+dialog.vl-pick { position: fixed; inset: calc(var(--vl-top) + 102px) 0 0 0; z-index: 41; width: 100%; max-width: 560px; height: auto; max-height: none;
+  margin: 0 auto; padding: 0; border: 0; box-sizing: border-box; border-radius: 31px 31px 0 0; background: var(--vl-bg-2); color: var(--vl-text);
+  font-family: var(--vl-font); overflow: hidden; display: none; flex-direction: column; }
+dialog.vl-pick[open] { display: flex; }
+dialog.vl-pick::backdrop { background: transparent; }
+.vl-pick-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 0 8px; }
+.vl-pick-row { height: 37px; margin: 0 12px; padding: 0 12px; display: flex; align-items: center; border-radius: 12px; font-size: 16px; cursor: pointer;
+  white-space: nowrap; overflow: hidden; -webkit-tap-highlight-color: transparent; }
+.vl-pick-row > span { overflow: hidden; text-overflow: ellipsis; }
+.vl-pick-text { flex: 1; min-width: 0; }
+.vl-pick-row[aria-selected=true] { background: var(--vl-hover); }
+.vl-pick-row b { font-weight: 700; }
+.vl-pick-group { flex: none; color: var(--vl-muted); }
+.vl-pick-none { margin: 4px 24px; font-size: 16px; }
+.vl-pick-none[hidden] { display: none; }
+.vl-pick-foot { flex: none; padding: 9px 9px calc(9px + max(var(--vl-bottom), var(--ui-keyboard-h, 0px))); }
+.vl-pick-box { height: 50px; display: flex; align-items: center; gap: 2px; padding: 0 6px 0 18px; box-sizing: border-box; border-radius: 999px;
+  background: var(--vl-card); box-shadow: var(--vl-shadow); }
+.vl-pick-q { flex: 1; min-width: 0; height: 100%; border: 0; margin: 0; padding: 0; background: none; color: var(--vl-text); font: 16px var(--vl-font); outline: none;
+  box-shadow: none; }
+.vl-pick-q::placeholder { color: var(--vl-faint); opacity: 1; }
+.vl-pick-btn { appearance: none; border: 0; margin: 0; padding: 0; width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 999px;
+  background: none; color: var(--vl-muted); cursor: pointer; }
+.vl-pick-btn[hidden] { display: none; }
+.vl-pick-btn .vl-icon { width: 22px; height: 22px; }
+.vl-pick-clear { color: var(--vl-faint); }
+.vl-pick-btn:focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
+
+/* ---- the right sidebar (S7): its panes, the tool row, the footer (the note's name, its size, the sync state) */
+.vl-rpane { padding: 0 12px; }
+.vl-rpane-head { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 12px; }
+.vl-rpane-title { margin: 0; font: 500 15px var(--vl-font); color: var(--vl-text); }
+.vl-rpane-count { font-size: 13px; }
+.vl-rpane-empty { margin: 8px 12px; font-size: 14px; }
+.vl-rpane-empty[hidden] { display: none; }
+#vl-r-backlinks .vl-mn { margin: 0; padding: 0 12px; border-top: 0; }
+#vl-right .vl-tools .vl-mn-tool { width: 53px; height: 44px; border-radius: 10px; }
+#vl-right .vl-tools .vl-mn-tool .vl-icon { width: 20px; height: 20px; }
+.vl-out-row, .vl-outline-row { appearance: none; border: 0; margin: 0; width: 100%; height: 36px; padding: 0 12px; box-sizing: border-box; display: flex; align-items: center;
+  justify-content: flex-start; gap: 8px; border-radius: 8px; background: none; color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; }
+.vl-out-row:active, .vl-outline-row:active { background: var(--vl-hover); }
+.vl-out-row[data-faint] { color: var(--vl-faint); }
+.vl-out-icon .vl-icon { width: 16px; height: 16px; display: block; }
+.vl-out-name, .vl-outline-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+:is(.vl-out-row, .vl-outline-row, .vl-cal-day, .vl-cal-nav, .vl-sync):focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
+/* the calendar: the month (its year in the accent), the arrows, a grid of days (a dot under one with a daily note) */
+.vl-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 12px; min-height: 44px; }
+.vl-cal-title { margin: 0; font: 700 22px var(--vl-font); }
+.vl-cal-year { color: var(--vl-link); }
+.vl-cal-navs { display: flex; align-items: center; }
+.vl-cal-nav { appearance: none; border: 0; margin: 0; padding: 0 6px; min-width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px;
+  background: none; color: var(--vl-muted); font: 13px var(--vl-font); text-transform: uppercase; cursor: pointer; }
+.vl-cal-nav .vl-icon { width: 20px; height: 20px; }
+.vl-cal-grid { display: grid; gap: 2px; padding: 4px 4px 0; }
+.vl-cal-row { display: grid; grid-template-columns: repeat(7, 1fr); }
+.vl-cal-wd { text-align: center; font: 600 11px/28px var(--vl-font); letter-spacing: .02em; }
+.vl-cal-day { appearance: none; border: 0; margin: 0; padding: 4px 0 2px; height: 44px; display: grid; justify-items: center; align-content: start; gap: 3px;
+  border-radius: 8px; background: none; color: var(--vl-text); font: 15px var(--vl-font); cursor: pointer; }
+.vl-cal-day:active { background: var(--vl-hover); }
+.vl-cal-day[data-faint] { color: var(--vl-faint); }
+.vl-cal-now .vl-cal-n { color: var(--vl-link); font-weight: 700; }
+.vl-cal-day[aria-current=date] { background: var(--vl-current); }
+.vl-cal-dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.vl-cal-has .vl-cal-dot { background: var(--vl-muted); }
+.vl-footer { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-left: 12px; }
+.vl-foot-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vl-foot-name { font: 600 13px var(--vl-font); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vl-foot-count { font-size: 12px; color: var(--vl-muted); }
+.vl-foot-count[hidden] { display: none; }
+.vl-sync { appearance: none; border: 0; margin: 0; padding: 0; width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 999px;
+  background: var(--vl-card); box-shadow: var(--vl-shadow); color: var(--vl-faint); cursor: pointer; }
+.vl-sync .vl-icon { width: 22px; height: 22px; }
+.vl-sync-ok { color: var(--vl-green); }
+.vl-sync-bad { color: var(--vl-red); }
+.vl-sync-busy { color: var(--vl-muted); }
+.vl-sync-busy .vl-icon { animation: vl-pulse 1.2s ease-in-out infinite; }
+@keyframes vl-pulse { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) { .vl-sync-busy .vl-icon { animation: none; } }
+
+/* ---- the pull down on a note: the palette's glyph under the header, more of it as the finger goes */
+.vl-pull { position: absolute; z-index: 3; top: calc(var(--vl-top) + 70px); left: 50%; width: 44px; height: 44px; margin-left: -22px; display: grid; place-items: center;
+  border-radius: 999px; background: var(--vl-card); box-shadow: var(--vl-shadow); color: var(--vl-muted); opacity: 0; pointer-events: none; }
+.vl-pull.on { color: var(--vl-link); }
+.vl-pull.vl-pull-off { transition: opacity 150ms, transform 150ms; }
+.vl-pull .vl-icon { width: 22px; height: 22px; }

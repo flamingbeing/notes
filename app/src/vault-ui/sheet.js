@@ -7,24 +7,25 @@ import { glyph } from './icons.js';
 
 /**
  * @typedef {{ id?: string, icon?: string, label: string, run: () => unknown, ticked?: boolean, danger?: boolean, next?: boolean, hint?: string,
- *   radio?: boolean, disabled?: boolean }} Row
+ *   radio?: boolean, disabled?: boolean, sub?: string, aside?: { id?: string, icon: string, label: string, run: () => unknown } }} Row
  *   ticked: an on-state (a tick at the end); next: opens another list (a chevron); danger: red (a delete); radio: one of
- *   a choice (a radio at the end, filled on the one chosen); disabled: shown, not tappable (the hint says why)
+ *   a choice (a radio at the end, filled on the one chosen); disabled: shown, not tappable (the hint says why); sub: a
+ *   second, smaller line (a note's folder); aside: a button of its own at the end (a tab's close), the sheet left open
  * @typedef {{ rows: Row[], title?: string }} Card
  */
 
 let shade = /** @type {HTMLElement | null} */ (null);
 /** the one shade behind every sheet (below the top layer, so the sheet's own backdrop takes the taps) */
-const shadeEl = () => {
+export const shadeEl = () => {
   if (!shade) { shade = Object.assign(document.createElement('div'), { className: 'vl-shade' }); document.body.append(shade); }
   return shade;
 };
 
 /**
- * @param {{ id: string, label: string | (() => string), cards: () => Card[] }} o  cards: what it shows, read each time it
- *   opens (and label: what it is for, when it changes too)
+ * @param {{ id: string, label: string | (() => string), cards: () => Card[], heading?: () => string }} o  cards: what it
+ *   shows, read each time it opens (and label: what it is for, when it changes too); heading: a title over the cards
  */
-export function bottomSheet({ id, label, cards }) {
+export function bottomSheet({ id, label, cards, heading }) {
   const named = typeof label === 'function' ? label : () => label;
   const d = document.createElement('dialog');
   d.id = id;
@@ -76,7 +77,12 @@ export function bottomSheet({ id, label, cards }) {
     if (r.id) b.id = r.id;
     if (r.danger) b.classList.add('vl-danger');
     if (r.icon) b.append(glyph(r.icon));
-    b.append(Object.assign(document.createElement('span'), { className: 'vl-row-label', textContent: r.label }));
+    const name = Object.assign(document.createElement('span'), { className: 'vl-row-label', textContent: r.label });
+    if (r.sub !== undefined) {
+      const two = Object.assign(document.createElement('span'), { className: 'vl-row-two' });
+      two.append(name, Object.assign(document.createElement('span'), { className: 'vl-row-sub', textContent: r.sub }));
+      b.append(two);
+    } else b.append(name);
     if (r.hint) { const h = Object.assign(document.createElement('span'), { className: 'vl-row-hint', textContent: r.hint }); h.dataset.faint = ''; b.append(h); }
     if (r.ticked !== undefined) { b.setAttribute('aria-pressed', String(r.ticked)); if (r.ticked) b.append(glyph('check', 'vl-tick')); }
     if (r.radio !== undefined) { b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', String(r.radio)); b.append(glyph(r.radio ? 'circleDot' : 'circle', `vl-radio${r.radio ? ' on' : ''}`)); }
@@ -84,10 +90,22 @@ export function bottomSheet({ id, label, cards }) {
     if (r.next) b.append(glyph('chevronRight', 'vl-next'));
     // (the sheet goes first, its Back step with it, so what the row opens is on top of the page as it was)
     b.addEventListener('click', async () => { await close(); r.run(); });
-    return b;
+    if (!r.aside) return b;
+    // (a button beside the row's own: what it does keeps the sheet open, drawn again)
+    const a = r.aside;
+    const x = Object.assign(document.createElement('button'), { type: 'button', className: 'vl-row-aside' });
+    if (a.id) x.id = a.id;
+    x.setAttribute('aria-label', a.label);
+    x.append(glyph(a.icon));
+    x.addEventListener('click', async () => { await a.run(); if (d.open && !shut) refill(); });
+    const wrap = Object.assign(document.createElement('div'), { className: 'vl-row-wrap' });
+    wrap.append(b, x);
+    return wrap;
   };
+  const title = Object.assign(document.createElement('h2'), { className: 'vl-sheet-title', id: `${id}-title` });
   const fill = () => {
-    body.replaceChildren(...cards().filter(c => c.rows.length).map(c => {
+    title.textContent = heading ? heading() : '';
+    body.replaceChildren(...(heading ? [title] : []), ...cards().filter(c => c.rows.length).map(c => {
       const card = Object.assign(document.createElement('div'), { className: 'vl-card' });
       card.setAttribute('role', 'group');
       if (c.title) card.setAttribute('aria-label', c.title);
@@ -97,6 +115,14 @@ export function bottomSheet({ id, label, cards }) {
     }));
   };
 
+  /** drawn again while open (the focus kept near where it was) */
+  const refill = () => {
+    d.setAttribute('aria-label', named());
+    const at = [...body.querySelectorAll('button')].indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
+    fill();
+    const all = [...body.querySelectorAll('button')];
+    /** @type {HTMLElement | undefined} */ (all[Math.min(Math.max(at, 0), all.length - 1)])?.focus({ preventScroll: true });
+  };
   const open = () => {
     if (d.open && !shut) return;
     d.setAttribute('aria-label', named());
@@ -129,5 +155,5 @@ export function bottomSheet({ id, label, cards }) {
     end: (x, v) => { if (x > height() / 3 || v > 0.5) void close(v); else void move(0, v); },
     bounds: () => [0, height()],
   });
-  return { open, close, isOpen: () => d.open && !shut, el: d };
+  return { open, close, refill, isOpen: () => d.open && !shut, el: d };
 }

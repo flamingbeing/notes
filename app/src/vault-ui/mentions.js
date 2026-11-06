@@ -28,15 +28,16 @@ const SORTS = [
  * @param {{
  *   host: HTMLElement, notes: () => Note[], current: () => Note | null,
  *   state: () => ReturnType<typeof import('./state.js').vaultState>,
- *   open: (note: Note, line?: number) => unknown, enabled: () => boolean,
+ *   open: (note: Note, line?: number) => unknown, enabled: () => boolean, prefix?: string, id?: string,
  * }} o  host: where the block goes (after the note's text); open: a note opened (at a line); enabled: shown for the
  *   note open (the Backlinks plugin on, and the note's "Backlinks in document")
  */
 export function mentionsBlock(o) {
-  const box = el('section', { id: 'vl-mentions', className: 'vl-mn', hidden: true });
-  box.setAttribute('aria-labelledby', 'vl-mn-title');
-  const count = faint(el('span', { id: 'vl-mn-count', className: 'vl-mn-count' }));
-  const heading = el('h2', { id: 'vl-mn-title', className: 'vl-mn-title' }, 'Linked mentions');
+  const p = o.prefix || 'vl-mn';
+  const box = el('section', { id: o.id || 'vl-mentions', className: 'vl-mn', hidden: true });
+  box.setAttribute('aria-labelledby', `${p}-title`);
+  const count = faint(el('span', { id: `${p}-count`, className: 'vl-mn-count' }));
+  const heading = el('h2', { id: `${p}-title`, className: 'vl-mn-title' }, 'Linked mentions');
   /** @param {string} id @param {string} icon @param {string} label @param {() => void} run */
   const tool = (id, icon, label, run) => {
     const b = el('button', { type: 'button', id, className: 'vl-mn-tool' }, glyph(icon));
@@ -45,29 +46,29 @@ export function mentionsBlock(o) {
     return b;
   };
   const st = () => o.state().get();
-  const fold = tool('vl-mn-fold', 'list', 'Collapse results', () => { o.state().set({ mentionFold: !st().mentionFold }); draw(); });
-  const context = tool('vl-mn-context', 'arrowUpDown', 'Show more context', () => { o.state().set({ mentionContext: !st().mentionContext }); draw(); });
-  const sort = tool('vl-mn-sort', 'arrowUpNarrowWide', 'Change sort order', () => sortSheet().open());
-  const find = tool('vl-mn-find', 'search', 'Show search filter', () => {
+  const fold = tool(`${p}-fold`, 'list', 'Collapse results', () => { o.state().set({ mentionFold: !st().mentionFold }); draw(); });
+  const context = tool(`${p}-context`, 'arrowUpDown', 'Show more context', () => { o.state().set({ mentionContext: !st().mentionContext }); draw(); });
+  const sort = tool(`${p}-sort`, 'arrowUpNarrowWide', 'Change sort order', () => sortSheet().open());
+  const find = tool(`${p}-find`, 'search', 'Show search filter', () => {
     filterRow.hidden = !filterRow.hidden;
     find.setAttribute('aria-pressed', String(!filterRow.hidden));
     if (filterRow.hidden) { filter.value = ''; draw(); } else filter.focus();
   });
   find.setAttribute('aria-pressed', 'false');
-  const filter = /** @type {HTMLInputElement} */ (el('input', { id: 'vl-mn-q', type: 'search', placeholder: 'Search…', autocomplete: 'off', spellcheck: false }));
+  const filter = /** @type {HTMLInputElement} */ (el('input', { id: `${p}-q`, type: 'search', placeholder: 'Search…', autocomplete: 'off', spellcheck: false }));
   filter.setAttribute('aria-label', 'Filter mentions');
   filter.addEventListener('input', () => draw());
   const filterRow = el('div', { className: 'vl-mn-filter', hidden: true }, glyph('search'), filter);
   const head = el('div', { className: 'vl-mn-head' }, el('div', { className: 'vl-mn-name' }, heading, count), el('div', { className: 'vl-mn-tools' }, fold, context, sort, find));
-  const groups = el('div', { id: 'vl-mn-groups', className: 'vl-mn-groups' });
+  const groups = el('div', { id: `${p}-groups`, className: 'vl-mn-groups' });
   const empty = faint(el('p', { className: 'vl-mn-empty', hidden: true }, 'No backlinks found.'));
   // the unlinked mentions: folded; worked out when opened
   let unlinkedOpen = false;
   const unChev = glyph('chevronRight', 'vl-mn-chev');
   const unCount = faint(el('span', { className: 'vl-mn-count' }));
-  const unHead = faint(el('button', { type: 'button', id: 'vl-mn-unlinked', className: 'vl-mn-unhead' }, unChev, el('span', { className: 'vl-mn-unlabel' }, 'Unlinked mentions'), unCount));
+  const unHead = faint(el('button', { type: 'button', id: `${p}-unlinked`, className: 'vl-mn-unhead' }, unChev, el('span', { className: 'vl-mn-unlabel' }, 'Unlinked mentions'), unCount));
   unHead.setAttribute('aria-expanded', 'false');
-  const unGroups = el('div', { id: 'vl-mn-ungroups', className: 'vl-mn-groups', hidden: true });
+  const unGroups = el('div', { id: `${p}-ungroups`, className: 'vl-mn-groups', hidden: true });
   unHead.addEventListener('click', () => {
     unlinkedOpen = !unlinkedOpen;
     unHead.setAttribute('aria-expanded', String(unlinkedOpen));
@@ -79,8 +80,8 @@ export function mentionsBlock(o) {
 
   /** @type {ReturnType<typeof bottomSheet> | null} */
   let sorts = null;
-  const sortSheet = () => (sorts ||= bottomSheet({ id: 'vl-mn-sort-sheet', label: 'Sort order', cards: () => [{ title: 'Sort order', rows: SORTS.map(([k, label]) => ({
-    id: `vl-mn-sort-${k}`, label, radio: st().mentionSort === k, run: () => { o.state().set({ mentionSort: k }); draw(); },
+  const sortSheet = () => (sorts ||= bottomSheet({ id: `${p}-sort-sheet`, label: 'Sort order', cards: () => [{ title: 'Sort order', rows: SORTS.map(([k, label]) => ({
+    id: `${p}-sort-${k}`, label, radio: st().mentionSort === k, run: () => { o.state().set({ mentionSort: k }); draw(); },
   })) }] }));
 
   /** a line of a note, its mentions marked @param {string} text @param {[number, number][]} ranges */

@@ -1,8 +1,9 @@
 // The Vault layout's shell (loaded once the list is up, only in that layout): the note page is the home screen. It
 // adds the header over the note (the sidebar button, the title, the view and More buttons), the navigation pill at
 // the bottom (Back, Forward, the quick switcher, a new tab, the tabs, the ribbon menu), the "No file is open" page,
-// the start (the note open last, today's note, or nothing, as this device asks), the open tabs kept per space, and
-// the Notes extras: the Classic layout's features, each back when this device turns it on (vault-ui/plugins.js).
+// the start (the note open last, today's note, or nothing, as this device asks), the open tabs kept per space, the
+// right sidebar (a swipe left on the note), the quick switcher, the command palette (Ctrl+P, a pull down on the note),
+// the ribbon menu, the tabs sheet, and the Notes extras: the Classic layout's features, each back when this device turns it on (vault-ui/plugins.js).
 // Every sheet and page over the note is a Back step (the app's transients), so Android Back closes it first; Back
 // with none open goes to the note before, as the pill's Back does.
 import { nextWorkday, uniqueTitle } from '../notes/model.js';
@@ -11,7 +12,6 @@ import { glyph } from './icons.js';
 import { featureOn } from './plugins.js';
 import { history as noteSteps, tabs as tabList } from './nav.js';
 import { vaultState } from './state.js';
-import { bottomSheet } from './sheet.js';
 import { sideDrawer } from './drawer.js';
 import { noteUi } from './note-ui.js';
 
@@ -148,11 +148,12 @@ export async function vaultShell(app, kit, list, { who }) {
     if (note.id) {
       steps.visit(note.id, step.n, step.pushed);
       tabs.show(note.id);
-      state.set({ last: note.id });
+      state.set({ last: note.id, recent: [note.id, ...state.get().recent.filter(x => x !== note.id)].slice(0, 20) });
     }
     save();
     syncMode();
     left?.redraw();
+    right?.redraw();
     ui.shown();
   };
   list.pageLayout.onBlank = () => {
@@ -163,6 +164,7 @@ export async function vaultShell(app, kit, list, { who }) {
     // (the address no longer names the note, so a reload opens this page as it is, and Back from it is the browser's)
     history.replaceState({ ...history.state, note: '' }, '', location.pathname + location.search);
     save();
+    right?.redraw();
     ui.blank();
   };
   list.pageLayout.onList = () => {
@@ -171,6 +173,7 @@ export async function vaultShell(app, kit, list, { who }) {
     // (the title box's words: a rename being saved has them before the page's note does)
     if (page.current()) titleText.textContent = titleBox.value.trim() || page.current()?.title || 'Untitled';
     left?.redraw();
+    right?.redraw();
     ui.changed();
   };
   titleBox.addEventListener('input', () => { titleText.textContent = titleBox.value || 'Untitled'; });
@@ -194,11 +197,52 @@ export async function vaultShell(app, kit, list, { who }) {
     await page.open(note);
   };
   const newTab = async () => { tabs.newTab(''); save(); await toBlank(); };
+  /** a note of this name, made at once (through the write queue) in the folder for new notes @param {string} t */
+  const createTitled = async t => {
+    if (!list.canWrite()) { list.toast('This space is read-only.'); return; }
+    const path = String(settings.get('newFolder') || '');
+    const { note, refused } = await app.create({ title: uniqueTitle(list.notes(), t, path), path });
+    if (refused) { list.toast(refused); return; }
+    showEdit();
+    await page.open(note);
+  };
   plus.addEventListener('click', () => void newTab());
   emptyNew.addEventListener('click', () => void create());
-  emptyGo.addEventListener('click', () => void list.pick.switcher());
+  emptyGo.addEventListener('click', () => void switcher());
   emptyClose.addEventListener('click', () => void closeTab());
-  search.addEventListener('click', () => void list.pick.switcher());
+  search.addEventListener('click', () => void switcher());
+
+  // ---- the quick switcher and the command palette (vault-ui/switcher.js, palette.js: loaded on first use); with the
+  // Quick switcher plugin off, the Classic one
+  /** @type {Promise<{ open: () => void, isOpen: () => boolean }> | undefined} */
+  let switcherMade;
+  const switcher = async () => {
+    if (!on('pSwitcher')) { await list.pick.switcher(); return; }
+    switcherMade ||= import('./switcher.js').then(m => m.quickSwitcher({
+      notes: () => list.notes(), recent: () => state.get().recent, canWrite: () => list.canWrite(),
+      open: async note => { showEdit(); await page.open(note); }, create: createTitled,
+    })).catch(e => { switcherMade = undefined; throw e; });
+    (await switcherMade).open();
+  };
+  /** @type {Promise<{ open: () => void, isOpen: () => boolean }> | undefined} */
+  let paletteMade;
+  const palette = async () => {
+    if (!on('pPalette')) return;
+    paletteMade ||= import('./palette.js').then(m => m.commandPalette({ ctx: cmdCtx, state: () => state }))
+      .catch(e => { paletteMade = undefined; throw e; });
+    (await paletteMade).open();
+  };
+  // (Ctrl/Cmd+O and +P: these, before the Classic list's own)
+  window.addEventListener('keydown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    const k = e.key.toLowerCase();
+    if (k !== 'o' && k !== 'p') return;
+    const over = /** @type {HTMLDialogElement | null} */ (document.querySelector('dialog:modal'));
+    if (over && !over.classList.contains('vl-pick')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    if (k === 'o') void switcher(); else void palette();
+  }, true);
 
   // ---- the left sidebar: a drawer the note slides aside for (vault-ui/drawer.js), its views loaded the first time it
   // opens (vault-ui/left.js; warmed once the start is done)
@@ -241,6 +285,41 @@ export async function vaultShell(app, kit, list, { who }) {
     edge: () => backZone() || leftDrawer.EDGE,
   });
 
+  // ---- the right sidebar: a drawer from the right (a swipe left on the note, the palette), its panes loaded the first
+  // time it opens (vault-ui/right.js)
+  /** @typedef {ReturnType<typeof import('./right.js').rightSidebar>} Right */
+  /** @type {Right | null} */
+  let right = null;
+  /** @type {Promise<Right> | undefined} */
+  let rightMade;
+  const rightDrawer = sideDrawer({
+    id: 'vl-right', label: 'Right sidebar', side: 'right', pushed,
+    onOpen: () => { if (right) right.shown(); else void rightReady().then(r => r.shown()); },
+    onChange: open => { if (!open) right?.closed(); },
+  });
+  const bodyText = () => /** @type {HTMLTextAreaElement | null} */ (document.getElementById('edit-body'))?.value || '';
+  const rightReady = () => (rightMade ||= import('./right.js').then(m => (right = m.rightSidebar({
+    list, page, on, state: () => state, notes: () => list.notes(), current: () => page.current(), body: bodyText,
+    canWrite: () => list.canWrite(), toast: msg => list.toast(msg),
+    open: async (note, line) => { showEdit(); await ui.openAt(note, line); },
+    openTitle: createTitledOrOpen, daily: iso => list.daily(iso),
+  }, rightDrawer))).catch(e => { rightMade = undefined; throw e; }));
+  /** the right sidebar open (at a pane) @param {string} [view] */
+  const openRight = async view => {
+    const r = await rightReady();
+    if (view) r.show(view);
+    if (!rightDrawer.isOpen()) await rightDrawer.open();
+  };
+  /** a link's note: the one it names, else made (through the write queue) @param {string} t */
+  const createTitledOrOpen = async t => {
+    const have = list.notes().find(n => !n._deleted && n.title.toLowerCase() === t.toLowerCase());
+    if (have) { showEdit(); await page.open(have); return; }
+    await createTitled(t);
+  };
+  rightDrawer.swipeFrom(edit, {
+    can: () => !html.dataset.vlPage && !document.querySelector('dialog:modal') && ['pBacklinks', 'pOutgoing', 'pOutline', 'pDaily'].some(on),
+  });
+
   // ---- the read view and the editing view
   const editMode = /** @type {HTMLButtonElement} */ (document.getElementById('edit-mode'));
   const syncMode = () => {
@@ -271,32 +350,94 @@ export async function vaultShell(app, kit, list, { who }) {
     list.modules();
   };
   settingsOpen.addEventListener('click', () => void openSettings());
-  const ribbonSheet = bottomSheet({ id: 'vl-ribbon-sheet', label: 'Menu', cards: () => [
-    { rows: [
-      ...(on('pDaily') && list.canWrite() ? [{ id: 'vl-rib-daily', icon: 'calendar', label: 'Open today’s daily note', run: () => void list.daily() }] : []),
-      ...(list.canWrite() ? [{ id: 'vl-rib-new', icon: 'squarePen', label: 'Create new note', run: () => void create() }] : []),
-    ] },
-    { title: 'Notes extras', rows: [
-      ...(on('xNoteList') ? [{ id: 'vl-rib-list', icon: 'list', label: 'Note list', run: () => showPage('notes', '#home') }] : []),
-      ...(on('xHaiku') && list.role() === 'admin' ? [{ id: 'vl-rib-haiku', icon: 'feather', label: 'Haiku', run: () => showPage('haiku', '#haiku') }] : []),
-      ...(list.on('binScreen') ? [{ id: 'vl-rib-bin', icon: 'trash2', label: 'Bin', run: () => void list.openBin() }] : []),
-      ...(on('xSelect') && list.canWrite() ? [{ id: 'vl-rib-select', icon: 'listChecks', label: 'Select many', run: () => {
-        showPage('notes', '#home');
-        requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector('#select:not([hidden])'))?.click());
-      } }] : []),
-    ] },
-    { rows: [{ id: 'vl-rib-settings', icon: 'settings', label: 'Settings', run: () => void openSettings() }] },
-  ] });
-  ribbon.addEventListener('click', () => ribbonSheet.open());
-  const tabsSheet = bottomSheet({ id: 'vl-tabs-sheet', label: 'Open tabs', cards: () => [
-    { rows: tabs.list.map((id, i) => ({ label: noteOf(id)?.title || 'New tab', ticked: i === tabs.active, run: () => {
-      tabs.activate(i); save();
-      const note = noteOf(id);
-      void (note ? page.open(note) : toBlank());
-    } })) },
-    { rows: [{ id: 'vl-tabs-new', icon: 'plus', label: 'New tab', run: () => void newTab() }] },
-  ] });
-  tabsBtn.addEventListener('click', () => tabsSheet.open());
+  // ---- the commands (the palette's, the ribbon's): each runs what the app already does elsewhere
+  /** a daily note: today's (step 0), else the one before or after the daily note open (or today), as there are */
+  const dailyStep = async (/** @type {0 | -1 | 1} */ step) => {
+    if (!step) { if (list.canWrite()) { showEdit(); await list.daily(); } return; }
+    const m = await import('./month.js');
+    const open = page.current();
+    const from = (open && m.dayOf(open)) || (await import('../notes/model.js')).isoDay();
+    const next = m.nearestDaily(list.notes(), from, step);
+    if (next) { showEdit(); await page.open(next); } else list.toast(step < 0 ? 'No earlier daily note.' : 'No later daily note.');
+  };
+  const randomNote = async () => {
+    const all = list.notes().filter(n => !n._deleted && n.id !== page.current()?.id);
+    if (!all.length) { list.toast('No other notes.'); return; }
+    showEdit();
+    await page.open(all[Math.floor(Math.random() * all.length)]);
+  };
+  /** the left sidebar open at a view @param {string} key */
+  const leftView = async key => { const l = await leftReady(); if (!leftDrawer.isOpen()) await leftDrawer.open(); await l.show(key); };
+  /** a file action of the left sidebar's menu on the note open @param {'rename' | 'move' | 'remove'} what */
+  const fileAct = async what => {
+    const note = page.current();
+    if (!note) return;
+    const [l, fm] = await Promise.all([leftReady(), import('./file-menu.js')]);
+    await fm[what](l.ctx, note);
+  };
+  const noteOpen = () => page.current();
+  /** @type {import('./commands.js').Actions} */
+  const acts = {
+    switcher: () => switcher(), palette: () => palette(), daily: dailyStep, create: () => create(),
+    toggleRead: () => { page.toggleRead(); syncMode(); }, toggleEditMode: () => ui.toggleEditMode(),
+    leftView, reveal: async () => { await leftView('files'); /** @type {HTMLElement | null} */ (document.getElementById('vl-files-reveal'))?.click(); },
+    bookmark: async () => { const n = noteOpen(); if (n) (await leftReady()).ctx.bookmark(n.id); },
+    right: view => openRight(view), toggleMentions: () => ui.toggleMentions(), random: randomNote,
+    rename: () => fileAct('rename'), move: () => fileAct('move'), remove: () => fileAct('remove'),
+    copyPath: async () => {
+      const n = noteOpen();
+      if (!n) return;
+      const [{ copyText }, { cleanPath }] = await Promise.all([import('@core/ui'), import('./tree.js')]);
+      const path = cleanPath(n.path);
+      await copyText(`${path ? `${path}/` : ''}${n.title || 'Untitled'}.md`, { toasts: { show: (/** @type {string} */ t) => list.toast(t) } });
+    },
+    find: () => ui.find(), closeTab: () => closeTab(), newTab: () => newTab(), tabs: () => openTabs(),
+    settings: () => openSettings(), sync: () => syncBtn.click(),
+    page: key => (key === 'haiku' ? showPage('haiku', '#haiku') : showPage('notes', '#home')),
+    bin: () => list.openBin(),
+    select: () => {
+      showPage('notes', '#home');
+      requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector('#select:not([hidden])'))?.click());
+    },
+  };
+  /** @returns {import('./commands.js').CmdCtx} */
+  const cmdCtx = () => ({
+    on, canWrite: () => list.canWrite(), note: noteOpen, admin: () => list.role() === 'admin', binOn: () => list.on('binScreen'), act: acts,
+  });
+
+  // ---- the ribbon menu and the open tabs (vault-ui/ribbon.js, tabs-sheet.js: loaded on first use)
+  /** @type {Promise<{ open: () => void }> | undefined} */
+  let ribbonMade;
+  ribbon.addEventListener('click', async () => {
+    ribbonMade ||= import('./ribbon.js').then(m => m.ribbonMenu(cmdCtx)).catch(e => { ribbonMade = undefined; throw e; });
+    (await ribbonMade).open();
+  });
+  /** tab i shown @param {number} i */
+  const showTab = async i => {
+    tabs.activate(i); save();
+    const note = noteOf(tabs.current());
+    showEdit();
+    await (note ? page.open(note) : toBlank());
+  };
+  /** @type {Promise<{ open: () => void }> | undefined} */
+  let tabsMade;
+  const openTabs = async () => {
+    tabsMade ||= import('./tabs-sheet.js').then(m => m.tabsSheet({
+      tabs: () => tabs.list, active: () => tabs.active, noteOf,
+      show: i => showTab(i), newTab: () => newTab(),
+      close: async i => {
+        const was = tabs.current(), at = tabs.active;
+        const now = tabs.close(i);
+        save();
+        // (the one showing closed: the page follows)
+        if (i === at || now !== was) { const n = noteOf(now); showEdit(); await (n ? page.open(n) : toBlank()); }
+      },
+      closeAll: async () => { tabs.closeAll(); save(); await toBlank(); },
+    })).catch(e => { tabsMade = undefined; throw e; });
+    (await tabsMade).open();
+  };
+  tabsBtn.addEventListener('click', () => void openTabs());
+
 
   // ---- the Notes extras
   const tabbar = /** @type {HTMLElement} */ (document.getElementById('tabbar'));
@@ -350,7 +491,13 @@ export async function vaultShell(app, kit, list, { who }) {
   }
   paint();
   syncMode();
-  // (the sidebar's code, ready for the first swipe)
+  // ---- a pull down on the note: the command palette (vault-ui/pull.js)
+  void import('./pull.js').then(m => m.pullDown({
+    scroller: () => document.getElementById('edit-scroll'), host: edit, run: () => palette(),
+    can: () => on('pPalette') && !html.dataset.vlPage && !document.querySelector('dialog:modal') && !html.classList.contains('ui-keyboard-open'),
+  })).catch(() => { /* offline before it loaded: no pull */ });
+  // (the sidebars' code, ready for the first swipe)
   const idle = window.requestIdleCallback || (/** @type {(f: () => void) => number} */ f => setTimeout(f, 1500));
   idle(() => void leftReady().catch(() => { /* offline before it loaded: tried again on the first open */ }));
+  idle(() => void rightReady().catch(() => { /* the same */ }));
 }

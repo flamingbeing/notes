@@ -2,10 +2,10 @@
 // and Notes when the Note list extra is on), each loaded the first time it shows; at the bottom the view's tools, the
 // view picker pill (its card of views rises from it), and the space row: the space's name (tap: switch spaces), how many
 // files and folders it has, and the Settings gear. The view shown is kept per space (vault-ui/state.js).
-import { claim, glide, haptic, still } from '@core/ui';
-import { transients } from '../shell/transients.js';
+import { claim, haptic } from '@core/ui';
 import { glyph } from './icons.js';
 import { buildTree, stillEmpty } from './tree.js';
+import { viewPicker } from './view-pill.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
 /**
@@ -91,21 +91,14 @@ export function leftSidebar(base, drawer) {
   const views = el('div', { className: 'vl-views' });
   const tools = el('div', { className: 'vl-tools' });
   tools.setAttribute('role', 'toolbar');
-  const pillIcon = el('span', { className: 'vl-pill-icon' });
-  const pillLabel = el('span', { className: 'vl-pill-label' });
-  const pill = el('button', { type: 'button', id: 'vl-view-pill', className: 'vl-view-pill' }, pillIcon, pillLabel, glyph('chevronsUpDown', 'vl-pill-chev'));
-  pill.setAttribute('aria-haspopup', 'menu');
-  pill.setAttribute('aria-expanded', 'false');
-  const card = el('div', { id: 'vl-view-menu', className: 'vl-view-card', hidden: true });
-  card.setAttribute('role', 'menu');
-  card.setAttribute('aria-label', 'Views');
   const spaceName = el('span', { className: 'vl-space-name' });
   const spaceCount = el('span', { className: 'vl-space-count' });
   const space = el('button', { type: 'button', id: 'vl-space', className: 'vl-space' }, el('span', { className: 'vl-space-top' }, spaceName, glyph('chevronDown', 'vl-space-chev')), spaceCount);
   space.setAttribute('aria-haspopup', 'dialog');
   const gear = el('button', { type: 'button', id: 'vl-gear', className: 'vl-gear' }, glyph('settings'));
   gear.setAttribute('aria-label', 'Settings');
-  const foot = el('div', { className: 'vl-left-foot' }, tools, el('div', { className: 'vl-pill-wrap' }, pill, card), el('div', { className: 'vl-vault-row' }, space, gear));
+  const picker = viewPicker({ prefix: 'vl-view', drawer: d, views: () => available(), current: () => current(), choose: key => void show(key) });
+  const foot = el('div', { className: 'vl-left-foot' }, tools, picker.wrap, el('div', { className: 'vl-vault-row' }, space, gear));
   d.append(el('div', { className: 'vl-left-in' }, views, foot));
 
   /** @type {Map<string, Promise<View>>} */
@@ -192,63 +185,11 @@ export function leftSidebar(base, drawer) {
     tools.replaceChildren(...v.tools);
     tools.hidden = !v.tools.length;
     tools.setAttribute('aria-label', `${def.label} tools`);
-    pillIcon.replaceChildren(glyph(def.icon));
-    pillLabel.textContent = def.label;
-    pill.setAttribute('aria-label', `View: ${def.label}. Change view`);
+    picker.paint(def);
     v.redraw();
     v.shown?.();
     return v;
   };
-
-  // ---- the view picker: a card that rises from the pill (Back, Esc or a tap elsewhere closes it)
-  /** @type {{ active: boolean, close: () => Promise<void> } | null} */
-  let cardStep = null;
-  const fillCard = () => {
-    const now = current();
-    card.replaceChildren(...available().map(def => {
-      const b = el('button', { type: 'button', className: 'vl-view-row', id: `vl-view-${def.key}` }, glyph(def.icon), el('span', { textContent: def.label }));
-      b.setAttribute('role', 'menuitemradio');
-      b.setAttribute('aria-checked', String(def.key === now?.key));
-      b.addEventListener('click', () => { void closeCard().then(() => show(def.key)); });
-      return b;
-    }));
-    // (the pill shows faint under the list, as it stays in place)
-    const ghost = el('div', { className: 'vl-view-ghost' }, glyph(now?.icon || 'folder'), el('span', { textContent: now?.label || '' }), glyph('chevronsUpDown', 'vl-pill-chev'));
-    ghost.setAttribute('aria-hidden', 'true');
-    ghost.dataset.faint = '';
-    card.append(ghost);
-  };
-  const openCard = () => {
-    fillCard();
-    card.hidden = false;
-    pill.setAttribute('aria-expanded', 'true');
-    // (it rises from the pill: a short spring, scale and fade; a fade only with reduced motion)
-    const calm = still();
-    const g = glide([[card, k => ({ opacity: String(k), transform: calm ? 'none' : `translateY(${(1 - k) * 12}px) scale(${0.96 + 0.04 * k})` })]], 0, 1, 0, { response: 0.12 });
-    void g.done.then(() => { card.style.opacity = ''; card.style.transform = ''; g.stop(); });
-    cardStep = transients().open(() => { cardStep = null; hideCard(); });
-    /** @type {HTMLElement | null} */ (card.querySelector('[aria-checked=true]') || card.querySelector('button'))?.focus({ preventScroll: true });
-  };
-  const hideCard = () => { card.hidden = true; pill.setAttribute('aria-expanded', 'false'); };
-  const closeCard = async () => {
-    const s = cardStep;
-    cardStep = null;
-    hideCard();
-    await s?.close();
-  };
-  pill.addEventListener('click', () => { if (card.hidden) openCard(); else void closeCard(); });
-  d.addEventListener('pointerdown', e => {
-    if (!card.hidden && !card.contains(/** @type {Node} */ (e.target)) && !pill.contains(/** @type {Node} */ (e.target))) void closeCard();
-  }, true);
-  card.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); void closeCard().then(() => pill.focus()); }
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const rows = [...card.querySelectorAll('button')];
-      const i = rows.indexOf(/** @type {HTMLButtonElement} */ (document.activeElement));
-      rows[(i + (e.key === 'ArrowDown' ? 1 : rows.length - 1)) % rows.length]?.focus();
-    }
-  });
 
   // ---- the space row: the name, its counts; the switcher; Settings
   const paintSpace = () => {
@@ -275,7 +216,7 @@ export function leftSidebar(base, drawer) {
       queued = 0;
       paintSpace();
       const want = current();
-      if (!want) { tools.replaceChildren(); pillLabel.textContent = 'No views'; return; }
+      if (!want) { tools.replaceChildren(); picker.paint(null); return; }
       if (want.key !== showing) { void show(want.key); return; }
       ready.get(showing)?.redraw();
     });
@@ -293,7 +234,7 @@ export function leftSidebar(base, drawer) {
       idle(() => { for (const def of available()) void make(def); });
     },
     /** the drawer has shut */
-    closed() { void closeCard(); toastsHome(); },
+    closed() { void picker.close(); toastsHome(); },
     redraw,
     /** a view by key (the e2e and other sheets) @param {string} key */
     show,
