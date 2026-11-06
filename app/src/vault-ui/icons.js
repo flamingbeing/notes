@@ -86,6 +86,14 @@ export const GLYPHS = {
   circlePlus: [['circle', { cx: '12', cy: '12', r: '10' }], ['path', { d: 'M8 12h8' }], ['path', { d: 'M12 8v8' }]],
   // (circle-x filled: the quick switcher's clear button, a grey disc with the cross cut out of it)
   circleXFilled: [['circle', { cx: '12', cy: '12', r: '10', fill: 'currentColor' }], ['path', { d: 'm15 9-6 6', class: 'vl-cut' }], ['path', { d: 'm9 9 6 6', class: 'vl-cut' }]],
+  // (the Settings pages)
+  arrowLeft: [['path', { d: 'm12 19-7-7 7-7' }], ['path', { d: 'M19 12H5' }]],
+  circleUserRound: [['path', { d: 'M18 20a6 6 0 0 0-12 0' }], ['circle', { cx: '12', cy: '10', r: '4' }], ['circle', { cx: '12', cy: '12', r: '10' }]],
+  palette: [['circle', { cx: '13.5', cy: '6.5', r: '.5', fill: 'currentColor' }], ['circle', { cx: '17.5', cy: '10.5', r: '.5', fill: 'currentColor' }], ['circle', { cx: '8.5', cy: '7.5', r: '.5', fill: 'currentColor' }], ['circle', { cx: '6.5', cy: '12.5', r: '.5', fill: 'currentColor' }], ['path', { d: 'M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z' }]],
+  folderCog: [['circle', { cx: '18', cy: '18', r: '3' }], ['path', { d: 'M10.3 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v3.3' }], ['path', { d: 'm21.7 19.4-.9-.3' }], ['path', { d: 'm15.2 16.9-.9-.3' }], ['path', { d: 'm16.6 21.7.3-.9' }], ['path', { d: 'm19.1 15.2.3-.9' }], ['path', { d: 'm19.6 21.7-.4-1' }], ['path', { d: 'm16.8 15.3-.4-1' }], ['path', { d: 'm14.3 19.6 1-.4' }], ['path', { d: 'm20.7 16.8 1-.4' }]],
+  tabletSmartphone: [['rect', { width: '10', height: '14', x: '3', y: '8', rx: '2' }], ['path', { d: 'M5 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-2.4' }], ['path', { d: 'M8 18h.01' }]],
+  users: [['path', { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' }], ['circle', { cx: '9', cy: '7', r: '4' }], ['path', { d: 'M22 21v-2a4 4 0 0 0-3-3.87' }], ['path', { d: 'M16 3.13a4 4 0 0 1 0 7.75' }]],
+  toyBrick: [['rect', { width: '18', height: '12', x: '3', y: '8', rx: '1' }], ['path', { d: 'M10 8V5c0-.6-.4-1-1-1H6a1 1 0 0 0-1 1v3' }], ['path', { d: 'M19 8V5c0-.6-.4-1-1-1h-3a1 1 0 0 0-1 1v3' }]],
 };
 
 /**

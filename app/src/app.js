@@ -58,7 +58,7 @@ else {
   const list = listScreen(app, kit);
   // loaded once wanted, not with the app (the start stays small): the Settings sheet (warmed once the list is up, so the
   // tab opens at once) and the spaces switcher (made as soon as the list is ready). The Vault layout has its own
-  // settings (vault-ui/settings-host.js), which show the same pages; only one is made, as both name their controls #opt-<key>.
+  // settings (vault-ui/settings.js), which keep every option; only one is made, as both name their controls #opt-<key>.
   /** @type {Promise<{ openPanel: () => void }> | undefined} */ let settingsMade;
   const settings = () => (settingsMade ||= import('./settings/settings-sheet.js').then(m => { const made = m.settingsSheet(app); settingsShown(); return made; }));
   let whoText = '';

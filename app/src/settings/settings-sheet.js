@@ -5,7 +5,7 @@
 // It opens on a menu, as the logbook's Settings do: a search box, the tabs taken off the bar (one tap away), then a row
 // per page; Back closes a page. The Tab bar page arranges the tabs (the kit's tabArranger; the tabs option, this device).
 // Loaded once wanted, not with the app (app.js warms it once the list is up); the bar itself is painted by bar.js. The
-// Vault layout doesn't make it: its own Settings (vault-ui/settings-host.js) show these pages too.
+// Vault layout doesn't make it: its own Settings (vault-ui/settings.js) keep every option.
 import { settingsScreen, tabArranger, arrangeTabs } from '@core/ui';
 import { themeSwitch } from '@core/theme';
 import { $, dialog } from '../shell/dom.js';
@@ -72,7 +72,7 @@ export const LAYOUT_ROW = { key: 'layout', label: 'Layout', sub: 'Changing it re
 
 /**
  * The Classic layout's sections after its option pages (Tab bar, This device, Notes and files, Account): the Settings
- * sheet's, and the Vault layout's settings (vault-ui/settings-host.js) show them too, so nothing is lost there.
+ * sheet's (the Vault layout's settings, vault-ui/settings.js, keep the same options on their own pages).
  * @param {import('app-ui/settings/types').SettingsApi} settings
  * @param {{ layoutRow?: boolean }} [o]  layoutRow: the Layout row on the This device page (the Classic sheet's)
  * @returns {SettingSection[]}

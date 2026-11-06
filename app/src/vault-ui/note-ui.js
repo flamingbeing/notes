@@ -80,7 +80,7 @@ export function noteUi(o) {
   const setReading = on => { if (page.reading() !== on) page.toggleRead(); o.syncMode(); };
   const mentionsOn = () => {
     const note = page.current();
-    return !!note && o.on('pBacklinks') && !o.state().get().mentionsOff.includes(note.id);
+    return !!note && o.on('pBacklinks') && settings.get('vMentions') !== false && !o.state().get().mentionsOff.includes(note.id);
   };
   /** @param {boolean} on */
   const setMentions = on => {
@@ -88,6 +88,8 @@ export function noteUi(o) {
     if (!note) return;
     const off = o.state().get().mentionsOff.filter(id => id !== note.id);
     o.state().set({ mentionsOff: on ? off : [note.id, ...off] });
+    // (turned on here while Settings > Backlinks has them off everywhere: on again everywhere, as asked here)
+    if (on && settings.get('vMentions') === false) void settings.set('vMentions', true);
     drawMentions();
   };
 

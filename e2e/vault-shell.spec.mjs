@@ -89,14 +89,14 @@ test('Core plugins: the Tab bar extra brings the tab bar back; Layout to Classic
   await page.click('#vl-ribbon');
   await page.click('#vl-rib-settings');
   await expect(page.locator('#vl-settings')).toBeVisible();
-  await page.locator('#vl-settings .ui-settings-go', { hasText: 'Core plugins' }).first().click();
+  await page.click('#vl-set-go-plugins');
   await expect(page.locator('#opt-pDaily')).toBeChecked();
   await expect(page.locator('#opt-xTabBar')).not.toBeChecked();
   await page.locator('#opt-xTabBar').check();
   await expect(page.locator('#tabbar')).toBeVisible();
 
   await page.goBack();   // the page, then
-  await page.locator('#vl-settings .ui-settings-go', { hasText: /^Layout/ }).first().click();
+  await page.click('#vl-set-go-appearance');
   await page.locator('#opt-layout').selectOption({ label: 'Classic layout' });
   await expect(page.locator('#tab-notes')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.layout)).toBe('classic');

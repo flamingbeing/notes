@@ -7,6 +7,7 @@
 // keyboard stays; the change reaches the page's autosave like typing (the write queue).
 import { EditorSelection, undo, redo, undoDepth, redoDepth, syntaxTree } from '@vendor/codemirror';
 import { glyph } from './icons.js';
+import { TOOLBAR } from './settings-map.js';
 
 /** @typedef {import('@codemirror/view').EditorView} View */
 
@@ -120,8 +121,10 @@ export function mobileToolbar(o) {
   bar.hidden = true;
   /** @type {Map<string, HTMLButtonElement>} */
   const pressable = new Map();
-  /** @param {string} id @param {string} icon @param {string} label @param {(v: View) => void} run @param {string} [state]  the style it shows pressed */
-  const btn = (id, icon, label, run, state = '') => {
+  /** a command of the toolbar (its glyph and name: settings-map.js, which the Mobile toolbar page lists too)
+   * @param {string} id @param {(v: View) => void} run @param {string} [state]  the style it shows pressed */
+  const btn = (id, run, state = '') => {
+    const { icon, label } = TOOLBAR.find(t => t.id === id) || { icon: 'x', label: id };
     const b = document.createElement('button');
     b.type = 'button'; b.id = `vl-tb-${id}`; b.className = 'vl-tb-btn';
     b.setAttribute('aria-label', label);
@@ -138,22 +141,22 @@ export function mobileToolbar(o) {
     if (state) { b.setAttribute('aria-pressed', 'false'); pressable.set(state, b); }
     return b;
   };
-  const undoBtn = btn('undo', 'undo2', 'Undo', v => { undo(v); });
-  const redoBtn = btn('redo', 'redo2', 'Redo', v => { redo(v); });
+  const undoBtn = btn('undo', v => { undo(v); });
+  const redoBtn = btn('redo', v => { redo(v); });
   bar.append(
     undoBtn, redoBtn,
-    btn('link', 'brackets', 'Add internal link', internalLink),
-    btn('tag', 'hash', 'Add tag', addTag),
-    btn('attach', 'paperclip', 'Insert attachment', () => o.attach()),
-    btn('heading', 'heading', 'Toggle heading', cycleHeading, 'heading'),
-    btn('bold', 'bold', 'Toggle bold', v => wrap(v, '**'), 'bold'),
-    btn('italic', 'italic', 'Toggle italic', v => wrap(v, '*'), 'italic'),
-    btn('strike', 'strikethrough', 'Toggle strikethrough', v => wrap(v, '~~'), 'strike'),
-    btn('highlight', 'highlighter', 'Toggle highlight', v => wrap(v, '=='), 'highlight'),
-    btn('list', 'list', 'Bullet list', v => prefix(v, BULLET, '- ')),
-    btn('task', 'listChecks', 'Checklist', v => prefix(v, TASK, '- [ ] ')),
-    btn('indent', 'indentIncrease', 'Indent', v => shift(v, false)),
-    btn('unindent', 'indentDecrease', 'Unindent', v => shift(v, true)),
+    btn('link', internalLink),
+    btn('tag', addTag),
+    btn('attach', () => o.attach()),
+    btn('heading', cycleHeading, 'heading'),
+    btn('bold', v => wrap(v, '**'), 'bold'),
+    btn('italic', v => wrap(v, '*'), 'italic'),
+    btn('strike', v => wrap(v, '~~'), 'strike'),
+    btn('highlight', v => wrap(v, '=='), 'highlight'),
+    btn('list', v => prefix(v, BULLET, '- ')),
+    btn('task', v => prefix(v, TASK, '- [ ] ')),
+    btn('indent', v => shift(v, false)),
+    btn('unindent', v => shift(v, true)),
   );
   // the Line spacing extra's button: Tight, Normal, Roomy in turn
   const spacing = document.createElement('button');
@@ -163,7 +166,7 @@ export function mobileToolbar(o) {
     const now = String(o.settings.get('lineSpacing') || 'normal');
     void o.settings.set('lineSpacing', SPACINGS[(SPACINGS.indexOf(now) + 1) % SPACINGS.length]);
   });
-  bar.append(spacing, btn('hide', 'keyboardOff', 'Hide keyboard', v => v.contentDOM.blur()));
+  bar.append(spacing, btn('hide', v => v.contentDOM.blur()));
   o.host.append(bar);
 
   const refresh = () => {

@@ -240,16 +240,113 @@ dialog.vl-sheet::backdrop { background: transparent; }
 .vl-row.vl-danger { color: var(--vl-red); }
 .vl-row-hint { font-size: 13px; }
 
-/* ---- Settings (S5; slice 5 restyles it) */
-dialog.vl-settings { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
-  box-sizing: border-box; background: var(--vl-bg-2); color: var(--vl-text); font-family: var(--vl-font); display: none; flex-direction: column; }
-dialog.vl-settings[open] { display: flex; }
-.vl-settings-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: calc(var(--vl-top) + 8px) 12px 8px 25px; }
-.vl-settings-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
-.vl-settings-head .vl-btn { width: 44px; height: 44px; }
-.vl-settings-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 17px 32px; }
-.vl-settings-body input[type=checkbox][role=switch], .vl-settings-body .ui-switch { accent-color: var(--vl-accent); }
-.vl-subhead-sub { margin: 2px 0 0; font-size: 12px; font-weight: 400; color: var(--vl-muted); }
+/* ---- Settings (S5): a grey sheet below the status bar; each page over the one before, its header (Back, the title,
+   the X in white circles) over its rows, which scroll under it; white cards of rows; switches, pills */
+dialog.vl-set { position: fixed; inset: calc(var(--vl-top) + 10px) 0 0 0; width: 100%; max-width: 560px; height: auto; max-height: none;
+  margin: 0 auto; padding: 0; border: 0; box-sizing: border-box; border-radius: 31px 31px 0 0; background: var(--vl-bg-2);
+  color: var(--vl-text); font-family: var(--vl-font); overflow: hidden; display: none; }
+dialog.vl-set[open] { display: block; }
+dialog.vl-set::backdrop { background: transparent; }
+.vl-set [hidden] { display: none !important; }
+.vl-set-page { position: absolute; inset: 0; background: var(--vl-bg-2); }
+.vl-set-page:not([data-page=root]) { box-shadow: -6px 0 20px light-dark(rgba(0, 0, 0, .06), rgba(0, 0, 0, .3)); }
+.vl-set-head { position: absolute; inset: 0 0 auto 0; z-index: 1; height: 68px; padding: 0 18px; box-sizing: border-box; display: grid;
+  grid-template-columns: 43px 1fr 43px; align-items: center; gap: 8px; touch-action: none;
+  background: linear-gradient(var(--vl-bg-2) 70%, light-dark(rgba(246, 246, 246, 0), rgba(28, 28, 28, 0))); }
+.vl-set-title { margin: 0; font-size: 16px; font-weight: 600; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; outline: none; }
+html[data-layout=vault] .vl-set-circle { appearance: none; width: 43px; height: 43px; min-height: 0; padding: 0; margin: 0; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: var(--vl-card); color: var(--vl-text); box-shadow: var(--vl-shadow); cursor: pointer; }
+.vl-set-circle .vl-icon { width: 20px; height: 20px; }
+.vl-set-close { grid-column: 3; }
+.vl-set-scroll { position: absolute; inset: 0; overflow-y: auto; overscroll-behavior: contain; padding: 72px 0 calc(48px + var(--vl-bottom)); box-sizing: border-box; }
+.vl-set-group { margin: 0 0 28px; }
+.vl-set-h { margin: 0 32px 14px; font-size: 15px; font-weight: 600; color: var(--vl-muted); }
+.vl-set-h-sub { margin: -6px 32px 10px; font-size: 12px; color: var(--vl-muted); }
+.vl-set-group:not(:has(.vl-set-card > :not([hidden]))) { display: none; }
+.vl-set-card { margin: 0 18px; border-radius: 24px; background: var(--vl-card); overflow: hidden; }
+/* the search */
+.vl-set-search { display: flex; align-items: center; gap: 10px; height: 44px; margin: 5px 18px 28px; padding: 0 16px; border-radius: 22px;
+  background: var(--vl-card); color: var(--vl-faint); cursor: text; box-shadow: 0 1px 6px var(--vl-sh1); }
+.vl-set-search .vl-icon { width: 18px; height: 18px; }
+html[data-layout=vault] .vl-set-q { flex: 1; min-width: 0; min-height: 0; height: 40px; padding: 0; margin: 0; border: 0; background: none;
+  color: var(--vl-text); font: 16px var(--vl-font); outline: none; box-shadow: none; }
+.vl-set-q::placeholder { color: var(--vl-faint); opacity: 1; }
+.vl-set-results { margin-bottom: 28px; }
+.vl-set-none { margin: 24px 32px; text-align: center; font-size: 15px; color: var(--vl-faint); }
+/* the rows that open a page (the root's, a search's) */
+html[data-layout=vault] .vl-set-nav { appearance: none; width: 100%; min-height: 53px; margin: 0; padding: 0 18px; border: 0; border-radius: 0;
+  display: flex; align-items: center; justify-content: flex-start; gap: 0; background: none; color: var(--vl-text);
+  font: 500 16px var(--vl-font); text-align: start; cursor: pointer; position: relative; }
+.vl-set-nav > .vl-icon:first-child { width: 20px; height: 20px; margin-right: 14px; }
+.vl-set-nav-label { flex: 1; min-width: 0; }
+.vl-set-nav-two { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 8px 0; }
+.vl-set-hit-page { font-size: 12px; font-weight: 400; color: var(--vl-muted); }
+.vl-set-nav .vl-set-more { width: 18px; height: 18px; color: var(--vl-faint); }
+.vl-set-nav:active, .vl-set-choice:active { background: var(--vl-hover); }
+.vl-set-card > * { position: relative; }
+.vl-set-card > :not([hidden]) ~ :not([hidden])::before { content: ""; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--vl-line); }
+.vl-set-cmds > *, .vl-set-spaces > * { position: relative; }
+.vl-set-cmds > * + *::before, .vl-set-spaces > * + *::before { content: ""; position: absolute; top: 0; border-top: 1px solid var(--vl-line); }
+.vl-set-card > .vl-set-nav ~ .vl-set-nav::before, .vl-set-cmds > * + *::before, .vl-set-spaces > * + *::before { left: 52px; right: 18px; }
+/* the setting rows: words, the control at the end or under them */
+.vl-set-row { display: flex; align-items: center; gap: 12px; min-height: 53px; padding: 14px 20px; box-sizing: border-box; }
+.vl-set-col { flex-direction: column; align-items: stretch; }
+.vl-set-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.vl-set-name { font-size: 16px; color: var(--vl-text); }
+.vl-set-sub { font-size: 12px; line-height: 1.35; color: var(--vl-muted); overflow-wrap: anywhere; }
+.vl-set-value { font-size: 14px; color: var(--vl-muted); }
+.vl-set-flash::after { content: ""; position: absolute; inset: 0; background: var(--vl-accent); opacity: 0; pointer-events: none; animation: vl-set-flash 1.2s ease-out; }
+@keyframes vl-set-flash { 0%, 30% { opacity: .16; } 100% { opacity: 0; } }
+/* switches: 52 by 31, the thumb 27 */
+html[data-layout=vault] .vl-toggle { appearance: none; flex: none; width: 52px; height: 31px; min-height: 0; margin: 0; padding: 0; border: 0;
+  border-radius: 16px; background: var(--vl-track); position: relative; cursor: pointer; }
+.vl-toggle::before { content: ""; position: absolute; top: 2px; left: 2px; width: 27px; height: 27px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25); transition: transform .2s ease; }
+html[data-layout=vault] .vl-toggle:checked { background: var(--vl-accent); }
+.vl-toggle:checked::before { transform: translateX(21px); }
+/* pills: a choice (chevrons up and down), a box, a button; the red one */
+.vl-set-drop { position: relative; display: block; }
+html[data-layout=vault] .vl-set-select, html[data-layout=vault] .vl-set-input { appearance: none; width: 100%; height: 45px; min-height: 0; margin: 0;
+  padding: 0 44px 0 16px; box-sizing: border-box; border: 0; border-radius: 23px; background: var(--vl-bg-2); color: var(--vl-text);
+  font: 16px var(--vl-font); box-shadow: none; background-image: none; text-align: start; text-align-last: start; }
+html[data-layout=vault] .vl-set-input { flex: none; min-width: 0; padding-right: 16px; }
+.vl-set-input::placeholder { color: var(--vl-muted); opacity: 1; }
+.vl-set-chev { position: absolute; right: 14px; top: 50%; width: 18px; height: 18px; transform: translateY(-50%); color: var(--vl-muted); pointer-events: none; }
+.vl-set-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+.vl-set-pills > .vl-set-pill { flex: 1; }
+html[data-layout=vault] .vl-set-col > .vl-set-pill { align-self: stretch; }
+html[data-layout=vault] .vl-set-pill { appearance: none; align-self: flex-start; display: inline-flex; align-items: center; justify-content: center;
+  height: 45px; min-height: 0; min-width: 0; margin: 0; padding: 0 20px; box-sizing: border-box; border: 0; border-radius: 23px;
+  background: var(--vl-bg-2); color: var(--vl-text); font: 500 16px var(--vl-font); text-decoration: none; white-space: nowrap; cursor: pointer; box-shadow: none; }
+html[data-layout=vault] .vl-set-pill:disabled { opacity: .45; cursor: default; }
+html[data-layout=vault] .vl-set-danger { background: light-dark(#fde9ec, rgba(255, 107, 112, .16)); color: light-dark(#c0233a, #ff8a8e); }
+html[data-layout=vault] .vl-set-gear { appearance: none; flex: none; width: 36px; height: 36px; min-height: 0; margin: 0 -4px 0 0; padding: 0; border: 0;
+  border-radius: 50%; display: grid; place-items: center; background: none; color: var(--vl-muted); cursor: pointer; }
+.vl-set-gear .vl-icon { width: 20px; height: 20px; }
+/* the parts: the theme's pickers, the toolbar's commands, the spaces, the tab arranger */
+.vl-set-theme .theme-switch { display: block; margin: 0; padding: 0; background: none; border: 0; border-radius: 0; box-shadow: none; }
+.vl-set-theme .theme-switch > * { background: none; }
+html[data-layout=vault] .vl-set-theme input[type=color] { flex: none; min-width: 0; width: 100%; height: 45px; min-height: 0; padding: 6px 12px; border: 0; border-radius: 23px; background: var(--vl-bg-2); }
+.vl-set-theme .theme-switch > label { display: flex; gap: 12px; margin: 0; position: relative; font-size: 16px; }
+.vl-set-theme .theme-switch > label + label::before { content: ""; position: absolute; top: 0; left: 20px; right: 0; border-top: 1px solid var(--vl-line); }
+.vl-set-theme .theme-switch > :not(label) { margin: 0 20px 14px; }
+.vl-set-cmd { display: flex; align-items: center; gap: 14px; height: 48px; padding: 0 18px; font-size: 16px; position: relative; }
+.vl-set-cmd .vl-icon { width: 20px; height: 20px; color: var(--vl-muted); }
+html[data-layout=vault] .vl-set-choice { appearance: none; width: 100%; height: 53px; min-height: 0; margin: 0; padding: 0 18px; border: 0; border-radius: 0;
+  display: flex; align-items: center; justify-content: flex-start; gap: 14px; background: none; color: var(--vl-text); font: 500 16px var(--vl-font);
+  text-align: start; cursor: pointer; position: relative; }
+.vl-set-choice > span { flex: 1; }
+.vl-set-choice .vl-icon { width: 20px; height: 20px; }
+.vl-set-choice .vl-set-tick { color: var(--vl-accent); }
+.vl-set-arrange { padding: 8px 12px; }
+/* a word after a change (refused, imported) */
+.vl-set-status { position: absolute; left: 18px; right: 18px; bottom: calc(16px + var(--vl-bottom)); z-index: 2; margin: 0; padding: 12px 16px;
+  border-radius: 16px; background: var(--vl-text); color: var(--vl-bg); font-size: 14px; }
+.vl-set-status:empty { display: none; }
+.vl-set-status.bad { background: var(--vl-red); color: #fff; }
+.vl-set :focus-visible { outline: 2px solid var(--vl-accent); outline-offset: 2px; }
+.vl-set .vl-set-title:focus, .vl-set .vl-set-title:focus-visible { outline: none; }
+@media (prefers-reduced-motion: reduce) { .vl-toggle::before { transition: none; } .vl-set-flash::after { animation-duration: .01s; } }
 
 /* ---- the left sidebar (S6): a drawer from the left, the note and the nav pill pushed aside; its views; the bottom block */
 .vl-drawer-shade { position: fixed; inset: 0; z-index: 35; background: var(--vl-shade-drawer); opacity: 0; visibility: hidden; pointer-events: none; }

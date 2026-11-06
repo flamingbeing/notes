@@ -344,7 +344,7 @@ export async function vaultShell(app, kit, list, { who }) {
   /** @type {Promise<{ open: () => void, close: () => Promise<void> }> | undefined} */
   let hostMade;
   const openSettings = async () => {
-    hostMade ||= import('./settings-host.js').then(m => m.settingsHost(app));
+    hostMade ||= import('./settings.js').then(m => m.settingsHost(app, { list, haiku: () => acts.page('haiku') }));
     (await hostMade).open();
     const w = document.getElementById('who');
     if (w) w.textContent = who();
@@ -499,7 +499,7 @@ export async function vaultShell(app, kit, list, { who }) {
   // ---- a pull down on the note: the command palette (vault-ui/pull.js)
   void import('./pull.js').then(m => m.pullDown({
     scroller: () => document.getElementById('edit-scroll'), host: edit, run: () => palette(),
-    can: () => on('pPalette') && !html.dataset.vlPage && !document.querySelector('dialog:modal') && !html.classList.contains('ui-keyboard-open'),
+    can: () => on('pPalette') && settings.get('vPull') !== false && !html.dataset.vlPage && !document.querySelector('dialog:modal') && !html.classList.contains('ui-keyboard-open'),
   })).catch(() => { /* offline before it loaded: no pull */ });
   // (the sidebars' code, ready for the first swipe)
   const idle = window.requestIdleCallback || (/** @type {(f: () => void) => number} */ f => setTimeout(f, 1500));

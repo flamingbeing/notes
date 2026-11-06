@@ -53,6 +53,10 @@ export const OPTIONS = {
   vInlineTitle: { scope: 'device', default: false },
   vStartFile: { scope: 'device', default: 'last', clean: v => (v === 'daily' || v === 'none' ? v : 'last') },
   vDailyOnStart: { scope: 'device', default: false },
+  // the Backlinks plugin's mentions at the foot of each note, and the Command palette plugin's pull down on a note: both
+  // there as the reference look has them; each can be turned off on its plugin's page
+  vMentions: { scope: 'device', default: true },
+  vPull: { scope: 'device', default: true },
   // the Vault layout's Core plugins (vault-ui/plugins.js; read only in the Vault layout): its own features on, the
   // Classic layout's extras off until turned on
   ...Object.fromEntries([
