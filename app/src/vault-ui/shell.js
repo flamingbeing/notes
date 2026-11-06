@@ -8,14 +8,29 @@
 // with none open goes to the note before, as the pill's Back does.
 import { findDaily, isoDay, nextWorkday, uniqueTitle } from '../notes/model.js';
 import { transients } from '../shell/transients.js';
-import { glyph } from './icons.js';
+import { navPill, sidebar, DRAWER_EDGE, vaultStyles } from '@core/ui/vault';
+import { GLYPHS, glyph } from './icons.js';
 import { featureOn } from './plugins.js';
 import { history as noteSteps, tabs as tabList } from './nav.js';
 import { vaultState } from './state.js';
-import { sideDrawer } from './drawer.js';
 import { noteUi } from './note-ui.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
+
+/** the left sidebar's views and the right one's panes: names, glyphs, the plugin each needs (their code: left.js, right.js) */
+const LEFT_VIEWS = [
+  { key: 'files', label: 'Files', icon: 'folder', plugin: 'pFiles' },
+  { key: 'search', label: 'Search', icon: 'search', plugin: 'pSearch' },
+  { key: 'tags', label: 'Tags', icon: 'tags', plugin: 'pTags' },
+  { key: 'bookmarks', label: 'Bookmarks', icon: 'bookmark', plugin: 'pBookmarks' },
+  { key: 'notes', label: 'Notes', icon: 'list', plugin: 'xNoteList' },
+];
+const RIGHT_PANES = [
+  { key: 'backlinks', label: 'Backlinks', icon: 'link2', plugin: 'pBacklinks' },
+  { key: 'outgoing', label: 'Outgoing links', icon: 'link', plugin: 'pOutgoing' },
+  { key: 'outline', label: 'Outline', icon: 'list', plugin: 'pOutline' },
+  { key: 'calendar', label: 'Calendar', icon: 'calendar', plugin: 'pDaily' },
+];
 
 /**
  * @param {string} id @param {string} label @param {string} icon @param {string} [cls]
@@ -39,12 +54,14 @@ const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.crea
 export async function vaultShell(app, kit, list, { who }) {
   const { settings } = app;
   const html = document.documentElement;
-  // (its styles: one file, fetched now; the page under it is blank until then, app.css's few lines)
+  // (its styles: the kit's vault shell, then Notes' own over it, fetched now; the page under it is blank until then,
+  // app.css's few lines)
+  const kitStyled = vaultStyles();
   const css = el('link', { rel: 'stylesheet', href: 'vault.css' });
   const styled = new Promise(r => { css.addEventListener('load', r); css.addEventListener('error', r); setTimeout(r, 2000); });
   document.head.append(css);
   const page = await list.pageReady();
-  await styled;
+  await Promise.race([Promise.all([kitStyled, styled]), new Promise(r => setTimeout(r, 2000))]);
   const edit = /** @type {HTMLDialogElement} */ (document.getElementById('edit'));
   const form = /** @type {HTMLFormElement} */ (document.getElementById('edit-form'));
   const titleBox = /** @type {HTMLInputElement} */ (document.getElementById('edit-text'));
@@ -84,40 +101,31 @@ export async function vaultShell(app, kit, list, { who }) {
   const empty = el('div', { id: 'vl-empty' }, el('div', { className: 'vl-empty-in' }, el('h2', { className: 'vl-empty-title', textContent: 'No file is open' }), emptyNew, emptyGo, emptyClose));
   edit.prepend(head);
   edit.append(empty);
-  // the navigation pill
-  const back = button('vl-back', 'Back', 'chevronLeft');
-  const fwd = button('vl-fwd', 'Forward', 'chevronRight');
-  const search = button('vl-search', 'Quick switcher', 'search');
-  const plus = button('vl-new', 'New tab', 'plus');
-  const count = el('span', { className: 'vl-count' });
-  const tabsBtn = button('vl-tabs', 'Open tabs', '');
-  tabsBtn.append(count);
-  const ribbon = button('vl-ribbon', 'Menu', 'menu');
-  const nav = el('nav', { id: 'vl-nav', className: 'vl-pill' }, back, fwd, search, plus, tabsBtn, ribbon);
-  nav.setAttribute('aria-label', 'Navigation');
+  // the navigation pill (the kit's: app-ui ui/vault/nav-pill.js; it steps aside while the keyboard is up)
+  const nav = navPill({
+    id: 'vl-nav',
+    buttons: [
+      { slot: 'back', id: 'vl-back', run: () => { if (steps.canBack()) history.back(); } },
+      { slot: 'forward', id: 'vl-fwd', run: () => { if (steps.canFwd()) history.forward(); } },
+      { slot: 'search', id: 'vl-search', label: 'Quick switcher', run: () => void switcher() },
+      { slot: 'add', id: 'vl-new', run: () => void newTab() },
+      { slot: 'tabs', id: 'vl-tabs', run: () => void openTabs() },
+      { slot: 'menu', id: 'vl-ribbon', run: () => void openRibbon() },
+    ],
+  });
   // (the palette's "Open settings", and the tests: a button for it, never shown)
   const settingsOpen = el('button', { type: 'button', id: 'vl-settings-open', textContent: 'Settings' });
   settingsOpen.hidden = true;
-  document.body.append(nav, settingsOpen);
+  document.body.append(settingsOpen);
   // the note's form never closes the page (Enter in the title box would submit it)
   form.addEventListener('submit', e => e.preventDefault(), true);
 
   // ---- Back and Forward, the tabs count
   const paint = () => {
-    for (const [b, ok] of /** @type {const} */ ([[back, steps.canBack()], [fwd, steps.canFwd()]])) {
-      b.toggleAttribute('data-faint', !ok);
-      b.setAttribute('aria-disabled', String(!ok));
-    }
-    const n = tabs.list.length;
-    count.textContent = String(n);
-    tabsBtn.setAttribute('aria-label', `Open tabs: ${n}`);
+    nav.can('back', steps.canBack());
+    nav.can('forward', steps.canFwd());
+    nav.count(tabs.list.length);
   };
-  back.addEventListener('click', () => { if (steps.canBack()) history.back(); });
-  fwd.addEventListener('click', () => { if (steps.canFwd()) history.forward(); });
-  // (the keyboard up: the pill steps aside, and can't be tapped)
-  const keyboard = () => { const up = html.classList.contains('ui-keyboard-open'); nav.inert = up; };
-  new MutationObserver(keyboard).observe(html, { attributes: true, attributeFilter: ['class'] });
-  keyboard();
 
   // ---- a Classic page shown over the note (a tab of the Tab bar, the Note list, Haiku): Back takes it away
   /** @type {{ active: boolean, close: () => Promise<void> } | null} */
@@ -173,7 +181,12 @@ export async function vaultShell(app, kit, list, { who }) {
   };
   list.pageLayout.onList = () => {
     const now = list.space()?.id || '';
-    if (now !== spaceId) { spaceId = now; state = vaultState(localStorage, spaceId); tabs = tabList(state.get()); paint(); }
+    if (now !== spaceId) {
+      spaceId = now; state = vaultState(localStorage, spaceId); tabs = tabList(state.get()); paint();
+      // (the sidebars show this space's views)
+      void leftDrawer.show(state.get().leftView);
+      void rightDrawer.show(state.get().rightView);
+    }
     // (the title box's words: a rename being saved has them before the page's note does)
     if (page.current()) titleText.textContent = titleBox.value.trim() || page.current()?.title || 'Untitled';
     left?.redraw();
@@ -210,11 +223,9 @@ export async function vaultShell(app, kit, list, { who }) {
     showEdit();
     await page.open(note);
   };
-  plus.addEventListener('click', () => void newTab());
   emptyNew.addEventListener('click', () => void create());
   emptyGo.addEventListener('click', () => void switcher());
   emptyClose.addEventListener('click', () => void closeTab());
-  search.addEventListener('click', () => void switcher());
 
   // ---- the quick switcher and the command palette (vault-ui/switcher.js, palette.js: loaded on first use); with the
   // Quick switcher plugin off, the Classic one
@@ -249,22 +260,22 @@ export async function vaultShell(app, kit, list, { who }) {
     if (k === 'o') void switcher(); else void palette();
   }, true);
 
-  // ---- the left sidebar: a drawer the note slides aside for (vault-ui/drawer.js), its views loaded the first time it
-  // opens (vault-ui/left.js; warmed once the start is done)
-  const pushed = () => [edit, nav, html.classList.contains('vl-tabbar') ? document.getElementById('tabbar') : null];
+  // ---- the left sidebar: the kit's sidebar (a drawer the note slides aside for, a view picker at its foot), Notes'
+  // views loaded the first time each shows (vault-ui/left.js; warmed once the start is done)
+  const pushed = () => [edit, nav.el, html.classList.contains('vl-tabbar') ? document.getElementById('tabbar') : null];
   /** @typedef {ReturnType<typeof import('./left.js').leftSidebar>} Left */
   /** @type {Left | null} */
   let left = null;
   /** @type {Promise<Left> | undefined} */
   let leftMade;
-  const leftDrawer = sideDrawer({
-    id: 'vl-left', label: 'Left sidebar', pushed,
-    onOpen: () => { if (left) left.shown(); else void leftReady().then(l => l.shown()); },
+  const leftDrawer = sidebar({
+    id: 'vl-left', label: 'Left sidebar', steps: transients(), pushed, view: state.get().leftView,
+    views: () => LEFT_VIEWS.filter(v => on(v.plugin)).map(v => ({ id: v.key, label: v.label, icon: GLYPHS[v.icon], render: () => leftReady().then(l => l.render(v.key)) })),
     onChange: open => {
       side.replaceChildren(glyph(open ? 'panelLeftFilled' : 'panelLeft'));
       side.setAttribute('aria-expanded', String(open));
       side.setAttribute('aria-label', open ? 'Close the sidebar' : 'Open the sidebar');
-      if (!open) left?.closed();
+      if (open) left?.opened(); else left?.closed();
     },
   });
   /** (the note open, the drawer first: its Back step goes before the note's own) @param {Note} note */
@@ -287,20 +298,20 @@ export async function vaultShell(app, kit, list, { who }) {
   edit.addEventListener('touchstart', e => { touchX = e.touches[0]?.clientX ?? 0; }, { capture: true, passive: true });
   leftDrawer.swipeFrom(edit, {
     can: () => !html.dataset.vlPage && !document.querySelector('dialog:modal'),
-    edge: () => backZone() || leftDrawer.EDGE,
+    edge: () => backZone() || DRAWER_EDGE,
   });
 
-  // ---- the right sidebar: a drawer from the right (a swipe left on the note, the palette), its panes loaded the first
-  // time it opens (vault-ui/right.js)
+  // ---- the right sidebar: the kit's sidebar from the right (a swipe left on the note, the palette), Notes' panes
+  // loaded the first time it opens (vault-ui/right.js)
   /** @typedef {ReturnType<typeof import('./right.js').rightSidebar>} Right */
   /** @type {Right | null} */
   let right = null;
   /** @type {Promise<Right> | undefined} */
   let rightMade;
-  const rightDrawer = sideDrawer({
-    id: 'vl-right', label: 'Right sidebar', side: 'right', pushed,
-    onOpen: () => { if (right) right.shown(); else void rightReady().then(r => r.shown()); },
-    onChange: open => { if (!open) right?.closed(); },
+  const rightDrawer = sidebar({
+    id: 'vl-right', label: 'Right sidebar', side: 'right', steps: transients(), pushed, view: state.get().rightView,
+    views: () => RIGHT_PANES.filter(p => on(p.plugin)).map(p => ({ id: p.key, label: p.label, icon: GLYPHS[p.icon], render: () => rightReady().then(r => r.pane(p.key)) })),
+    onChange: open => { if (open) right?.opened(); },
   });
   const bodyText = () => /** @type {HTMLTextAreaElement | null} */ (document.getElementById('edit-body'))?.value || '';
   const rightReady = () => (rightMade ||= import('./right.js').then(m => (right = m.rightSidebar({
@@ -348,11 +359,8 @@ export async function vaultShell(app, kit, list, { who }) {
   /** @type {Promise<{ open: () => void, close: () => Promise<void> }> | undefined} */
   let hostMade;
   const openSettings = async () => {
-    hostMade ||= import('./settings.js').then(m => m.settingsHost(app, { list, haiku: () => acts.page('haiku') }));
+    hostMade ||= import('./settings.js').then(m => m.settingsHost(app, { list, haiku: () => acts.page('haiku'), who }));
     (await hostMade).open();
-    const w = document.getElementById('who');
-    if (w) w.textContent = who();
-    list.modules();
   };
   settingsOpen.addEventListener('click', () => void openSettings());
   // ---- the commands (the palette's, the ribbon's): each runs what the app already does elsewhere
@@ -413,10 +421,10 @@ export async function vaultShell(app, kit, list, { who }) {
   // ---- the ribbon menu and the open tabs (vault-ui/ribbon.js, tabs-sheet.js: loaded on first use)
   /** @type {Promise<{ open: () => void }> | undefined} */
   let ribbonMade;
-  ribbon.addEventListener('click', async () => {
+  const openRibbon = async () => {
     ribbonMade ||= import('./ribbon.js').then(m => m.ribbonMenu(cmdCtx)).catch(e => { ribbonMade = undefined; throw e; });
     (await ribbonMade).open();
-  });
+  };
   /** tab i shown @param {number} i */
   const showTab = async i => {
     tabs.activate(i); save();
@@ -441,7 +449,6 @@ export async function vaultShell(app, kit, list, { who }) {
     })).catch(e => { tabsMade = undefined; throw e; });
     (await tabsMade).open();
   };
-  tabsBtn.addEventListener('click', () => void openTabs());
 
 
   // ---- the Notes extras

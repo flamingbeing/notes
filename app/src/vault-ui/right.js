@@ -1,4 +1,5 @@
-// The Vault layout's right sidebar, inside a drawer from the right (drawer.js): one pane at a time, each following its
+// The Vault layout's right sidebar's insides, in the kit's sidebar from the right (app-ui ui/vault/sidebar.js, made by
+// shell.js: the drawer, the pane's tools and the view picker pill at the bottom): one pane at a time, each following its
 // Core plugin: Backlinks (the Linked mentions of the note open, as under the note), Outgoing links (the notes this one
 // links to; one not there yet shows faint and a tap makes it), Outline (the note's headings as a tree; a tap scrolls
 // the note there) and, with Daily notes on, Calendar (a month of days, a dot on each with a daily note; a tap opens or
@@ -6,7 +7,6 @@
 // words and characters (Word count), and the sync state (a tap syncs now, as the Classic cloud button does). The pane
 // shown is kept per space (vault-ui/state.js). Loaded the first time it is wanted.
 import { glyph } from './icons.js';
-import { viewPicker } from './view-pill.js';
 import { headingsOf } from './outline.js';
 import { countText } from './count.js';
 import { monthGrid, dailyMap, dayOf, WEEKDAYS, MONTHS } from './month.js';
@@ -15,15 +15,6 @@ import { linkIndex } from '../notes/links.js';
 import { isoDay } from '../notes/model.js';
 
 /** @typedef {import('../notes/model.js').Note} Note */
-/** @typedef {{ key: string, label: string, icon: string, plugin: string }} PaneDef */
-
-/** @type {PaneDef[]} */
-const PANES = [
-  { key: 'backlinks', label: 'Backlinks', icon: 'link2', plugin: 'pBacklinks' },
-  { key: 'outgoing', label: 'Outgoing links', icon: 'link', plugin: 'pOutgoing' },
-  { key: 'outline', label: 'Outline', icon: 'list', plugin: 'pOutline' },
-  { key: 'calendar', label: 'Calendar', icon: 'calendar', plugin: 'pDaily' },
-];
 const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /**
@@ -54,29 +45,16 @@ const SYNC = /** @type {Record<string, { icon: string, cls: string, word: string
  *   daily: (iso: string) => Promise<unknown>, toast: (msg: string) => unknown,
  * }} o  open: a note opened from here (at a line); openTitle: a link's note opened, made if it isn't there; daily:
  *   that day's note opened, made if it isn't there; body: the open note's text as it is now (typed, maybe not saved)
- * @param {ReturnType<typeof import('./drawer.js').sideDrawer>} drawer
+ * @param {import('app-ui/ui/vault/sidebar.js').Sidebar} side  the kit's sidebar this fills (its panes by pane(), its
+ *   footer the note's name, size and sync state)
  */
-export function rightSidebar(o, drawer) {
-  const d = drawer.el;
-  const views = el('div', { className: 'vl-views vl-right-views' });
-  const tools = el('div', { className: 'vl-tools' });
-  tools.setAttribute('role', 'toolbar');
-  tools.hidden = true;
-  const available = () => PANES.filter(p => o.on(p.plugin));
-  /** the pane to show: the one kept, if it is on, else the first that is */
-  const current = () => {
-    const want = o.state().get().rightView;
-    const on = available();
-    return on.find(p => p.key === want) || on[0] || null;
-  };
-  const picker = viewPicker({ prefix: 'vl-rview', drawer: d, views: available, current, choose: key => show(key) });
+export function rightSidebar(o, side) {
   // the footer: the note's name and size; the sync state
   const fName = el('div', { className: 'vl-foot-name' });
   const fCount = el('div', { id: 'vl-foot-count', className: 'vl-foot-count' });
   const sync = el('button', { type: 'button', id: 'vl-sync', className: 'vl-sync' });
   const footer = el('div', { id: 'vl-footer', className: 'vl-footer' }, el('div', { className: 'vl-foot-text' }, fName, fCount), sync);
-  const foot = el('div', { className: 'vl-left-foot vl-right-foot' }, tools, picker.wrap, footer);
-  d.append(el('div', { className: 'vl-left-in' }, views, foot));
+  side.foot.append(footer);
 
   /** @type {Record<string, { el: HTMLElement, draw: () => void, tools?: HTMLElement[] }>} */
   const panes = {};
@@ -88,14 +66,16 @@ export function rightSidebar(o, drawer) {
   panes.backlinks = { el: backPane, draw: () => {
     backMade ||= import('./mentions.js').then(m => {
       const block = m.mentionsBlock({ host: backPane, prefix: 'vl-rb', id: 'vl-rb', notes: o.notes, current: o.current, state: o.state,
-        open: async (note, line) => { await drawer.leave(); await o.open(note, line); }, enabled: () => true });
+        open: async (note, line) => { await side.leave(); await o.open(note, line); }, enabled: () => true });
       const t = /** @type {HTMLElement | null} */ (block.el.querySelector('.vl-mn-tools'));
       panes.backlinks.tools = t ? [...t.children].map(x => /** @type {HTMLElement} */ (x)) : [];
       panes.backlinks.draw = () => { block.draw(); none.hidden = !!o.current(); };
       const none = faint(el('p', { className: 'vl-rpane-empty', hidden: true }, 'No file is open.'));
       backPane.append(none);
-      if (showing === 'backlinks') { tools.replaceChildren(...(panes.backlinks.tools || [])); tools.hidden = false; }
-      panes.backlinks.draw();
+      const v = made.get('backlinks');
+      if (v) v.tools = panes.backlinks.tools;
+      // (shown already: shown again, its tools with it)
+      if (showing === 'backlinks') void side.show('backlinks'); else panes.backlinks.draw();
     }).catch(() => { backMade = null; });
   } };
 
@@ -124,7 +104,7 @@ export function rightSidebar(o, drawer) {
       if (!to) { faint(b); b.setAttribute('aria-label', `${text} (not created yet)`); }
       b.addEventListener('click', async () => {
         if (!to && !o.canWrite()) { o.toast('This space is read-only.'); return; }
-        await drawer.leave();
+        await side.leave();
         if (to) await o.open(to); else await o.openTitle(text);
       });
       return b;
@@ -137,7 +117,7 @@ export function rightSidebar(o, drawer) {
   const outlinePane = el('div', { id: 'vl-r-outline', className: 'vl-view vl-rpane', hidden: true }, outlineRows);
   /** the note scrolled to a heading (the drawer gone first) @param {{ line: number, text: string }} h @param {number} n  its place among the headings */
   const goTo = async (h, n) => {
-    await drawer.leave();
+    await side.leave();
     if (o.page.reading()) {
       const read = document.getElementById('edit-read');
       const hs = [...(read?.querySelectorAll('h1, h2, h3, h4, h5, h6') || [])];
@@ -211,7 +191,7 @@ export function rightSidebar(o, drawer) {
         b.setAttribute('aria-label', `${day.day} ${MONTHS[mo - 1]} ${y}${day.today ? ', today' : ''}${note ? ', daily note' : ''}`);
         b.addEventListener('click', async () => {
           if (!note && !o.canWrite()) { o.toast('This space is read-only.'); return; }
-          await drawer.leave();
+          await side.leave();
           if (note) await o.open(note); else await o.daily(day.iso);
         });
         row.append(b);
@@ -221,7 +201,6 @@ export function rightSidebar(o, drawer) {
     calGrid.replaceChildren(...rows);
   } };
 
-  for (const p of PANES) views.append(panes[p.key].el);
 
   // ---- the footer
   const paintFoot = () => {
@@ -247,35 +226,39 @@ export function rightSidebar(o, drawer) {
   sync.addEventListener('click', () => cloudBtn?.click());
 
   let showing = '';
-  /** show a pane (kept as this space's choice) @param {string} key */
-  const show = key => {
-    const def = PANES.find(p => p.key === key && o.on(p.plugin));
-    if (!def) return;
-    if (o.state().get().rightView !== key) o.state().set({ rightView: key });
-    showing = key;
-    for (const p of PANES) panes[p.key].el.hidden = p.key !== key;
-    picker.paint(def);
-    const t = panes[key].tools || [];
-    tools.replaceChildren(...t);
-    tools.hidden = key !== 'backlinks';
-    tools.setAttribute('aria-label', `${def.label} tools`);
-    panes[key].draw();
+  /** @type {Map<string, import('app-ui/ui/vault/sidebar.js').SidebarView>} */
+  const made = new Map();
+  /** a pane for the sidebar (it draws it each time it shows) @param {string} key */
+  const pane = key => {
+    let v = made.get(key);
+    if (!v) {
+      const p = panes[key];
+      if (!p) throw new Error(`no pane ${key}`);
+      v = {
+        el: p.el, tools: p.tools,
+        shown: () => {
+          showing = key;
+          if (o.state().get().rightView !== key) o.state().set({ rightView: key });
+          paintFoot();
+          panes[key].draw();
+        },
+      };
+      made.set(key, v);
+    }
+    return v;
   };
   const redraw = () => {
     paintFoot();
-    const want = current();
-    if (!want) { for (const p of PANES) panes[p.key].el.hidden = true; tools.hidden = true; picker.paint(null); showing = ''; return; }
-    if (want.key !== showing) show(want.key); else panes[want.key].draw();
+    if (side.current() !== showing) side.refresh(); else panes[showing]?.draw();
   };
 
   return {
-    /** the drawer is opening: drawn for the note open now */
-    shown() { month = null; redraw(); },
-    /** the drawer has shut */
-    closed() { void picker.close(); },
+    pane,
+    /** the drawer is opening: drawn for the note open now (the sidebar shows the pane) */
+    opened() { month = null; paintFoot(); },
     /** the notes or the note open changed (drawn only while it shows) */
-    redraw() { if (drawer.isOpen()) redraw(); },
+    redraw() { if (side.isOpen()) redraw(); },
     /** a pane by key (the palette's "Show outline") @param {string} key */
-    show(key) { o.state().set({ rightView: key }); if (drawer.isOpen()) redraw(); },
+    show(key) { o.state().set({ rightView: key }); void side.show(key); },
   };
 }
