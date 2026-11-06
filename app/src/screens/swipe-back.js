@@ -9,8 +9,9 @@ const HOLD_MS = 400;
 /**
  * @param {HTMLDialogElement} sheet
  * @param {() => boolean} close  closes the page (saving it); false when it refused to (the page stays)
+ * @param {() => boolean} [can]  the swipe is on now (default: while the page is modal, over the list)
  */
-export function swipeBack(sheet, close) {
+export function swipeBack(sheet, close, can = () => sheet.matches(':modal')) {
   /** @type {{ x: number, y: number, at: number, on: boolean, dx: number, seen: [number, number][] } | null} */
   let s = null;
   const selected = () => {
@@ -36,7 +37,7 @@ export function swipeBack(sheet, close) {
 
   sheet.addEventListener('touchstart', e => {
     s = null;
-    if (e.touches.length !== 1 || !sheet.matches(':modal')) return;
+    if (e.touches.length !== 1 || !can()) return;
     const t = e.touches[0];
     if (t.clientX < EDGE || selected() || inScroller(e.target)) return;
     s = { x: t.clientX, y: t.clientY, at: e.timeStamp, on: false, dx: 0, seen: [] };

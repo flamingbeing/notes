@@ -43,8 +43,29 @@ export const OPTIONS = {
   mcpOn: { scope: 'device', default: true },
   // the tab bar's order and the tabs off it (this device)
   tabs: { scope: 'device', default: { order: [], hidden: [] }, clean: tabs },
+  // the layout (this device): 'vault' (the note as home, a floating header and navigation pill; the default) or 'classic'
+  // (the notes list with the tab bar). Changing it reloads the page.
+  layout: { scope: 'device', default: 'vault', clean: v => (v === 'classic' ? 'classic' : 'vault') },
+  // the Vault layout's own options: the editing mode, the view a note opens in, the title at the top of the note, what
+  // opens at start, and today's note made at start
+  vEditMode: { scope: 'device', default: 'source', clean: v => (v === 'live' ? 'live' : 'source') },
+  vNewTabView: { scope: 'device', default: 'edit', clean: v => (v === 'read' ? 'read' : 'edit') },
+  vInlineTitle: { scope: 'device', default: false },
+  vStartFile: { scope: 'device', default: 'last', clean: v => (v === 'daily' || v === 'none' ? v : 'last') },
+  vDailyOnStart: { scope: 'device', default: false },
+  // the Vault layout's Core plugins (vault-ui/plugins.js; read only in the Vault layout): its own features on, the
+  // Classic layout's extras off until turned on
+  ...Object.fromEntries([
+    'pBacklinks', 'pBookmarks', 'pPalette', 'pDaily', 'pFiles', 'pOutgoing', 'pOutline', 'pSwitcher', 'pRandom', 'pSearch', 'pTags', 'pWordCount',
+  ].map(k => [k, { scope: 'device', default: true }])),
+  ...Object.fromEntries([
+    'xTabBar', 'xNoteList', 'xSwipeTabs', 'xSwipeBack', 'xSelect', 'xDetails', 'xLineSpacing', 'xDayButtons', 'xSyncButton', 'xHaiku', 'xMore', 'xAdvanced',
+  ].map(k => [k, { scope: 'device', default: false }])),
 };
+
+/** the options that pick one of a few words (a choice, not a switch or a folder box) */
+const ENUMS = ['lineSpacing', 'layout', 'vEditMode', 'vNewTabView', 'vStartFile'];
 
 /** The options the Settings sheet has a switch for (index.html: #opt-<name>); the folders are text boxes. */
 export const SWITCHES = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'boolean' && k !== 'driveOn');
-export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string' && k !== 'lineSpacing');
+export const TEXTS = Object.keys(OPTIONS).filter(k => typeof OPTIONS[k].default === 'string' && !ENUMS.includes(k));

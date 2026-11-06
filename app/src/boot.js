@@ -6,4 +6,9 @@ import { applyTheme } from '@core/theme';
 import { APP } from './config.js';
 
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); /** @type {any} */ (globalThis).coreInstallPrompt = e; });
-applyTheme({ accent: APP.accent, look: 'e', surface: 'ink' });
+// The layout (Settings, this device): 'vault' (the default) or 'classic', on <html data-layout> for the CSS and app.js;
+// the Vault layout has its own accent. (public/snap.js sets it too, earlier, as it paints the kept list only in Classic.)
+let layout = 'vault';
+try { layout = JSON.parse(localStorage.getItem('notes:settings:settings/device') || '{}')?.values?.layout === 'classic' ? 'classic' : 'vault'; } catch { /* storage off: the default */ }
+document.documentElement.dataset.layout = layout;
+applyTheme({ accent: layout === 'vault' ? '#9873f6' : APP.accent, look: 'e', surface: 'ink' });

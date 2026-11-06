@@ -2,6 +2,14 @@
 
 ## Now
 
+- Vault layout, slice 1 of 5 (6 Nov): a second layout, the default on every device, where the
+  note page is home: header (sidebar button, title, Reading view and More), a navigation pill (Back, Forward, quick
+  switcher, new tab, tabs, menu), the "No file is open" page, bottom sheets, and a Settings dialog with Layout and Core
+  plugins. The Classic layout (Settings > This device > Layout) is unchanged; each Classic feature is a "Notes extra"
+  on the Core plugins page, off in Vault until turned on. Settings, picker, spaces and Haiku now load lazily (startup
+  319 KiB / 55 requests, was 327 / 59). Still to come: left sidebar (slice 2), note page (3), right sidebar and
+  navigation sheets (4), full Settings (5). No reference frame for the ribbon or tabs sheets yet: check against an
+  owner recording. The sidebar button opens the quick switcher until slice 2.
 - Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
   Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict

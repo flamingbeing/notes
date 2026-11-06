@@ -3,6 +3,11 @@
 // replaces it once sign-in and sync are ready (src/shell/snap.js saves it and takes over). Taps on a row meanwhile are
 // kept and opened then. Nothing kept (a new device, signed out): the page starts as before.
 (() => {
+  // the layout (as boot.js reads it): the Vault layout opens on a note, not on the list, so nothing is painted there
+  let layout = 'vault';
+  try { if (JSON.parse(localStorage.getItem('notes:settings:settings/device') || '{}')?.values?.layout === 'classic') layout = 'classic'; } catch { /* the default */ }
+  document.documentElement.dataset.layout = layout;
+  if (layout !== 'classic') return;
   let s;
   try { s = JSON.parse(localStorage.getItem('notes:snap') || 'null'); } catch { return; }
   if (!s || s.v !== 1) return;

@@ -133,15 +133,22 @@ try {
     await page.locator(`.ui-tab[data-tab-page="#${opts.tab}"]:visible, .ui-side-link[data-tab-page="#${opts.tab}"]:visible`).first().click();
     await page.waitForTimeout(500);
   }
+  // (the Vault layout, the default: its shell loads after the list; its Settings open from the menu, a note by its title)
+  const vault = await page.evaluate(() => document.documentElement.dataset.layout === 'vault');
+  if (vault) await page.waitForFunction(() => !!window.starter.vault);
   if (opts.settings) {
-    await page.locator('#open-settings:visible, #open-settings-w:visible').first().click();
+    if (vault) await page.evaluate(() => document.getElementById('vl-settings-open')?.click());
+    else await page.locator('#open-settings:visible, #open-settings-w:visible').first().click();
     await page.waitForTimeout(500);
     const back = page.locator('.ui-settings-back:visible');
     if (await back.count()) await back.first().click();
     await page.locator('.ui-settings-menu-groups .ui-settings-go').filter({ hasText: new RegExp(`^${opts.settings}`) }).first().click();
     await page.waitForTimeout(500);
   }
-  if (opts.note) {
+  if (opts.note && vault) {
+    if (!await page.evaluate(t => window.starter.vault.open(t), opts.note)) throw new Error(`no note titled ${opts.note}`);
+    await page.waitForTimeout(900);
+  } else if (opts.note) {
     await page.locator('#items .ui-row').filter({ hasText: opts.note }).first().click();
     await page.waitForSelector('#edit[open]');
     await page.waitForTimeout(900);

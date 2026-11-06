@@ -1,0 +1,138 @@
+/* The Vault layout (html[data-layout=vault]): the note page is the home screen, with a header over it and a navigation
+   pill at the bottom; sheets rise from the bottom. Added by vault-ui/shell.js once the list is up (app.css has the few
+   lines the first paint needs). Organised by screen: tokens, note screen (S1, S3), nav pill (S2), sheets (S8),
+   Settings (S5), Notes extras. Sizes in CSS px. */
+
+/* ---- tokens (light, dark) */
+html[data-layout=vault] {
+  --vl-bg: light-dark(#ffffff, #1e1e1e);
+  --vl-bg-2: light-dark(#f6f6f6, #1c1c1c);
+  --vl-card: light-dark(#ffffff, #262626);
+  --vl-nav-bg: light-dark(#ffffff, #202020);
+  --vl-hover: light-dark(#e6e6e6, #333333);
+  --vl-shade-sheet: light-dark(rgba(0, 0, 0, .13), rgba(0, 0, 0, .4));
+  --vl-text: light-dark(#222222, #dadada);
+  --vl-muted: light-dark(#5c5c5c, #a3a3a3);
+  --vl-faint: light-dark(#ababab, #666666);
+  --vl-line: light-dark(#ebebeb, #363636);
+  --vl-accent: #9873f6;
+  --vl-link: light-dark(#7852ee, #a68af9);
+  --vl-red: light-dark(#d42a3f, #fb464c);
+  --vl-grabber: light-dark(#a6a6a6, #5a5a5a);
+  --vl-sh1: light-dark(rgba(0, 0, 0, .08), transparent);
+  --vl-sh2: light-dark(rgba(0, 0, 0, .12), #333333);
+  --vl-shadow: 0 2px 10px var(--vl-sh1), 0 0 .5px .5px var(--vl-sh2);
+  --vl-nav-shadow: 0 4px 16px var(--vl-sh1), 0 0 .5px .5px var(--vl-sh2);
+  --vl-font: -apple-system, "Inter", "Roboto", system-ui, sans-serif;
+  --vl-top: env(safe-area-inset-top, 0px);
+  --vl-bottom: env(safe-area-inset-bottom, 0px);
+  --vl-nav-b: calc(19px + var(--vl-bottom));
+  --link: var(--vl-link);
+  --editor-bg: var(--vl-bg);
+}
+html[data-layout=vault] body { background: var(--vl-bg); color: var(--vl-text); }
+html[data-layout=vault] .vl-icon { width: 24px; height: 24px; flex: none; }
+html[data-layout=vault] .vl-btn, html[data-layout=vault] .vl-circle, html[data-layout=vault] .vl-title {
+  appearance: none; border: 0; margin: 0; padding: 0; background: none; color: var(--vl-text); font: inherit; cursor: pointer;
+  display: inline-grid; place-items: center; -webkit-tap-highlight-color: transparent; }
+html[data-layout=vault] .vl-btn:focus-visible, html[data-layout=vault] .vl-circle:focus-visible, html[data-layout=vault] .vl-row:focus-visible,
+html[data-layout=vault] .vl-empty-btn:focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
+html[data-layout=vault] [data-faint] { color: var(--vl-faint); }
+
+/* ---- the note screen: the page fills the screen, never modal, under the header and above the nav pill */
+html[data-layout=vault] #edit.page[open] { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0;
+  padding: 0; border: 0; z-index: 5; background: var(--vl-bg); color: var(--vl-text); font-family: var(--vl-font); }
+html[data-layout=vault] #edit .page-bar { display: none; }
+html[data-layout=vault] #edit-scroll { padding-top: calc(var(--vl-top) + 67px); }
+html[data-layout=vault] #edit .page-col { max-width: 44rem; padding-inline: 25px; padding-bottom: 96px; font-size: 16px; line-height: 1.5; }
+html[data-layout=vault] #edit.wide .page-col { max-width: none; }
+html[data-layout=vault] #edit-cm .cm-scroller { line-height: 1.5; }
+html[data-layout=vault] #edit-cm .cm-content { caret-color: var(--vl-accent); }
+html[data-layout=vault] #edit-cm .cm-cursor { border-inline-start-color: var(--vl-accent); }
+/* the title box: off (Inline title shows it; a tap on the header's title shows it for a rename) */
+html[data-layout=vault]:not(.vl-inline-title):not(.vl-renaming) #edit .title-box { position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap; }
+html[data-layout=vault] #edit .title-box { font-family: var(--vl-font); font-size: 26px; font-weight: 700; color: var(--vl-text); }
+/* Notes extras: Details panel, line spacing; the delete button lives in the More sheet */
+html[data-layout=vault]:not(.vl-details) #edit-more { display: none; }
+html[data-layout=vault]:not(.vl-spacing) #edit-fmt .spacing { display: none; }
+html[data-layout=vault] #edit-delete { display: none; }
+html[data-layout=vault] #edit-size:empty, html[data-layout=vault] #edit-live:empty { display: none; }
+/* the formatting bar only while typing (the keyboard up), above it */
+html[data-layout=vault]:not(.ui-keyboard-open) #edit-fmt { display: none; }
+
+/* header (S1): the sidebar circle, the title, the pill of the view and More buttons; the note scrolls under a fade */
+#vl-head { position: absolute; z-index: 4; inset: 0 0 auto 0; height: calc(var(--vl-top) + 64px); padding-top: var(--vl-top); box-sizing: border-box;
+  display: grid; grid-template-columns: 70px 1fr auto; align-items: center; pointer-events: none;
+  background: linear-gradient(var(--vl-bg) 60%, color-mix(in srgb, var(--vl-bg) 0%, transparent)); }
+#vl-head > * { pointer-events: auto; }
+#vl-side-btn { width: 44px; height: 44px; margin-left: 13px; border-radius: 999px; background: var(--vl-card); box-shadow: var(--vl-shadow); }
+#vl-title { min-width: 0; justify-self: stretch; height: 44px; padding: 0 6px; font-size: 16px; font-weight: 600; }
+.vl-title-text { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-layout=vault] .vl-pill#vl-head-pill { display: flex; align-items: center; height: 48px; min-width: 103px; padding: 0 4px; margin-right: 12px; box-sizing: border-box;
+  border-radius: 999px; background: var(--vl-card); box-shadow: var(--vl-shadow); justify-content: center; }
+#vl-head-pill .vl-btn, #vl-head-pill .ui-sync-btn { width: 47px; height: 44px; }
+#vl-head-pill [hidden] { display: none; }
+html.vl-blank #vl-mode-btn { display: none; }
+
+/* the empty page (S3) in the note's place */
+#vl-empty { display: none; }
+html.vl-blank #vl-empty { display: grid; position: absolute; inset: 0; z-index: 2; background: var(--vl-bg); align-items: start; justify-items: center; }
+html.vl-blank #edit-form { visibility: hidden; }
+.vl-empty-in { margin-top: 36vh; display: grid; gap: 10px; justify-items: center; }
+.vl-empty-title { margin: 0 0 8px; font-size: 16px; font-weight: 600; color: var(--vl-muted); font-family: var(--vl-font); }
+.vl-empty-btn { appearance: none; border: 0; min-width: 200px; height: 40px; padding: 0 20px; border-radius: 999px; background: var(--vl-bg-2);
+  color: var(--vl-link); font: 16px var(--vl-font); cursor: pointer; }
+.vl-empty-btn:active { background: var(--vl-hover); }
+
+/* ---- the navigation pill (S2) */
+#vl-nav { position: fixed; z-index: 30; left: 50%; bottom: var(--vl-nav-b); translate: -50% 0; width: 321px; max-width: calc(100% - 32px); height: 50px;
+  display: flex; justify-content: space-around; align-items: center; border-radius: 999px; background: var(--vl-nav-bg); box-shadow: var(--vl-nav-shadow);
+  transition: opacity 150ms, transform 150ms, visibility 0s; }
+#vl-nav .vl-btn { width: 50px; height: 50px; }
+#vl-nav .vl-icon { width: 26px; height: 26px; }
+#vl-nav [aria-disabled=true] { cursor: default; }
+.vl-count { display: grid; place-items: center; width: 20px; height: 20px; box-sizing: border-box; border: 2px solid currentColor; border-radius: 5px;
+  font: 600 12px/1 var(--vl-font); }
+html.ui-keyboard-open #vl-nav { opacity: 0; transform: translateY(12px); visibility: hidden; pointer-events: none;
+  transition: opacity 150ms, transform 150ms, visibility 0s 150ms; }
+html[data-vl-page] #edit, html.vl-off #edit, html.vl-off #vl-nav { display: none; }
+html.vl-tabbar #vl-nav { --vl-nav-b: calc(var(--vl-bottom) + 84px); }
+html.vl-tabbar #tabbar { z-index: 20; }
+
+/* ---- bottom sheets (S8) */
+.vl-shade { position: fixed; inset: 0; z-index: 40; background: var(--vl-shade-sheet); opacity: 0; pointer-events: none; visibility: hidden; }
+.vl-shade.on { visibility: visible; }
+dialog.vl-sheet { position: fixed; inset: auto 0 0 0; margin: 0 auto; width: 100%; max-width: 560px; max-height: 85vh; box-sizing: border-box; border: 0;
+  padding: 28px 0 calc(17px + var(--vl-bottom)); border-radius: 31px 31px 0 0; background: var(--vl-bg-2); color: var(--vl-text);
+  font-family: var(--vl-font); overflow: hidden; display: none; flex-direction: column; }
+dialog.vl-sheet[open] { display: flex; }
+dialog.vl-sheet::backdrop { background: transparent; }
+.vl-grab { position: absolute; inset: 0 0 auto 0; height: 28px; cursor: grab; }
+.vl-grab::before { content: ""; position: absolute; left: 50%; top: 12px; width: 74px; height: 4px; margin-left: -37px; border-radius: 2px; background: var(--vl-grabber); }
+.vl-sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 0 17px; display: grid; gap: 14px; }
+.vl-card { background: var(--vl-card); border-radius: 18px; overflow: hidden; }
+.vl-row { appearance: none; border: 0; margin: 0; width: 100%; height: 44px; padding: 0 14px 0 17px; display: flex; align-items: center; gap: 8px;
+  background: none; color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer; position: relative; }
+.vl-row .vl-icon { width: 18px; height: 18px; }
+.vl-row-label { flex: 1; margin-left: 8px; }
+.vl-row + .vl-row::before { content: ""; position: absolute; top: 0; left: 43px; right: 0; border-top: 1px solid var(--vl-line); }
+.vl-row:active { background: var(--vl-hover); }
+.vl-row .vl-tick, .vl-row .vl-next { color: var(--vl-muted); width: 18px; height: 18px; }
+.vl-row.vl-danger { color: var(--vl-red); }
+.vl-row-hint { font-size: 13px; }
+
+/* ---- Settings (S5; slice 5 restyles it) */
+dialog.vl-settings { position: fixed; inset: 0; width: 100%; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+  box-sizing: border-box; background: var(--vl-bg-2); color: var(--vl-text); font-family: var(--vl-font); display: none; flex-direction: column; }
+dialog.vl-settings[open] { display: flex; }
+.vl-settings-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: calc(var(--vl-top) + 8px) 12px 8px 25px; }
+.vl-settings-head h2 { margin: 0; font-size: 20px; font-weight: 600; }
+.vl-settings-head .vl-btn { width: 44px; height: 44px; }
+.vl-settings-body { flex: 1; min-height: 0; overflow-y: auto; padding: 0 17px 32px; }
+.vl-settings-body input[type=checkbox][role=switch], .vl-settings-body .ui-switch { accent-color: var(--vl-accent); }
+.vl-subhead-sub { margin: 2px 0 0; font-size: 12px; font-weight: 400; color: var(--vl-muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  #vl-nav, html.ui-keyboard-open #vl-nav { transition: opacity 150ms, visibility 0s; transform: none; }
+}
