@@ -67,3 +67,19 @@ test('tabs: at most 12, the oldest other one goes; a stored list is cleaned', ()
   assert.deepEqual(u.list, ['a', 'b']);
   assert.equal(u.active, 1);
 });
+
+test('tabs: closing from the tabs sheet (another tab, the one showing, all)', () => {
+  const t = tabs({ tabs: ['a', 'b', 'c', 'd'], active: 2 });
+  assert.equal(t.close(0), 'c', 'a tab before the one showing: the same note still shows');
+  assert.deepEqual(t.list, ['b', 'c', 'd']);
+  assert.equal(t.active, 1);
+  assert.equal(t.close(2), 'c', 'a tab after it: the same note still shows');
+  assert.equal(t.active, 1);
+  assert.equal(t.close(1), 'b', 'the one showing, the last: the one before shows');
+  assert.equal(t.close(7), 'b', 'no such tab: nothing changes');
+  assert.deepEqual(t.list, ['b']);
+  t.newTab('e');
+  assert.equal(t.closeAll(), '');
+  assert.deepEqual(t.list, ['']);
+  assert.equal(t.active, 0);
+});

@@ -67,6 +67,8 @@ export function tabs(start = {}) {
       if (!list.length) { list = ['']; active = 0; } else if (i < active) active--; else if (active >= list.length) active = list.length - 1;
       return list[active] ?? '';
     },
+    /** every tab closed: one empty tab left -> '' */
+    closeAll() { list = ['']; active = 0; return ''; },
     /** a note gone (deleted): its tabs show nothing @param {string} id */
     forget(id) { list = list.map(x => (x === id ? '' : x)); },
   };
