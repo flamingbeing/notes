@@ -74,7 +74,7 @@ export const PAGES = [
   ] },
   { id: 'account', title: 'Account and spaces', icon: 'users', rows: [
     { part: 'spaces', label: 'Spaces', sub: 'Your own notes and the shared spaces you are in.', find: 'switch space' },
-    { part: 'space-tools', label: 'Manage spaces', sub: 'The members of the open space, or a new space.', find: 'members new space' },
+    { part: 'space-tools', label: 'Manage spaces', sub: 'The members of the shared space that is open, or a new space.', find: 'members new space' },
     { heading: 'Notes' },
     { key: 'itemCount', label: 'Show how many notes there are', sub: 'On every device you sign in on.' },
   ] },

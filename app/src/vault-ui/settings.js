@@ -201,6 +201,7 @@ export function settingsHost(app, h) {
             const why = await app.switchTo(s.id);
             if (why) say(why, true);
             draw();
+            opening.get('account-tools')?.();
           });
           return b;
         }));
@@ -214,13 +215,15 @@ export function settingsHost(app, h) {
       const press = async (/** @type {string} */ sel) => { await close(); /** @type {HTMLElement | null} */ (document.querySelector(sel))?.click(); };
       const members = pill('Members of this space', () => press('#space-open'), { id: 'vl-set-members' });
       const make = pill('New space', () => press('#space-new'), { id: 'vl-set-new-space' });
-      const text = words(r.label, r.sub);
+      const out = row(words(r.label, r.sub), el('div', { className: 'vl-set-pills' }, members, make), true);
+      // (Members only in a shared space, New space for those who may make one; neither: no row)
       opening.set('account-tools', () => {
         const role = h.list.role();
-        members.disabled = app.space().id === app.vault();
+        members.hidden = app.space().id === app.vault();
         make.hidden = !(role === 'admin' || role === 'member');
+        out.hidden = members.hidden && make.hidden;
       });
-      return row(text, el('div', { className: 'vl-set-pills' }, members, make), true);
+      return out;
     },
     arranger: () => {
       const host = el('div', { className: 'vl-set-arrange' });

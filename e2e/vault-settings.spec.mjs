@@ -24,6 +24,15 @@ const open = async page => {
 };
 /** the page showing (the one on top, slid in) */
 const shown = page => page.locator('#vl-settings .vl-set-page:not([hidden])').last();
+/** a finger's path on the screen (Chromium's touch events, through the devtools protocol) */
+const touches = async (page, points) => {
+  const c = await page.context().newCDPSession(page);
+  const at = ([x, y]) => [{ x, y }];
+  await c.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: at(points[0]) });
+  for (const p of points.slice(1)) { await c.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(p) }); await page.waitForTimeout(16); }
+  await c.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await c.detach();
+};
 const settled = page => expect.poll(() => shown(page).evaluate(e => getComputedStyle(e).transform)).toMatch(/^(none|matrix\(1, 0, 0, 1, 0, 0\))$/);
 
 test('the gear opens Settings: the Options and Core plugins cards; a search finds Line numbers, kept over a reload', async ({ phone }) => {
@@ -85,6 +94,22 @@ test('Back steps out page by page, then closes; the X closes from a page', async
   await expect(page.locator('#vl-settings')).toBeHidden();
 });
 
+test('a swipe right on a page goes Back; a drag down on the root closes Settings', async ({ phone }) => {
+  const page = await phone(vault);
+  await signIn(page);
+  await open(page);
+  await page.click('#vl-set-go-about');
+  await settled(page);
+  await touches(page, [[30, 500], [50, 501], [100, 502], [170, 503], [240, 504], [300, 505]]);
+  await expect(page.locator('#vl-set-title-about')).toBeHidden();
+  await expect(page.locator('#vl-set-title-root')).toBeVisible();
+  await settled(page);
+  await touches(page, [[200, 40], [200, 60], [200, 140], [200, 260], [200, 380], [200, 500]]);
+  await expect(page.locator('#vl-settings')).toBeHidden();
+  await page.goBack();   // (its history step went with it: Back stays in the app)
+  await expect(page.locator('#vl-left')).toBeHidden();
+});
+
 test('a Core plugin off takes its view away: Tags view off, no Tags in the sidebar picker', async ({ phone }) => {
   const page = await phone(vault);
   await signIn(page);
@@ -125,7 +150,8 @@ test('Layout to Classic reloads to the tab bar; the Classic Settings keep every 
   await open(page);
   await page.click('#vl-set-go-appearance');
   await expect(page.locator('#opt-layout')).toHaveValue('vault');
-  await page.locator('#opt-layout').selectOption({ label: 'Classic layout' });
+  await Promise.all([page.waitForEvent('load'), page.locator('#opt-layout').selectOption({ label: 'Classic layout' })]);
+  await expect.poll(() => page.evaluate(() => window.starter?.ready), { timeout: 20_000 }).toBe(true);
   await expect(page.locator('#tab-notes')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.layout)).toBe('classic');
   await expect(page.locator('#vl-settings')).toHaveCount(0);

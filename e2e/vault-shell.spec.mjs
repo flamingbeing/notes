@@ -97,7 +97,7 @@ test('Core plugins: the Tab bar extra brings the tab bar back; Layout to Classic
 
   await page.goBack();   // the page, then
   await page.click('#vl-set-go-appearance');
-  await page.locator('#opt-layout').selectOption({ label: 'Classic layout' });
+  await Promise.all([page.waitForEvent('load'), page.locator('#opt-layout').selectOption({ label: 'Classic layout' })]);
   await expect(page.locator('#tab-notes')).toBeVisible();
   await expect.poll(() => page.evaluate(() => document.documentElement.dataset.layout)).toBe('classic');
   await expect(page.locator('#vl-nav')).toHaveCount(0);
