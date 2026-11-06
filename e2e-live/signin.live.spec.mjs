@@ -17,6 +17,20 @@ import { firebaseConfig } from '../app/src/config.js';
 const { email, password } = liveUser();
 test.skip(!email || !password || !firebaseConfig.apiKey, 'no test user, or the app has no web config yet');
 
+// These checks are the Classic layout's (list, tab bar, toasts): pin it on this device before the app starts, as the
+// e2e phone fixture does; the Vault layout (the default) has its own specs (e2e/vault-*.spec.mjs).
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    try {
+      const key = 'notes:settings:settings/device';
+      const kept = JSON.parse(localStorage.getItem(key) || 'null');
+      const o = kept && typeof kept === 'object' ? kept : { v: 1, values: {} };
+      o.values = o.values && typeof o.values === 'object' ? o.values : {};
+      if (!('layout' in o.values)) { o.values.layout = 'classic'; localStorage.setItem(key, JSON.stringify(o)); }
+    } catch { /* opaque origin */ }
+  });
+});
+
 const PREFIX = 'Live smoke';
 const PNG = path.resolve('e2e/fixtures/vault/Ideas/img/sprout.png');   // a made-up picture
 const SPROUT = /!\[\[sprout[^\]]*\]\]/;
