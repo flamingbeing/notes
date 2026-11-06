@@ -387,8 +387,9 @@ test('line spacing: the formatting bar’s last button steps Tight, Normal, Room
   await expect.poll(lh).toBeCloseTo(1.4, 1);
   await page.reload();
   await expect.poll(() => page.evaluate(() => window.starter.ready)).toBe(true);
-  // (the open note comes back by itself after a reload)
-  if (!await page.locator('#edit').isVisible()) await openNote(page, title);
+  // (the open note comes back by itself after a reload, a moment after start: wait for it, so a row tap doesn't race it)
+  const back = await expect(page.locator('#edit')).toBeVisible({ timeout: 5_000 }).then(() => true, () => false);
+  if (!back) await openNote(page, title);
   await ready(page);
   await expect(page.locator('#edit-fmt button.spacing')).toHaveAccessibleName('Line spacing: Tight');
   await expect.poll(lh).toBeCloseTo(1.4, 1);
