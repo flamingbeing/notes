@@ -31,12 +31,12 @@ const menu = async page => {
 };
 const noLonger = title => expect.poll(async () => (await serverNotes()).some(n => n.data.title === title), { timeout: 15_000 }).toBe(false);
 
-test('Source mode shows the Markdown as typed; the view button goes to the read view (links underlined) and back', async ({ phone }) => {
+test('Source mode shows the Markdown as typed; the view button goes to the read view (links underlined, tags as pills) and back', async ({ phone }) => {
   const page = await phone(vault);
   const { uid } = await signIn(page);
   const a = uniq('Src'), b = uniq('Other');
   await put(uid, b, { body: 'the other note' });
-  await put(uid, a, { body: `# Heading\n\nSome **bold** words and [[${b}]].\n\n- one\n- two`, links: [b.toLowerCase()] });
+  await put(uid, a, { body: `# Heading\n\nSome **bold** words and [[${b}]].\n\nTagged #garden/beds, not #2026 or C#x.\n\n- one\n- two`, links: [b.toLowerCase()] });
   await open(page, a);
   await expect(page.locator('#edit-cm')).toBeVisible();
   await expect(page.locator('#edit-cm .cm-content')).toContainText('Some **bold** words');
@@ -55,6 +55,13 @@ test('Source mode shows the Markdown as typed; the view button goes to the read 
   await expect(link).toBeVisible();
   expect(await link.evaluate(e => getComputedStyle(e).textDecorationLine)).toContain('underline');
   await expect(page.locator('#edit-read strong')).toHaveText('bold');
+  // (a tag a pill on a wash of the accent; all digits or inside a word, no tag)
+  await expect(page.locator('#edit-read .md-tag')).toHaveText(['#garden/beds']);
+  const pill = await page.locator('#edit-read .md-tag').evaluate(e => { const c = getComputedStyle(e); return { r: parseFloat(c.borderTopLeftRadius), bg: c.backgroundColor }; });
+  expect(pill.r).toBeGreaterThan(8);
+  expect(pill.bg).not.toBe('rgba(0, 0, 0, 0)');
+  // (the Classic page's Delete button: out of reach here)
+  expect(await page.locator('#edit-delete').evaluate(e => /** @type {HTMLElement} */ (e).inert && e.getAttribute('aria-hidden') === 'true')).toBe(true);
   await page.click('#vl-mode-btn');
   await expect(page.locator('#edit-cm')).toBeVisible();
   await expect(page.locator('#edit-read')).toBeHidden();

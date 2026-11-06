@@ -116,6 +116,9 @@ html[data-layout=vault] #edit-read li > input[type=checkbox]:checked { backgroun
 html[data-layout=vault] #edit-read li:has(> input[type=checkbox]:checked) { color: var(--vl-muted); text-decoration: line-through; }
 html[data-layout=vault] #edit-read blockquote { margin: 0 0 16px; padding: 0 0 0 16px; border-left: 2px solid var(--vl-accent); color: var(--vl-text); }
 html[data-layout=vault] #edit-read code { font-size: .875em; background: var(--vl-bg-2); border-radius: 4px; padding: .1em .3em; }
+/* tags: a pill, the accent's own colour on a light wash of it */
+html[data-layout=vault] #edit-read .md-tag { display: inline-block; padding: 0 6px; border-radius: 999px; line-height: 1.45;
+  background: color-mix(in srgb, var(--vl-accent) 15%, transparent); color: color-mix(in srgb, var(--vl-link) 85%, light-dark(#000000, #ffffff)); }
 
 /* the mobile toolbar (#vl-toolbar): flush on the keyboard, 42px tall, sideways when wider than the screen */
 #vl-toolbar { position: fixed; z-index: 35; left: 0; right: 0; bottom: var(--ui-keyboard-h, 0px); height: 42px; box-sizing: border-box; display: flex;
