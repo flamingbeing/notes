@@ -234,13 +234,14 @@ export async function vaultShell(app, kit, list, { who }) {
   };
   // (Ctrl/Cmd+O and +P: these, before the Classic list's own)
   window.addEventListener('keydown', e => {
-    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || html.classList.contains('vl-off')) return;
     const k = e.key.toLowerCase();
     if (k !== 'o' && k !== 'p') return;
-    const over = /** @type {HTMLDialogElement | null} */ (document.querySelector('dialog:modal'));
-    if (over && !over.classList.contains('vl-pick')) return;
     e.preventDefault();
     e.stopImmediatePropagation();
+    // (not over a drawer, a menu or Settings: only over the page, or the other of the two)
+    const over = /** @type {HTMLDialogElement | null} */ (document.querySelector('dialog:modal'));
+    if (over && !over.classList.contains('vl-pick')) return;
     if (k === 'o') void switcher(); else void palette();
   }, true);
 
@@ -476,6 +477,10 @@ export async function vaultShell(app, kit, list, { who }) {
   window.starter.vault = {
     /** a note opened by its title (tools/shot.mjs) @param {string} t */
     open: async t => { const note = list.notes().find(n => n.title === t); if (note) await page.open(note); return !!note; },
+    /** the right sidebar at a pane, the switcher, the palette (tools/shot.mjs) @param {string} [view] */
+    right: view => openRight(view),
+    switcher: () => switcher(),
+    palette: () => palette(),
   };
   // (a note the address named may be open already, shown before the shell was here)
   const opened = page.current();

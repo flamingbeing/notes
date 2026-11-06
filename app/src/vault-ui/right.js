@@ -157,7 +157,7 @@ export function rightSidebar(o, drawer) {
     const hs = o.current() ? headingsOf(o.body()) : [];
     outlineRows.replaceChildren(...hs.map((h, i) => {
       const b = el('button', { type: 'button', className: 'vl-outline-row' }, el('span', { className: 'vl-outline-text' }, h.text));
-      b.style.paddingInlineStart = `${12 + h.depth * 17}px`;
+      b.style.paddingInlineStart = `${5 + h.depth * 17}px`;
       b.dataset.level = String(h.level);
       b.addEventListener('click', () => void goTo(h, i));
       return b;
@@ -172,16 +172,14 @@ export function rightSidebar(o, drawer) {
   calPrev.setAttribute('aria-label', 'Previous month');
   const calNext = el('button', { type: 'button', id: 'vl-cal-next', className: 'vl-cal-nav' }, glyph('chevronRight'));
   calNext.setAttribute('aria-label', 'Next month');
-  const calToday = el('button', { type: 'button', id: 'vl-cal-today', className: 'vl-cal-nav vl-cal-today-btn' }, 'Today');
   const calGrid = el('div', { id: 'vl-cal-grid', className: 'vl-cal-grid' });
   calGrid.setAttribute('role', 'grid');
   const calPane = el('div', { id: 'vl-r-calendar', className: 'vl-view vl-rpane', hidden: true },
-    el('div', { className: 'vl-cal-head' }, calTitle, el('div', { className: 'vl-cal-navs' }, calPrev, calToday, calNext)), calGrid);
+    el('div', { className: 'vl-cal-head' }, calTitle, el('div', { className: 'vl-cal-navs' }, calPrev, calNext)), calGrid);
   /** @param {number} by */
   const shift = by => { const now = month || { y: new Date().getFullYear(), m: new Date().getMonth() }; const t = new Date(now.y, now.m + by, 1); month = { y: t.getFullYear(), m: t.getMonth() }; panes.calendar.draw(); };
   calPrev.addEventListener('click', () => shift(-1));
   calNext.addEventListener('click', () => shift(1));
-  calToday.addEventListener('click', () => { month = null; panes.calendar.draw(); });
   panes.calendar = { el: calPane, draw: () => {
     const today = isoDay();
     const open = o.current();
@@ -191,7 +189,7 @@ export function rightSidebar(o, drawer) {
     const have = dailyMap(o.notes());
     calTitle.replaceChildren(`${MONTHS_SHORT[g.month]} `, el('span', { className: 'vl-cal-year' }, String(g.year)));
     calTitle.setAttribute('aria-label', g.title);
-    const head = el('div', { className: 'vl-cal-row vl-cal-wk' }, ...WEEKDAYS.map(w => faint(el('span', { className: 'vl-cal-wd' }, w.toUpperCase()))));
+    const head = el('div', { className: 'vl-cal-row vl-cal-wk' }, ...WEEKDAYS.map(w => el('span', { className: 'vl-cal-wd' }, w.toUpperCase())));
     head.setAttribute('role', 'row');
     for (const c of head.children) c.setAttribute('role', 'columnheader');
     /** @type {HTMLElement[]} */

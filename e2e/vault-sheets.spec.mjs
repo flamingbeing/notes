@@ -46,11 +46,11 @@ test('the quick switcher: the box at the bottom, bold letters, the first row sel
   const q = page.locator('#vl-switcher-q');
   await expect(q).toBeFocused();
   await expect(q).toHaveAttribute('placeholder', 'Find or create a note...');
-  // the box at the bottom; the sheet's top under the header
+  // the box at the bottom; the sheet's top just under the header's buttons
   const box = /** @type {{ y: number, height: number }} */ (await page.locator('.vl-pick-box').first().boundingBox());
   expect(box.y + box.height).toBeGreaterThan(780);
   expect(Math.round(box.height)).toBe(50);
-  await expect.poll(async () => Math.round((await sheet.boundingBox())?.y ?? 0)).toBe(102);
+  await expect.poll(async () => Math.round((await sheet.boundingBox())?.y ?? 0)).toBe(56);
   // nothing typed: the note opened last first
   await expect(page.locator('#vl-switcher-o0')).toHaveText(n.bread);
   await expect(page.locator('#vl-switcher-o0')).toHaveAttribute('aria-selected', 'true');

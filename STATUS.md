@@ -31,6 +31,18 @@
   on the header title renames in place. Fixed: the drawer's Undo after Delete never found the bin entry. Classic note
   screenshots are pixel-identical to before. Gaps: Live Preview in Vault is still the Classic live preview; Find is a
   small bar of its own (the vendored CodeMirror has no search panel); no reference frame of the toolbar itself.
+- Vault layout, slice 4 of 5 (6 Nov): the right sidebar (a swipe left on the note, or the palette): Backlinks (the
+  Linked mentions with their tools), Outgoing links ("Links N", a faint link makes its note), Outline (the headings as
+  a tree; a tap scrolls the editor or read view there) and Calendar (a month, a dot on days with a daily note; a tap
+  opens or makes that day's note), each following its Core plugin; a footer with the note's name, its words and
+  characters (Word count) and the sync state (a tap syncs now). The quick switcher (the pill's search, Go to file,
+  Ctrl+O; the box at the bottom, matched letters bold, Enter on a new name makes the note) and the command palette
+  (Ctrl+P, the ribbon, a pull down on the note; recent commands first) share one sheet. The ribbon menu (switcher,
+  today's note, palette, new note, random note, Search, Bookmarks, the extras that are on, Settings) and the tabs
+  sheet ("N tabs", each tab's folder, close one or all) are their own sheets; palette commands for previous and next
+  daily notes. Classic screenshots are pixel-identical to before. Gaps: no Unlinked mentions under Outgoing links and
+  no Outline tools (search, collapse) yet; no reference frame for the ribbon menu, the command palette, the tab
+  switcher or the pull-down: check against an owner recording.
 - Haiku tab (29 Oct, decision 0021): owner and admins pick a prompt (notes in `Prompts/`), paste, Run, and Claude
   Haiku's reply replaces the text; Undo, Copy. The text is never stored. Live once the `ANTHROPIC_API_KEY` Worker secret is set.
 - S1 data core: notes in a per-person vault, links, tags, backlinks, rename, daily note, line merge with conflict

@@ -452,27 +452,27 @@ dialog.vl-prompt::backdrop { background: var(--vl-shade-sheet); }
 #vl-tabs-sheet .vl-row .vl-icon:first-child { color: var(--vl-muted); }
 
 /* ---- the quick switcher and the command palette (S10): a grey sheet from under the header, the results from the top,
-   the box at the bottom over the keyboard */
-dialog.vl-pick { position: fixed; inset: calc(var(--vl-top) + 102px) 0 0 0; z-index: 41; width: 100%; max-width: 560px; height: auto; max-height: none;
+   the box at the bottom over the keyboard (the reference's 102 CSS top counts its 46 CSS status bar: 56 under ours) */
+dialog.vl-pick { position: fixed; inset: calc(var(--vl-top) + 56px) 0 0 0; z-index: 41; width: 100%; max-width: 560px; height: auto; max-height: none;
   margin: 0 auto; padding: 0; border: 0; box-sizing: border-box; border-radius: 31px 31px 0 0; background: var(--vl-bg-2); color: var(--vl-text);
   font-family: var(--vl-font); overflow: hidden; display: none; flex-direction: column; }
 dialog.vl-pick[open] { display: flex; }
 dialog.vl-pick::backdrop { background: transparent; }
 .vl-pick-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 0 8px; }
-.vl-pick-row { height: 37px; margin: 0 12px; padding: 0 12px; display: flex; align-items: center; border-radius: 12px; font-size: 16px; cursor: pointer;
+.vl-pick-row { height: 37px; margin: 0 12px; padding: 0 13px; display: flex; align-items: center; border-radius: 12px; font-size: 15px; cursor: pointer;
   white-space: nowrap; overflow: hidden; -webkit-tap-highlight-color: transparent; }
 .vl-pick-row > span { overflow: hidden; text-overflow: ellipsis; }
 .vl-pick-text { flex: 1; min-width: 0; }
 .vl-pick-row[aria-selected=true] { background: var(--vl-hover); }
 .vl-pick-row b { font-weight: 700; }
-.vl-pick-group { flex: none; color: var(--vl-muted); }
+.vl-pick-group { flex: none; color: var(--vl-muted); white-space: pre; }
 .vl-pick-none { margin: 4px 24px; font-size: 16px; }
 .vl-pick-none[hidden] { display: none; }
 .vl-pick-foot { flex: none; padding: 9px 9px calc(9px + max(var(--vl-bottom), var(--ui-keyboard-h, 0px))); }
-.vl-pick-box { height: 50px; display: flex; align-items: center; gap: 2px; padding: 0 6px 0 18px; box-sizing: border-box; border-radius: 999px;
+.vl-pick-box { height: 50px; display: flex; align-items: center; gap: 3px; padding: 0 10px 0 16px; box-sizing: border-box; border-radius: 999px;
   background: var(--vl-card); box-shadow: var(--vl-shadow); }
-.vl-pick-q { flex: 1; min-width: 0; height: 100%; border: 0; margin: 0; padding: 0; background: none; color: var(--vl-text); font: 16px var(--vl-font); outline: none;
-  box-shadow: none; }
+html[data-layout=vault] dialog.vl-pick input.vl-pick-q { flex: 1; min-width: 0; height: 100%; border: 0; border-radius: 0; margin: 0; padding: 0; background: none;
+  color: var(--vl-text); font: 16px var(--vl-font); outline: none; box-shadow: none; }
 .vl-pick-q::placeholder { color: var(--vl-faint); opacity: 1; }
 .vl-pick-btn { appearance: none; border: 0; margin: 0; padding: 0; width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 999px;
   background: none; color: var(--vl-muted); cursor: pointer; }
@@ -483,16 +483,16 @@ dialog.vl-pick::backdrop { background: transparent; }
 
 /* ---- the right sidebar (S7): its panes, the tool row, the footer (the note's name, its size, the sync state) */
 .vl-rpane { padding: 0 12px; }
-.vl-rpane-head { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 12px; }
-.vl-rpane-title { margin: 0; font: 500 15px var(--vl-font); color: var(--vl-text); }
+.vl-rpane-head { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 5px 0 8px; }
+.vl-rpane-title { margin: 0; font: 400 16px var(--vl-font); color: var(--vl-text); }
 .vl-rpane-count { font-size: 13px; }
-.vl-rpane-empty { margin: 8px 12px; font-size: 14px; }
+.vl-rpane-empty { margin: 8px 12px; font-size: 14px; text-align: center; }
 .vl-rpane-empty[hidden] { display: none; }
 #vl-r-backlinks .vl-mn { margin: 0; padding: 0 12px; border-top: 0; }
 #vl-right .vl-tools .vl-mn-tool { width: 53px; height: 44px; border-radius: 10px; }
 #vl-right .vl-tools .vl-mn-tool .vl-icon { width: 20px; height: 20px; }
-.vl-out-row, .vl-outline-row { appearance: none; border: 0; margin: 0; width: 100%; height: 36px; padding: 0 12px; box-sizing: border-box; display: flex; align-items: center;
-  justify-content: flex-start; gap: 8px; border-radius: 8px; background: none; color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer;
+.vl-out-row, .vl-outline-row { appearance: none; border: 0; margin: 0; width: 100%; height: 36px; padding: 0 5px; box-sizing: border-box; display: flex; align-items: center;
+  justify-content: flex-start; gap: 4px; border-radius: 8px; background: none; color: var(--vl-text); font: 16px var(--vl-font); text-align: start; cursor: pointer;
   -webkit-tap-highlight-color: transparent; }
 .vl-out-row:active, .vl-outline-row:active { background: var(--vl-hover); }
 .vl-out-row[data-faint] { color: var(--vl-faint); }
@@ -501,22 +501,22 @@ dialog.vl-pick::backdrop { background: transparent; }
 :is(.vl-out-row, .vl-outline-row, .vl-cal-day, .vl-cal-nav, .vl-sync):focus-visible { outline: 2px solid var(--vl-accent); outline-offset: -2px; }
 /* the calendar: the month (its year in the accent), the arrows, a grid of days (a dot under one with a daily note) */
 .vl-cal-head { display: flex; align-items: center; justify-content: space-between; padding: 0 4px 0 12px; min-height: 44px; }
-.vl-cal-title { margin: 0; font: 700 22px var(--vl-font); }
+.vl-cal-title { margin: 0; font: 400 20px var(--vl-font); }
 .vl-cal-year { color: var(--vl-link); }
 .vl-cal-navs { display: flex; align-items: center; }
 .vl-cal-nav { appearance: none; border: 0; margin: 0; padding: 0 6px; min-width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px;
   background: none; color: var(--vl-muted); font: 13px var(--vl-font); text-transform: uppercase; cursor: pointer; }
 .vl-cal-nav .vl-icon { width: 20px; height: 20px; }
-.vl-cal-grid { display: grid; gap: 2px; padding: 4px 4px 0; }
+.vl-cal-grid { display: grid; padding: 4px 0 0; }
 .vl-cal-row { display: grid; grid-template-columns: repeat(7, 1fr); }
-.vl-cal-wd { text-align: center; font: 600 11px/28px var(--vl-font); letter-spacing: .02em; }
-.vl-cal-day { appearance: none; border: 0; margin: 0; padding: 4px 0 2px; height: 44px; display: grid; justify-items: center; align-content: start; gap: 3px;
-  border-radius: 8px; background: none; color: var(--vl-text); font: 15px var(--vl-font); cursor: pointer; }
+.vl-cal-wd { text-align: center; font: 600 10px/24px var(--vl-font); letter-spacing: .04em; color: var(--vl-text); }
+.vl-cal-day { appearance: none; border: 0; margin: 0; padding: 0; height: 32px; position: relative; display: grid; place-items: center;
+  border-radius: 8px; background: none; color: var(--vl-text); font: 14px var(--vl-font); cursor: pointer; }
 .vl-cal-day:active { background: var(--vl-hover); }
 .vl-cal-day[data-faint] { color: var(--vl-faint); }
-.vl-cal-now .vl-cal-n { color: var(--vl-link); font-weight: 700; }
+.vl-cal-now .vl-cal-n { color: var(--vl-link); }
 .vl-cal-day[aria-current=date] { background: var(--vl-current); }
-.vl-cal-dot { width: 5px; height: 5px; border-radius: 50%; background: transparent; }
+.vl-cal-dot { position: absolute; left: 50%; bottom: 2px; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: transparent; }
 .vl-cal-has .vl-cal-dot { background: var(--vl-muted); }
 .vl-footer { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding-left: 12px; }
 .vl-foot-text { flex: 1; min-width: 0; display: grid; gap: 2px; }
