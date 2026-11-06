@@ -233,9 +233,6 @@ html.vl-tabbar #tabbar { z-index: 20; }
 /* ---- Settings (S5): the kit's sheet (ui/vault/settings-sheet.js, ui/vault/vault.css); here only the parts Notes draws
    itself: the folder boxes, the pills side by side, the accent's colour well and the font size's slider with their
    resets, the theme's pickers, the toolbar's commands, the spaces, the tab arranger */
-/* (a part that is a whole block of rows: no words of its own over it) */
-.ui-vault-set-row:has(> .vl-set-bare) { display: block; padding: 0; }
-.ui-vault-set-row:has(> .vl-set-bare) > .ui-vault-set-text { display: none; }
 html[data-layout=vault] .vl-set-input { appearance: none; flex: none; width: 100%; min-width: 0; height: 45px; min-height: 0; margin: 0; padding: 0 16px;
   box-sizing: border-box; border: 0; border-radius: 23px; background: var(--vl-bg-2); color: var(--vl-text); font: 16px var(--vl-font);
   box-shadow: none; text-align: start; }

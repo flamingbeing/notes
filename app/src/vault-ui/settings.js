@@ -82,7 +82,8 @@ export function settingsHost(app, h) {
     const id = r.alias ? `vl-opt-${r.key}-2` : `opt-${r.key}`;
     const def = OPTIONS[r.key]?.default;
     const w = r.when;
-    const base = { id, label: r.label, sub: r.sub, keywords, shown: w ? () => on(w) : undefined };
+    // (an option's second row, on another page: the search finds the first only)
+    const base = { id, label: r.label, sub: r.sub, keywords, shown: w ? () => on(w) : undefined, find: r.alias ? false : undefined };
     if (r.choices) {
       return { ...base, choice: { options: r.choices, get: () => String(settings.get(r.key) ?? def),
         // (a new layout: the app loads again in it)
@@ -130,12 +131,9 @@ export function settingsHost(app, h) {
       go.disabled = !app.update;
       return go;
     } }),
-    account: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
-      const out = pill('Log out', () => {}, { id: 'sign-out', danger: true });
-      // (the email after the line's words, where the app keeps it current)
-      queueMicrotask(() => subOf(out)?.append(' ', el('span', { id: 'who', textContent: h.who() })));
-      return out;
-    } }),
+    // (the email after the line's words, where the app keeps it current)
+    account: (r, keywords) => ({ label: r.label, sub: () => el('span', {}, r.sub || '', ' ', el('span', { id: 'who', textContent: h.who() })), keywords, under: true,
+      control: () => pill('Log out', () => {}, { id: 'sign-out', danger: true }) }),
     file: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, under: true, control: () => {
       const picker = /** @type {HTMLInputElement} */ (el('input', { type: 'file', accept: '.json,application/json', hidden: true }));
       const exp = pill('Export', () => {
@@ -188,8 +186,8 @@ export function settingsHost(app, h) {
       sync();
       return el('div', { className: 'vl-set-ctl' }, reset, value, slide);
     } }),
-    theme: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
-      const host = el('div', { className: 'vl-set-theme vl-set-bare' });
+    theme: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, bare: true, control: () => {
+      const host = el('div', { className: 'vl-set-theme' });
       themeSwitch(host);
       // (the kit's pickers the Vault layout has its own rows for, or pins: Base color scheme, Accent color and Font
       // size above; look, style, ground and density stay the Classic layout's)
@@ -208,14 +206,14 @@ export function settingsHost(app, h) {
       host.addEventListener('change', () => pickTheme());
       return host;
     } }),
-    commands: (r, keywords) => ({ label: r.label, keywords, control: () => {
+    commands: (r, keywords) => ({ label: r.label, keywords, bare: true, control: () => {
       const spacing = el('div', { className: 'vl-set-cmd', hidden: !on('xLineSpacing') }, glyph('type'), el('span', { textContent: 'Line spacing' }));
-      const list = el('div', { className: 'vl-set-cmds vl-set-bare' }, ...TOOLBAR.map(t => el('div', { className: 'vl-set-cmd' }, glyph(t.icon), el('span', { textContent: t.label }))));
+      const list = el('div', { className: 'vl-set-cmds' }, ...TOOLBAR.map(t => el('div', { className: 'vl-set-cmd' }, glyph(t.icon), el('span', { textContent: t.label }))));
       list.insertBefore(spacing, list.lastChild);
       return list;
     } }),
-    spaces: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
-      const box = el('div', { className: 'vl-set-spaces vl-set-bare' });
+    spaces: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, bare: true, control: () => {
+      const box = el('div', { className: 'vl-set-spaces' });
       box.setAttribute('role', 'radiogroup');
       box.setAttribute('aria-label', 'Spaces');
       const here = app.space().id, mine = app.vault();
@@ -249,11 +247,10 @@ export function settingsHost(app, h) {
         return el('div', { className: 'vl-set-pills' }, a, b);
       } };
     },
-    arranger: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, control: () => {
-      const host = el('div', { className: 'vl-set-arrange vl-set-bare' });
+    arranger: (r, keywords) => ({ label: r.label, sub: r.sub, keywords, bare: true, drawn: arrange, control: () => {
+      const host = el('div', { className: 'vl-set-arrange' });
       host.dataset.noSwipe = '';
       arrangerHost = host;
-      queueMicrotask(arrange);
       return host;
     } }),
     install: (r, keywords) => {
@@ -339,15 +336,6 @@ export function settingsHost(app, h) {
   // is drawn again only if a row there came or went (so a switch's knob keeps moving)
   /** @type {Map<string, string>} the plugin's options page: its gear */
   const gearOf = new Map(pluginCards().flatMap(c => c.rows).filter(p => p.gear).map(p => [p.key, /** @type {string} */ (p.gear)]));
-  /** whether a row of the page on top came or went since it was drawn (its rows' places against the drawn ones) */
-  const drift = () => {
-    const top = sheet.top();
-    const page = PAGES.find(pg => pg.id === top);
-    const cards = top === 'root' ? rootCards() : page ? cardsOf(page) : [];
-    const want = cards.flatMap((c, ci) => c.rows.map((r, ri) => (!r.shown || r.shown() ? `${ci}-${ri}` : ''))).filter(Boolean).join(' ');
-    const drawn = d.querySelectorAll(`.ui-vault-set-page[data-page="${top}"] .ui-vault-set-card > [data-row]`);
-    return want !== [...drawn].map(n => /** @type {HTMLElement} */ (n).dataset.row).join(' ');
-  };
   settings.watch(null, (/** @type {unknown} */ v, /** @type {string | undefined} */ key) => {
     if (!sheet.isOpen()) return;
     if (key) {
@@ -360,7 +348,7 @@ export function settingsHost(app, h) {
       const g = gearOf.get(key) && document.getElementById(`vl-set-gear-${gearOf.get(key)}`);
       if (g) g.hidden = v !== true;
     }
-    if (drift()) sheet.refresh();
+    sheet.refresh({ ifRowsChanged: true });
   });
 
   // a button that opens one of the app's sheets: Settings closes first (its steps landed), then the click goes on to list.js
