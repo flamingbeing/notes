@@ -39,10 +39,11 @@ const AUTO = { title: false, say: false };
  * @param {() => boolean} canWrite  false: the sheet only shows the note (a viewer)
  * @param {(note: Note, step: { n: number, pushed: boolean }) => void} [onShow]  a note is on the page (the list marks its
  *   row); step: its place in the history (n, 1 the first note) and whether it is a new step (not Back or Forward)
- * @param {{ home?: boolean, onBlank?: () => void, swipeOn?: () => boolean, swipeBack?: () => boolean }} [layout]  home: the Vault layout, where
+ * @param {{ home?: boolean, onBlank?: () => void, swipeOn?: () => boolean, swipeBack?: () => boolean, onUpdate?: (view: import('@codemirror/view').EditorView) => void }} [layout]  home: the Vault layout, where
  *   the page is the home screen: never modal, never closed (closing a note shows the empty page, onBlank), the first
  *   note opened takes the place of the page's first history step (Back from it leaves the app, as from the list);
- *   swipeOn: the swipe right is on there (a Notes extra); swipeBack: it goes to the list (true: it did)
+ *   swipeOn: the swipe right is on there (a Notes extra); swipeBack: it goes to the list (true: it did); onUpdate: each
+ *   editor update (the Vault layout's toolbar)
  */
 export function notePage(app, toast, canWrite, onShow, layout = {}) {
   const home = !!layout.home;
@@ -343,7 +344,7 @@ export function notePage(app, toast, canWrite, onShow, layout = {}) {
         onChange: text => { area().value = text; typing(); },
         onBlur: () => void commit(AUTO),
         onLink: t => void go(t),
-        onUpdate: v => bar?.refresh(v),
+        onUpdate: v => { bar?.refresh(v); layout.onUpdate?.(v); },
       });
       bar = fmtBar(() => ed?.view || null, { get: () => String(settings.get('lineSpacing') || 'normal'), set: v => settings.set('lineSpacing', v) });
       $('edit-fmt').replaceChildren(bar);
@@ -581,6 +582,10 @@ export function notePage(app, toast, canWrite, onShow, layout = {}) {
     },
     /** in the read view now */
     reading: () => reading,
+    /** the editor's view (null until it has loaded, or if it could not) */
+    editor: () => ed?.view || null,
+    /** once the editor has loaded (or failed to), with the note open in it */
+    whenEditor: () => load(),
     /** a note the address named at load, not open yet ('' : none) */
     linked: () => linked || '',
   };

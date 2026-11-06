@@ -6,7 +6,7 @@ import {
   EditorState, EditorView, Compartment, keymap, placeholder, lineNumbers, drawSelection, Language, syntaxHighlighting,
   HighlightStyle, syntaxTree, history, defaultKeymap, historyKeymap, markdownLanguage, markdownKeymap, autocompletion, completionKeymap, tags,
 } from '@vendor/codemirror';
-import { notesSyntax } from './syntax.js';
+import { notesSyntax, linkText } from './syntax.js';
 import { livePreview } from './live-preview.js';
 import { htmlToMarkdown } from '../notes/paste-clean.js';
 import { linkFor } from '../notes/paste-link.js';
@@ -18,7 +18,13 @@ const parser = /** @type {import('@lezer/markdown').MarkdownParser} */ (markdown
 const language = new Language(markdownLanguage.data, parser, [], 'markdown');
 // the colours come from the theme (app.css: .cm-* classes), so only the classes are set here
 const highlight = HighlightStyle.define([
+  // (each level its own class too, for a theme that sizes them: the Vault layout)
+  { tag: tags.heading1, class: 'cm-hd cm-hd1' },
+  { tag: tags.heading2, class: 'cm-hd cm-hd2' },
+  { tag: tags.heading3, class: 'cm-hd cm-hd3' },
+  { tag: [tags.heading4, tags.heading5, tags.heading6], class: 'cm-hd cm-hd4' },
   { tag: tags.heading, class: 'cm-hd' },
+  { tag: linkText, class: 'cm-wl-text' },
   { tag: tags.emphasis, class: 'cm-em' },
   { tag: tags.strong, class: 'cm-strong' },
   { tag: tags.strikethrough, class: 'cm-strike' },
