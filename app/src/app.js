@@ -83,7 +83,7 @@ else {
     // (the Vault layout: the note open is saved, then the page shows none, so nothing of this account stays on screen)
     if (vault) await (await list.pageReady()).blank();
     dialog('settings-panel').close();
-    /** @type {HTMLDialogElement | null} */ (document.getElementById('vl-settings'))?.close();
+    /** @type {HTMLDialogElement | null} */ (document.getElementById('vl-set'))?.close();
     kit.tabs?.go('#home');
     dropSnap();
     // (the Vault layout's own state on this device, vault-ui/state.js: the last note, tabs and the like)

@@ -173,32 +173,3 @@ export const TOOLBAR = [
   { id: 'unindent', icon: 'indentDecrease', label: 'Unindent' },
   { id: 'hide', icon: 'keyboardOff', label: 'Hide keyboard' },
 ];
-
-/**
- * The rows a search finds: each row whose words (its name, its line, its page's title, its extra words) hold every
- * word typed, with its page. Headings and second rows are left out.
- * @param {string} q @param {(page: Page) => boolean} [shown]  the pages showing now (a plugin's while it is on)
- * @returns {{ page: Page, row: Row, index: number }[]}
- */
-export function findRows(q, shown = () => true) {
-  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
-  if (!words.length) return [];
-  /** @type {{ page: Page, row: Row, index: number }[]} */
-  const out = [];
-  for (const page of PAGES) {
-    if (!shown(page)) continue;
-    page.rows.forEach((row, index) => {
-      if ('heading' in row || ('alias' in row && row.alias)) return;
-      if (page.id === 'plugins') {
-        for (const p of PLUGINS) {
-          const text = `${p.label} ${p.sub} ${page.title}`.toLowerCase();
-          if (words.every(w => text.includes(w))) out.push({ page, row: /** @type {Row} */ ({ key: p.key, label: p.label, sub: p.sub }), index });
-        }
-        return;
-      }
-      const text = [row.label, 'sub' in row ? row.sub : '', 'find' in row ? row.find : '', 'info' in row ? row.info : '', page.title].join(' ').toLowerCase();
-      if (words.every(w => text.includes(w))) out.push({ page, row, index });
-    });
-  }
-  return out;
-}
