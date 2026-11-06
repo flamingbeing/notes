@@ -37,6 +37,7 @@ const SHELL = [
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
   'icons/icon.svg',
+  'icons/og.png',
   'manifest.webmanifest',
   'search/index.js',
   'search/query.js',

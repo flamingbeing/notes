@@ -1,10 +1,10 @@
 // The service worker installs the whole app (the generated SHELL in public/sw.js: the page, its files, vendored
 // Firebase and the pinned core files), so a phone that has opened the app once starts it with no network at all.
-import { test, expect, uniq, signIn, add, synced } from './fixtures.mjs';
+import { test, expect, uniq, signIn, add, synced, APP } from './fixtures.mjs';
 
 test('with no network, the app starts from the service worker and shows the saved list', async ({ phone }) => {
   const page = await phone();
-  await signIn(page, 'member', { path: '/app/?emulator&sw' });
+  await signIn(page, 'member', { path: APP + '&sw' });
   await expect.poll(() => page.evaluate(() => !!navigator.serviceWorker.controller), { timeout: 30_000 }).toBe(true);
   // every SHELL file is in the cache once the worker is in charge (vendored Firebase among them)
   const cached = await page.evaluate(async () => {

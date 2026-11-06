@@ -6,8 +6,12 @@ import path from 'node:path';
 import { fsAdmin } from '../.devkit/playwright/helpers.mjs';
 
 export const db = fsAdmin('demo-notes');
-// (E2E_EMULATOR: the emulators' ports when not the usual ones, "<firestore>:<auth>", e.g. 8181:9199)
-export const APP = process.env.E2E_EMULATOR ? `/app/?emulator=${process.env.E2E_EMULATOR}` : '/app/?emulator';
+// The emulators' ports when not the usual 8080/9099 (a machine where 8080 is taken): E2E_EMULATOR="<firestore>:<auth>",
+// else the ports in FIRESTORE_EMULATOR_HOST / FIREBASE_AUTH_EMULATOR_HOST; app-sync's ?emulator=<fs>:<auth> reads them
+const port = host => host?.match(/:(\d+)$/)?.[1];
+const ports = process.env.E2E_EMULATOR || (port(process.env.FIRESTORE_EMULATOR_HOST) || port(process.env.FIREBASE_AUTH_EMULATOR_HOST)
+  ? `${port(process.env.FIRESTORE_EMULATOR_HOST) || 8080}:${port(process.env.FIREBASE_AUTH_EMULATOR_HOST) || 9099}` : '');
+export const APP = ports ? `/app/?emulator=${ports}` : '/app/?emulator';
 export const uniq = (p = 't') => `${p}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 // SYNC_DIR: a local app-sync build (its entry files and src/) served in place of core.anawj.com/sync/<version>/, so

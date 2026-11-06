@@ -23,6 +23,7 @@
   // the app's files (@core/files; worker/files.js): one private bucket per app, made once before the first deploy
   // (README, "Files"); tools/fill.mjs names it after the app
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "notes-files" }],
+  // add: triggers
   // the real address, as in worker/routes.js SITES; the first deploy adds the custom domain
   "routes": [{ "pattern": "notes.flamingbeing.com", "custom_domain": true }]
 }
