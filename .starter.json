@@ -1,7 +1,7 @@
 {
   "template": "flamingbeing/app-starter",
   "version": "0.2.0",
-  "commit": "39f351e",
+  "commit": "c419b71",
   "app": {
     "name": "notes",
     "host": "notes.flamingbeing.com",

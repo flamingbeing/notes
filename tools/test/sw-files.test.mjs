@@ -1,4 +1,4 @@
-// tools/sw-files.mjs on made-up app folders and a made-up app-sync. node --test tools/test/sw-files.test.mjs
+// tools/sw-files.mjs on made-up app folders and a made-up app-sync and app-ui. node --test tools/test/sw-files.test.mjs
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
