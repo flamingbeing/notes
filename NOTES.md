@@ -9,6 +9,11 @@ person has their own vault (`spaces/<uid>/notes`); tests run side by side and ch
 Keep each browser test well inside the 60 s timeout: an axe run takes about 1 s and a slow CI runner is about 3x
 slower than a usual one, so a loop of axe runs is one test per case (`e2e/theme.spec.mjs`, one per look).
 
+Screenshots: `node tools/shot.mjs <out.png> [--dark] [--tab folders] [--note "Garden plan"] [--settings List] [--opt bigRows=true]`
+signs in a made-up account on the emulators and saves a 390x844 (3x) PNG of one screen with the made-up notes in
+`tools/shot-seed.json` (options in the file's header). Another service on port 8080? Export
+`FIRESTORE_EMULATOR_HOST=127.0.0.1:8181 FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9199` first.
+
 Test list (what each part is proved by):
 
 - Parser, links, tags, aliases, daily ids, rename plan, backlink index, `merge3`: `app/test/*.unit.test.mjs`.

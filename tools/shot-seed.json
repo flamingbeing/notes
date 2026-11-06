@@ -1,0 +1,89 @@
+{
+ "spaces/_/notes/welcome": {
+  "path": "",
+  "title": "Welcome",
+  "body": "# Welcome\n\nThis is a made-up vault for screenshots. See [[Garden plan]] and [[Reading list]].\n\n- [ ] Try a **bold** idea\n- [x] Make a note\n\n#sample",
+  "tags": [
+   "sample"
+  ],
+  "links": [
+   "garden plan",
+   "reading list"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-0}}"
+ },
+ "spaces/_/notes/garden": {
+  "path": "Projects",
+  "title": "Garden plan",
+  "body": "# Garden plan\n\nBeds along the south fence. Tomatoes, basil, beans.\n\n## Tasks\n- [ ] Buy seeds\n- [ ] Build the frame\n\nRelated: [[Reading list]] #garden #plan",
+  "tags": [
+   "garden",
+   "plan"
+  ],
+  "links": [
+   "reading list"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-90}}"
+ },
+ "spaces/_/notes/reading": {
+  "path": "Ideas",
+  "title": "Reading list",
+  "body": "# Reading list\n\n1. A book about bees\n2. A book about soil\n\nBack to [[Welcome]] #books",
+  "tags": [
+   "books"
+  ],
+  "links": [
+   "welcome"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-180}}"
+ },
+ "spaces/_/notes/meeting": {
+  "path": "Projects/Meetings",
+  "title": "Kickoff meeting",
+  "body": "## Kickoff meeting\n\nAgenda: scope, dates, owners. Notes follow the call. #meeting",
+  "tags": [
+   "meeting"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-270}}"
+ },
+ "spaces/_/notes/day-{{today}}": {
+  "path": "Daily",
+  "title": "{{today}}",
+  "body": "# {{today}}\n\n- [ ] Water the plants\n- [ ] Call the plumber\n\nSee [[Garden plan]]",
+  "daily": "{{today}}",
+  "links": [
+   "garden plan"
+  ],
+  "aliases": [],
+  "updatedAt": "{{now-360}}"
+ },
+ "spaces/_/notes/day-{{today-1}}": {
+  "path": "Daily",
+  "title": "{{today-1}}",
+  "body": "# {{today-1}}\n\nQuiet day. Read a chapter. #journal",
+  "daily": "{{today-1}}",
+  "tags": [
+   "journal"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-450}}"
+ },
+ "spaces/_/notes/recipe": {
+  "path": "Ideas",
+  "title": "Soup recipe",
+  "body": "# Soup recipe\n\nOnions, carrots, stock. Simmer for forty minutes.\n\n#recipe #food",
+  "tags": [
+   "recipe",
+   "food"
+  ],
+  "aliases": [],
+  "links": [],
+  "updatedAt": "{{now-540}}"
+ }
+}
