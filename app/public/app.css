@@ -233,5 +233,7 @@ footer { margin-top: 2rem; }
 /* The Vault layout (vault-ui/, its styles in vault.css, which its shell adds): the note is home; the Classic list stays
    out of sight under it until a Notes extra shows one of its pages (data-vl-page), the tab bar only when turned on */
 html[data-layout=vault]:not([data-vl-page]) #list-view > :not(#tabbar) { visibility: hidden; }
+/* (the kit's side bar hide button stays visible when the side bar is hidden, fixed at the top-left: not over the note page) */
+html[data-layout=vault]:not([data-vl-page]) #list-view .ui-side-toggle { visibility: hidden; }
 html[data-layout=vault]:not(.vl-tabbar) #tabbar { display: none; }
 html[data-layout=vault] body { background: var(--editor-bg); }
