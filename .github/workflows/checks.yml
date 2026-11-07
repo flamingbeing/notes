@@ -122,7 +122,7 @@ jobs:
     with:
       name: bundle
       bundle: app/index.html --sw app/public/sw.js
-      devkit-ref: v1.16.0
+      devkit-ref: v1.19.1
       args: --grep=@smoke
       # sync{
       emulators: firestore,auth

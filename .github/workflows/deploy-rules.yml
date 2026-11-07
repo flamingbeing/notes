@@ -20,4 +20,4 @@ jobs:
       wif-provider: ${{ vars.WIF_PROVIDER }}
       rules-deployer: ${{ vars.RULES_DEPLOYER }}
       build-rules-check: firestore.app.rules
-      devkit-ref: v1.16.0
+      devkit-ref: v1.19.1
