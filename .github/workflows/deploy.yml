@@ -19,6 +19,6 @@ jobs:
     with:
       # join the startup files and the pinned core into a few (README, "Keep the first screen fast"); then the stamp
       bundle: app/index.html --sw app/public/sw.js
-      devkit-ref: v1.16.0
+      devkit-ref: v1.19.1
       stamp-command: node tools/stamp-versions.mjs app
     secrets: inherit
